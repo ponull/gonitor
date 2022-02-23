@@ -3,11 +3,11 @@ App:
  DbLog: true
 
 Sqlite:
- DbPath: C:\Users\ShaumChen\Desktop\jd_promotion.db
+ DbPath: C:\Users\Shaum\Desktop\jd_promotion.db
 
 Qinglong:
  Host: http://42.192.226.130:5888
- AuthJsonPath: C:\Users\ShaumChen\Desktop\auth.json
+ AuthJsonPath: C:\Users\Shaum\Desktop\auth.json
  ApiToken: dsfjkljskldfjkdsjfkdsfs
 
 HttpServer:
