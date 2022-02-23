@@ -15,7 +15,7 @@ import (
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "启动脚本监控器",
+	Short: "停止脚本监控器",
 	Long:  CmdLogo,
 	Run: func(cmd *cobra.Command, args []string) {
 		fileBytes, err := ioutil.ReadFile("gonitor.lock")
@@ -28,6 +28,7 @@ var stopCmd = &cobra.Command{
 		fmt.Printf("%v", pid)
 		pn, _ := process.NewProcess(int32(pid))
 		pn.Kill()
+		pn.Cmdline()
 
 	},
 }
