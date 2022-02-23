@@ -1,0 +1,15 @@
+App:
+ Debug: true
+ DbLog: true
+
+Sqlite:
+ DbPath: C:\Users\ShaumChen\Desktop\jd_promotion.db
+
+Qinglong:
+ Host: http://42.192.226.130:5888
+ AuthJsonPath: C:\Users\ShaumChen\Desktop\auth.json
+ ApiToken: dsfjkljskldfjkdsjfkdsfs
+
+HttpServer:
+ Host: 0.0.0.0
+ Post: 8899
