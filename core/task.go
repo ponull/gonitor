@@ -1,8 +1,8 @@
 package core
 
 import (
-	"fmt"
 	"github.com/robfig/cron/v3"
+	"log"
 	"time"
 )
 
@@ -58,12 +58,11 @@ func InitTask() {
 	for _, taskItem := range tempTaskList {
 		taskIns := *taskItem
 		entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
-			fmt.Println(taskIns.Name)
-			fmt.Println(taskIns.Command, time.Now().UnixMicro())
+			log.Println(taskIns.Name)
+			log.Println(taskIns.Command, time.Now().Second())
 		})
-		fmt.Println(entryID, err)
 		if err != nil {
-			fmt.Println(taskIns.Name+" error:", err)
+			log.Println(taskIns.Name+" error:", err)
 			return
 		}
 		taskList[taskIns.ID] = &cronTask{
