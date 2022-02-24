@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -150,4 +151,14 @@ func CreateRandomString(len int) string {
 		container += string(str[randomInt.Int64()])
 	}
 	return container
+}
+
+func Int32ToBytes(i int32) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint32(buf, uint32(i))
+	return buf
+}
+
+func BytesToInt32(buf []byte) int32 {
+	return int32(binary.BigEndian.Uint32(buf))
 }
