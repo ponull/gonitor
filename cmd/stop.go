@@ -9,6 +9,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"github.com/spf13/cobra"
 	"io/ioutil"
+	"log"
 	"strconv"
 )
 
@@ -22,13 +23,24 @@ var stopCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
-		fmt.Println(string(fileBytes))
-		fmt.Println(ProcessName())
 		pid, err := strconv.ParseInt(string(fileBytes), 10, 32)
-		fmt.Printf("%v", pid)
-		pn, _ := process.NewProcess(int32(pid))
-		pn.Kill()
-		pn.Cmdline()
+		fmt.Printf("当前进程ID: %v", pid)
+		pn, err := process.NewProcess(int32(pid))
+		if err != nil {
+			fmt.Println("获取gonitor进程失败:" + err.Error())
+			return
+		}
+		cmdline, _ := pn.Cmdline()
+		fmt.Println("进程启动参数: ", cmdline)
+		log.Println("进程启动参数: ", cmdline)
+		err = pn.Kill()
+		if err != nil {
+			fmt.Println("gonitor停止失败:" + err.Error())
+			log.Println("gonitor停止失败:" + err.Error())
+			return
+		}
+		fmt.Println("gonitor停止成功")
+		log.Println("gonitor停止成功")
 
 	},
 }

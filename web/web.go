@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/gin-gonic/gin"
+	"gonitor/core"
 	"gonitor/web/kernel"
 	"gonitor/web/routes"
 	"gonitor/web/yogo"
@@ -44,5 +45,5 @@ func StartService() {
 	r := gin.Default()
 	kernel.Load()
 	routes.Load(r)
-	r.Run(yogo.Config.HttpServer.Host + ":" + yogo.Config.HttpServer.Post)
+	r.Run(core.Config.HttpServer.Host + ":" + core.Config.HttpServer.Post)
 }

@@ -1,14 +1,10 @@
 App:
  Debug: true
  DbLog: true
+ LogFile: run.log
 
 Sqlite:
  DbPath: C:\Users\Shaum\Desktop\jd_promotion.db
-
-Qinglong:
- Host: http://42.192.226.130:5888
- AuthJsonPath: C:\Users\Shaum\Desktop\auth.json
- ApiToken: dsfjkljskldfjkdsjfkdsfs
 
 HttpServer:
  Host: 0.0.0.0

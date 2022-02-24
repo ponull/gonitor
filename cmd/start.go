@@ -23,18 +23,19 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		daemon, _ := cmd.Flags().GetBool("daemon")
 		if daemon {
+			fmt.Println(CmdLogo)
 			command := exec.Command(os.Args[0], "start") //os.Args[1:]...)
-			command.Start()
+			err := command.Start()
+			if err != nil {
+				fmt.Println("gonitor start fail:", err.Error())
+				return
+			}
 			fmt.Printf("gonitor start, [PID] %d running...\n", command.Process.Pid)
 			ioutil.WriteFile("gonitor.lock", []byte(fmt.Sprintf("%d", command.Process.Pid)), 0666)
 			daemon = false
 			os.Exit(0)
 		}
-		fp, _ := os.OpenFile("log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		log.SetOutput(fp)
-		log.Println(CmdLogo)
 		log.Println("gonitor start")
-		log.Println("start")
 		web.StartService()
 	},
 }
