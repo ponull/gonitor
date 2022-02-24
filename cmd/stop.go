@@ -24,14 +24,13 @@ var stopCmd = &cobra.Command{
 			return
 		}
 		pid, err := strconv.ParseInt(string(fileBytes), 10, 32)
-		fmt.Printf("当前进程ID: %v", pid)
+		fmt.Printf("当前运行的进程ID: 【%v】\n", pid)
 		pn, err := process.NewProcess(int32(pid))
 		if err != nil {
 			fmt.Println("获取gonitor进程失败:" + err.Error())
 			return
 		}
 		cmdline, _ := pn.Cmdline()
-		fmt.Println("进程启动参数: ", cmdline)
 		log.Println("进程启动参数: ", cmdline)
 		err = pn.Kill()
 		if err != nil {
@@ -39,8 +38,8 @@ var stopCmd = &cobra.Command{
 			log.Println("gonitor停止失败:" + err.Error())
 			return
 		}
-		fmt.Println("gonitor停止成功")
-		log.Println("gonitor停止成功")
+		fmt.Println("gonitor已停止")
+		log.Println("gonitor已停止")
 
 	},
 }

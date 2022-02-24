@@ -1,11 +1,14 @@
 App:
  Debug: true
  DbLog: true
- LogFile: run.log
+ LogFile: tmp/run.log
+
+Script:
+ Folder: script
 
 Sqlite:
  DbPath: C:\Users\Shaum\Desktop\jd_promotion.db
 
 HttpServer:
  Host: 0.0.0.0
- Post: 8866
+ Post: 8899

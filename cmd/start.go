@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"gonitor/core"
 	"gonitor/web"
 	"io/ioutil"
 	"log"
@@ -27,15 +28,16 @@ var startCmd = &cobra.Command{
 			command := exec.Command(os.Args[0], "start") //os.Args[1:]...)
 			err := command.Start()
 			if err != nil {
-				fmt.Println("gonitor start fail:", err.Error())
+				fmt.Println("gonitor 启动失败:", err.Error())
 				return
 			}
-			fmt.Printf("gonitor start, [PID] %d running...\n", command.Process.Pid)
+			fmt.Printf("gonitor 守护进程启动成功, [PID] %d running...\n", command.Process.Pid)
 			ioutil.WriteFile("gonitor.lock", []byte(fmt.Sprintf("%d", command.Process.Pid)), 0666)
 			daemon = false
 			os.Exit(0)
 		}
-		log.Println("gonitor start")
+		log.Println("gonitor 启动中")
+		core.InitTask()
 		web.StartService()
 	},
 }
@@ -54,7 +56,3 @@ func init() {
 	// is called directly, e.g.:
 	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
-
-//func fire() {
-//	daemon, _ := startCmd.Flags().GetBool("daemon")
-//}
