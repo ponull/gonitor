@@ -7,6 +7,8 @@ import (
 )
 
 var cronIns = cron.New()
+
+//数据库自增任务id作为key  这样方便在web页面操作
 var taskList = make(map[int]*cronTask)
 
 type cronTask struct {
@@ -54,26 +56,22 @@ var tempTaskList = []*dbTask{
 
 func InitTask() {
 	for _, taskItem := range tempTaskList {
-		entryID, err := cronIns.AddFunc(taskItem.Schedule, func() {
-			fmt.Println(taskItem.Name)
-			fmt.Println(taskItem.Command, time.Now().UnixMicro())
+		taskIns := *taskItem
+		entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
+			fmt.Println(taskIns.Name)
+			fmt.Println(taskIns.Command, time.Now().UnixMicro())
 		})
 		fmt.Println(entryID, err)
 		if err != nil {
-			fmt.Println(taskItem.Name+" error:", err)
+			fmt.Println(taskIns.Name+" error:", err)
 			return
 		}
-		taskList[taskItem.ID] = &cronTask{
-			TaskID:  taskItem.ID,
+		taskList[taskIns.ID] = &cronTask{
+			TaskID:  taskIns.ID,
 			Status:  0,
 			EntryID: entryID,
 			Type:    "cmd",
 		}
 	}
-
-	//fmt.Println(taskList[1])
-	//fmt.Println(taskList[2])
 	cronIns.Start()
-	fmt.Println(tempTaskList[0].ID)
-	fmt.Println(tempTaskList[1].ID)
 }
