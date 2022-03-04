@@ -5,8 +5,8 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package main
 
 import (
+	_ "gonitor/bootstrap"
 	"gonitor/cmd"
-	_ "gonitor/core"
 )
 
 func main() {

@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron/v3"
+	"github.com/shirou/gopsutil/process"
 	"gonitor/model"
 	"log"
 	"os"
@@ -81,7 +83,7 @@ func InitTask() {
 	//	panic(result.Error)
 	//}
 	for _, taskItem := range taskList {
-		AddTask(taskItem.ID)
+		FireTask(taskItem.ID)
 	}
 	cronIns.Start()
 	//for _, taskItem := range tempTaskList {
@@ -175,9 +177,12 @@ func InitTask() {
 	//}
 }
 
-func AddTask(taskId int64) {
+//FireTask 启动任务
+func FireTask(taskId int64) {
 	//已经加入到task  就忽略
-	if _, ok := crontabList[taskId]; !ok {
+	if _, ok := crontabList[taskId]; ok {
+		fmt.Println("已经存在task", crontabList[taskId])
+		fmt.Println("已经存在task", taskId)
 		return
 	}
 	taskIns := model.Task{}
@@ -188,6 +193,7 @@ func AddTask(taskId int64) {
 	entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
 		err := checkTask(taskId)
 		if err != nil {
+			fmt.Println(err.Error())
 			return
 		}
 		execCommand := parseTask(taskIns.Command, taskIns.ExecType)
@@ -208,6 +214,7 @@ func AddTask(taskId int64) {
 		}
 		dbRt := Db.Create(&taskLog)
 		if dbRt.Error != nil {
+			fmt.Println(dbRt.Error.Error())
 			return
 		}
 		cmd := exec.Command("cmd", "/C", execCommand)
@@ -215,8 +222,8 @@ func AddTask(taskId int64) {
 		cmd.Stdout = &out
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
-			log.Println("执行任务: ", taskIns.Name, " 失败")
-			log.Println(err.Error())
+			fmt.Println("执行任务: ", taskIns.Name, " 失败")
+			fmt.Println(err.Error())
 			taskLog.Output = err.Error()
 			taskLog.Status = false
 			taskLog.RunningTime = time.Now().Unix() - taskLog.ExecutionTime
@@ -224,6 +231,21 @@ func AddTask(taskId int64) {
 			return
 		}
 		taskLog.ProcessId = cmd.Process.Pid
+		//pn, err := process.NewProcess(int32(cmd.Process.Pid))
+		//if err != nil {
+		//	fmt.Println("获取gonitor进程失败:" + err.Error())
+		//}
+		//cmdline, _ := pn.Cmdline()
+		//fmt.Println("进程启动参数: ", cmdline)
+		//cwd, _ := pn.Cwd()
+		//fmt.Println("进程运行目录: ", cwd)
+		//name, _ := pn.Name()
+		//fmt.Println("进程名称: ", name)
+		//err = pn.Kill()
+		//if err != nil {
+		//	log.Println("gonitor停止失败:" + err.Error())
+		//	return
+		//}
 		cmd.Wait()
 		taskLog.Output = out.String()
 		taskLog.Status = false
@@ -281,9 +303,7 @@ func parseFileTask(fileName string) string {
 	return "echo '不支持的文件类型'"
 }
 
-/*
-检查任务是否可以执行
-*/
+//checkTask 检查任务是否可以执行
 func checkTask(taskId int64) error {
 	taskIns := model.Task{}
 	result := Db.Where("id = ?", taskId).First(&taskIns)
@@ -296,7 +316,7 @@ func checkTask(taskId int64) error {
 	if taskIns.IsSingleton {
 		taskLogIns := model.TaskLog{}
 		result = Db.Where("task_id = ? AND status = ?", taskId, true).First(&taskLogIns)
-		if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return errors.New("单例模式, 上次运行还未结束")
 		}
 	}
@@ -309,5 +329,36 @@ func killTask(taskId int64) error {
 	if result.Error != nil {
 		return errors.New("任务不存在或已被删除")
 	}
+	if taskItem, ok := crontabList[taskId]; ok {
+		cronIns.Remove(taskItem.EntryID)
+	}
+	//查询所有的未结束的进程  杀死 并修改值
+	var taskRunInsList []model.TaskLog
+	result = Db.Where("task_id = ? AND status = ?", taskId, true).Find(&taskRunInsList)
+	for _, taskRunIns := range taskRunInsList {
+		pn, err := process.NewProcess(int32(taskRunIns.ProcessId))
+		if err != nil {
+			fmt.Println("获取任务执行实例失败:" + err.Error())
+			continue
+		}
+		pn.Kill()
+		taskRunIns.Output = "主动停止"
+		taskRunIns.Status = false
+		taskRunIns.RunningTime = time.Now().Unix() - taskRunIns.ExecutionTime
+		result = Db.Save(taskRunIns)
+	}
 	return nil
+}
+
+//KillAllRunningTask 杀死所有任务
+func KillAllRunningTask() {
+	//删除所有定时任务
+	for _, taskItem := range crontabList {
+		cronIns.Remove(taskItem.EntryID)
+		err := killTask(taskItem.TaskID)
+		if err != nil {
+			fmt.Println("杀死任务id成功", taskItem.TaskID)
+		}
+		fmt.Println("杀死任务id", taskItem.TaskID)
+	}
 }

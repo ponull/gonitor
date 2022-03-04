@@ -44,6 +44,7 @@ var startCmd = &cobra.Command{
 
 		s := <-c
 		fmt.Println("Got signal:", s)
+		core.KillAllRunningTask()
 	},
 }
 

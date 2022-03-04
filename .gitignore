@@ -1,4 +1,5 @@
 .idea
 gonitor.lock
-run.log
+tmp
+script
 gonitor.exe

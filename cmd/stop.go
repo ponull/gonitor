@@ -34,11 +34,9 @@ var stopCmd = &cobra.Command{
 		log.Println("进程启动参数: ", cmdline)
 		err = pn.Kill()
 		if err != nil {
-			fmt.Println("gonitor停止失败:" + err.Error())
 			log.Println("gonitor停止失败:" + err.Error())
 			return
 		}
-		fmt.Println("gonitor已停止")
 		log.Println("gonitor已停止")
 
 	},
