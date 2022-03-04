@@ -23,6 +23,7 @@ type yoConfig struct {
 	App        app        `yaml:"App"`
 	Sqlite     sqlite     `yaml:"Sqlite"`
 	HttpServer httpServer `yaml:"HttpServer"`
+	Script     script     `yaml:"Script"`
 }
 
 type sqlite struct {
@@ -38,4 +39,8 @@ type app struct {
 	Debug   bool   `yaml:"Debug"`
 	DbLog   bool   `yaml:"DbLog"`
 	LogFile string `yaml:"LogFile"`
+}
+
+type script struct {
+	Folder string `yaml:"Folder"`
 }

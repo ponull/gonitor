@@ -1,22 +1,31 @@
 package core
 
 import (
-	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/robfig/cron/v3"
-	"io/ioutil"
+	"gonitor/model"
 	"log"
+	"os"
 	"os/exec"
+	"path"
+	"time"
 )
 
 var cronIns = cron.New()
 
+const (
+	CmdTask  = "cmd"
+	HttpTask = "http"
+	FileTask = "file"
+)
+
 //数据库自增任务id作为key  这样方便在web页面操作
-var taskList = make(map[int]*cronTask)
+var crontabList = make(map[int64]*cronTask)
 
 type cronTask struct {
-	TaskID  int
+	TaskID  int64
 	Status  int
 	EntryID cron.EntryID
 	Type    string //http cmd
@@ -26,122 +35,279 @@ func (c *cronTask) Stop() {
 	cronIns.Remove(c.EntryID)
 }
 
-type dbTask struct {
-	ID         int
-	Name       string
-	Schedule   string
-	Status     int //当前状态
-	Command    string
-	PID        int
-	IsDisabled bool
-	Type       string
-}
+//type dbTask struct {
+//	ID         int
+//	Name       string
+//	Schedule   string
+//	Status     int //当前状态
+//	Command    string
+//	PID        int
+//	IsDisabled bool
+//	Type       string
+//}
 
-var tempTaskList = []*dbTask{
-	&dbTask{
-		ID:         1,
-		Name:       "通知脚本",
-		Schedule:   "@every 1s",
-		Status:     0,
-		Command:    "echo 111",
-		IsDisabled: false,
-		Type:       "cmd",
-	},
-	&dbTask{
-		ID:         2,
-		Name:       "结算脚本",
-		Schedule:   "@every 5s",
-		Status:     0,
-		Command:    `echo 222`,
-		IsDisabled: false,
-		Type:       "cmd",
-	},
-}
+//var tempTaskList = []*dbTask{
+//	&dbTask{
+//		ID:         1,
+//		Name:       "通知脚本",
+//		Schedule:   "@every 1s",
+//		Status:     0,
+//		Command:    "echo 111",
+//		IsDisabled: false,
+//		Type:       "cmd",
+//	},
+//	&dbTask{
+//		ID:         2,
+//		Name:       "结算脚本",
+//		Schedule:   "@every 5s",
+//		Status:     0,
+//		Command:    `dir`,
+//		IsDisabled: false,
+//		Type:       "cmd",
+//	},
+//}
 
 func InitTask() {
-	for _, taskItem := range tempTaskList {
-		taskIns := *taskItem
-		entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
-			//log.Println(taskIns.Name)
-			//log.Println(taskIns.Command, time.Now().Second())
-			cmd := exec.Command(taskIns.Command)
-			stderr, _ := cmd.StderrPipe()
-			stdout, _ := cmd.StdoutPipe()
-			defer stdout.Close()
-			if err := cmd.Start(); err != nil {
-				fmt.Println("exec the cmd ", taskIns.Name, " failed")
-				fmt.Println(err)
-				//return
-			}
 
-			// 正常日志
-			//logScan := bufio.NewScanner(stdout)
-			//go func() {
-			//	for logScan.Scan() {
-			//		fmt.Println(logScan.Text())
-			//	}
-			//}()
-
-			// 等待命令执行完
-			cmd.Wait()
-			// 错误日志
-			errBuf := bytes.NewBufferString("")
-			scan := bufio.NewScanner(stderr)
-			//
-			for scan.Scan() {
-				s := scan.Text()
-				fmt.Println("build error: ", s)
-				errBuf.WriteString(s)
-				errBuf.WriteString("\n")
-			}
-
-			if !cmd.ProcessState.Success() {
-				// 执行失败，返回错误信息
-				fmt.Println(errBuf.String())
-			}
-
-			result, err := ioutil.ReadAll(stdout) // 读取输出结果
-			if err != nil {
-				fmt.Println("错误", err.Error())
-			}
-			resdata := string(result)
-			fmt.Println("输出: ", resdata)
-
-			//cmd := exec.Command(taskIns.Command)
-			//stdout, _ := cmd.StdoutPipe() //创建输出管道
-			//defer stdout.Close()
-			//fmt.Println("当前执行: ", cmd.Args) //查看当前执行命令
-			////cmdPid := cmd.Process.Pid //查看命令pid
-			////fmt.Println(cmdPid)
-			//
-			//result, err := ioutil.ReadAll(stdout) // 读取输出结果
-			//if err != nil {
-			//	fmt.Println("错误", err.Error())
-			//}
-			//resdata := string(result)
-			//fmt.Println("输出: ", resdata)
-			//
-			//var res int
-			//if err := cmd.Wait(); err != nil {
-			//	if ex, ok := err.(*exec.ExitError); ok {
-			//		fmt.Println("cmd exit status")
-			//		res = ex.Sys().(syscall.WaitStatus).ExitStatus() //获取命令执行返回状态，相当于shell: echo $?
-			//	}
-			//}
-			//
-			//fmt.Println("输出2", res)
-
-		})
-		if err != nil {
-			log.Println(taskIns.Name+" error:", err)
-			return
-		}
-		taskList[taskIns.ID] = &cronTask{
-			TaskID:  taskIns.ID,
-			Status:  0,
-			EntryID: entryID,
-			Type:    "cmd",
-		}
+	var taskList []model.Task
+	result := Db.Where("is_disable = ?", false).Find(&taskList)
+	//taskList, err := model.Task{}.GetTaskList()
+	if result.Error != nil {
+		panic(result.Error)
+	}
+	//var taskList []model.Task
+	//result := Db.Find(&taskList)
+	//if result.Error != nil {
+	//	panic(result.Error)
+	//}
+	for _, taskItem := range taskList {
+		AddTask(taskItem.ID)
 	}
 	cronIns.Start()
+	//for _, taskItem := range tempTaskList {
+	//	taskIns := *taskItem
+	//	entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
+	//		//log.Println(taskIns.Name)
+	//		//log.Println(taskIns.Command, time.Now().Second())
+	//		cmd := exec.Command("cmd", "/C", taskIns.Command)
+	//		var out bytes.Buffer
+	//		cmd.Stdout = &out
+	//		cmd.Stderr = os.Stderr
+	//		//stderr, _ := cmd.StderrPipe()
+	//		//stdout, _ := cmd.StdoutPipe()
+	//		//defer stdout.Close()
+	//		if err := cmd.Start(); err != nil {
+	//			fmt.Println("exec the cmd ", taskIns.Name, " failed")
+	//			fmt.Println(err)
+	//			//return
+	//		}
+	//		cmd.Wait()
+	//		fmt.Println("输出: ", out.String())
+	//
+	//		// 正常日志
+	//		//logScan := bufio.NewScanner(stdout)
+	//		//go func() {
+	//		//	for logScan.Scan() {
+	//		//		fmt.Println(logScan.Text())
+	//		//	}
+	//		//}()
+	//
+	//		// 等待命令执行完
+	//		//cmd.Wait()
+	//		// 错误日志
+	//		//errBuf := bytes.NewBufferString("")
+	//		//scan := bufio.NewScanner(stderr)
+	//		////
+	//		//for scan.Scan() {
+	//		//	s := scan.Text()
+	//		//	fmt.Println("build error: ", s)
+	//		//	errBuf.WriteString(s)
+	//		//	errBuf.WriteString("\n")
+	//		//}
+	//		//
+	//		//if !cmd.ProcessState.Success() {
+	//		//	// 执行失败，返回错误信息
+	//		//	fmt.Println(errBuf.String())
+	//		//}
+	//
+	//		//result, err := ioutil.ReadAll(stdout) // 读取输出结果
+	//		//if err != nil {
+	//		//	fmt.Println("错误", err.Error())
+	//		//}
+	//		//resdata := string(result)
+	//		//fmt.Println("输出: ", resdata)
+	//
+	//		//cmd := exec.Command(taskIns.Command)
+	//		//stdout, _ := cmd.StdoutPipe() //创建输出管道
+	//		//defer stdout.Close()
+	//		//fmt.Println("当前执行: ", cmd.Args) //查看当前执行命令
+	//		////cmdPid := cmd.Process.Pid //查看命令pid
+	//		////fmt.Println(cmdPid)
+	//		//
+	//		//result, err := ioutil.ReadAll(stdout) // 读取输出结果
+	//		//if err != nil {
+	//		//	fmt.Println("错误", err.Error())
+	//		//}
+	//		//resdata := string(result)
+	//		//fmt.Println("输出: ", resdata)
+	//		//
+	//		//var res int
+	//		//if err := cmd.Wait(); err != nil {
+	//		//	if ex, ok := err.(*exec.ExitError); ok {
+	//		//		fmt.Println("cmd exit status")
+	//		//		res = ex.Sys().(syscall.WaitStatus).ExitStatus() //获取命令执行返回状态，相当于shell: echo $?
+	//		//	}
+	//		//}
+	//		//
+	//		//fmt.Println("输出2", res)
+	//
+	//	})
+	//	if err != nil {
+	//		log.Println(taskIns.Name+" error:", err)
+	//		return
+	//	}
+	//	crontabList[taskIns.ID] = &cronTask{
+	//		TaskID:  taskIns.ID,
+	//		Status:  0,
+	//		EntryID: entryID,
+	//		Type:    "cmd",
+	//	}
+	//}
+}
+
+func AddTask(taskId int64) {
+	//已经加入到task  就忽略
+	if _, ok := crontabList[taskId]; !ok {
+		return
+	}
+	taskIns := model.Task{}
+	result := Db.Where("id = ?", taskId).First(&taskIns)
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+	entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
+		err := checkTask(taskId)
+		if err != nil {
+			return
+		}
+		execCommand := parseTask(taskIns.Command, taskIns.ExecType)
+		fmt.Println(execCommand)
+		if taskIns.ExecType == CmdTask {
+			execCliTask(taskIns)
+		} else if taskIns.ExecType == FileTask {
+			execFileTask(taskIns)
+		} else if taskIns.ExecType == HttpTask {
+			execHttpTask(taskIns)
+		}
+		taskLog := model.TaskLog{
+			TaskId:        taskId,
+			Command:       execCommand,
+			Status:        true,
+			ExecType:      CmdTask,
+			ExecutionTime: time.Now().Unix(),
+		}
+		dbRt := Db.Create(&taskLog)
+		if dbRt.Error != nil {
+			return
+		}
+		cmd := exec.Command("cmd", "/C", execCommand)
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			log.Println("执行任务: ", taskIns.Name, " 失败")
+			log.Println(err.Error())
+			taskLog.Output = err.Error()
+			taskLog.Status = false
+			taskLog.RunningTime = time.Now().Unix() - taskLog.ExecutionTime
+			result = dbRt.Save(taskLog)
+			return
+		}
+		taskLog.ProcessId = cmd.Process.Pid
+		cmd.Wait()
+		taskLog.Output = out.String()
+		taskLog.Status = false
+		taskLog.RunningTime = time.Now().Unix() - taskLog.ExecutionTime
+		result = dbRt.Save(taskLog)
+		if dbRt.Error != nil {
+			return
+		}
+		//fmt.Println("输出: ", out.String())
+
+	})
+	if err != nil {
+		log.Println(taskIns.Name+" error:", err)
+		return
+	}
+	crontabList[taskIns.ID] = &cronTask{
+		TaskID:  taskIns.ID,
+		Status:  0,
+		EntryID: entryID,
+		Type:    "cmd",
+	}
+}
+
+func execCliTask(taskIns model.Task) {
+
+}
+
+func execHttpTask(taskIns model.Task) {
+
+}
+
+func execFileTask(taskIns model.Task) {
+
+}
+
+func parseTask(command string, taskType string) string {
+	switch taskType {
+	case CmdTask:
+		return command
+	case HttpTask:
+		return "echo 'http请求暂未处理'"
+	case FileTask:
+		return parseFileTask(command)
+	}
+	return "echo '不支持的任务类型'"
+}
+
+func parseFileTask(fileName string) string {
+	fileSuffix := path.Ext(fileName)
+	if fileSuffix == ".js" {
+		return "node " + Config.Script.Folder + "/" + fileName
+	} else if fileSuffix == ".py" {
+		return "python " + Config.Script.Folder + "/" + fileName
+	}
+	return "echo '不支持的文件类型'"
+}
+
+/*
+检查任务是否可以执行
+*/
+func checkTask(taskId int64) error {
+	taskIns := model.Task{}
+	result := Db.Where("id = ?", taskId).First(&taskIns)
+	if result.Error != nil {
+		return errors.New("任务不存在或已被删除")
+	}
+	if taskIns.IsDisable {
+		return errors.New("任务被禁用")
+	}
+	if taskIns.IsSingleton {
+		taskLogIns := model.TaskLog{}
+		result = Db.Where("task_id = ? AND status = ?", taskId, true).First(&taskLogIns)
+		if result.Error != nil {
+			return errors.New("单例模式, 上次运行还未结束")
+		}
+	}
+	return nil
+}
+
+func killTask(taskId int64) error {
+	taskIns := model.Task{}
+	result := Db.Where("id = ?", taskId).First(&taskIns)
+	if result.Error != nil {
+		return errors.New("任务不存在或已被删除")
+	}
+	return nil
 }

@@ -7,7 +7,7 @@ Script:
  Folder: script
 
 Sqlite:
- DbPath: C:\Users\Shaum\Desktop\jd_promotion.db
+ DbPath: gonitor.db
 
 HttpServer:
  Host: 0.0.0.0
