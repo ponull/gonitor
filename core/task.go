@@ -70,111 +70,19 @@ func (c *cronTask) Stop() {
 //}
 
 func InitTask() {
-
 	var taskList []model.Task
 	result := Db.Where("is_disable = ?", false).Find(&taskList)
-	//taskList, err := model.Task{}.GetTaskList()
-	if result.Error != nil {
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		panic(result.Error)
 	}
-	//var taskList []model.Task
-	//result := Db.Find(&taskList)
-	//if result.Error != nil {
-	//	panic(result.Error)
-	//}
 	for _, taskItem := range taskList {
 		FireTask(taskItem.ID)
 	}
+	//检测脚本
+	cronIns.AddFunc("@every 10s", func() {
+		result = Db.Where("is_disable = ?", false).Find(&taskList)
+	})
 	cronIns.Start()
-	//for _, taskItem := range tempTaskList {
-	//	taskIns := *taskItem
-	//	entryID, err := cronIns.AddFunc(taskIns.Schedule, func() {
-	//		//log.Println(taskIns.Name)
-	//		//log.Println(taskIns.Command, time.Now().Second())
-	//		cmd := exec.Command("cmd", "/C", taskIns.Command)
-	//		var out bytes.Buffer
-	//		cmd.Stdout = &out
-	//		cmd.Stderr = os.Stderr
-	//		//stderr, _ := cmd.StderrPipe()
-	//		//stdout, _ := cmd.StdoutPipe()
-	//		//defer stdout.Close()
-	//		if err := cmd.Start(); err != nil {
-	//			fmt.Println("exec the cmd ", taskIns.Name, " failed")
-	//			fmt.Println(err)
-	//			//return
-	//		}
-	//		cmd.Wait()
-	//		fmt.Println("输出: ", out.String())
-	//
-	//		// 正常日志
-	//		//logScan := bufio.NewScanner(stdout)
-	//		//go func() {
-	//		//	for logScan.Scan() {
-	//		//		fmt.Println(logScan.Text())
-	//		//	}
-	//		//}()
-	//
-	//		// 等待命令执行完
-	//		//cmd.Wait()
-	//		// 错误日志
-	//		//errBuf := bytes.NewBufferString("")
-	//		//scan := bufio.NewScanner(stderr)
-	//		////
-	//		//for scan.Scan() {
-	//		//	s := scan.Text()
-	//		//	fmt.Println("build error: ", s)
-	//		//	errBuf.WriteString(s)
-	//		//	errBuf.WriteString("\n")
-	//		//}
-	//		//
-	//		//if !cmd.ProcessState.Success() {
-	//		//	// 执行失败，返回错误信息
-	//		//	fmt.Println(errBuf.String())
-	//		//}
-	//
-	//		//result, err := ioutil.ReadAll(stdout) // 读取输出结果
-	//		//if err != nil {
-	//		//	fmt.Println("错误", err.Error())
-	//		//}
-	//		//resdata := string(result)
-	//		//fmt.Println("输出: ", resdata)
-	//
-	//		//cmd := exec.Command(taskIns.Command)
-	//		//stdout, _ := cmd.StdoutPipe() //创建输出管道
-	//		//defer stdout.Close()
-	//		//fmt.Println("当前执行: ", cmd.Args) //查看当前执行命令
-	//		////cmdPid := cmd.Process.Pid //查看命令pid
-	//		////fmt.Println(cmdPid)
-	//		//
-	//		//result, err := ioutil.ReadAll(stdout) // 读取输出结果
-	//		//if err != nil {
-	//		//	fmt.Println("错误", err.Error())
-	//		//}
-	//		//resdata := string(result)
-	//		//fmt.Println("输出: ", resdata)
-	//		//
-	//		//var res int
-	//		//if err := cmd.Wait(); err != nil {
-	//		//	if ex, ok := err.(*exec.ExitError); ok {
-	//		//		fmt.Println("cmd exit status")
-	//		//		res = ex.Sys().(syscall.WaitStatus).ExitStatus() //获取命令执行返回状态，相当于shell: echo $?
-	//		//	}
-	//		//}
-	//		//
-	//		//fmt.Println("输出2", res)
-	//
-	//	})
-	//	if err != nil {
-	//		log.Println(taskIns.Name+" error:", err)
-	//		return
-	//	}
-	//	crontabList[taskIns.ID] = &cronTask{
-	//		TaskID:  taskIns.ID,
-	//		Status:  0,
-	//		EntryID: entryID,
-	//		Type:    "cmd",
-	//	}
-	//}
 }
 
 //FireTask 启动任务
@@ -197,14 +105,6 @@ func FireTask(taskId int64) {
 			return
 		}
 		execCommand := parseTask(taskIns.Command, taskIns.ExecType)
-		fmt.Println(execCommand)
-		if taskIns.ExecType == CmdTask {
-			execCliTask(taskIns)
-		} else if taskIns.ExecType == FileTask {
-			execFileTask(taskIns)
-		} else if taskIns.ExecType == HttpTask {
-			execHttpTask(taskIns)
-		}
 		taskLog := model.TaskLog{
 			TaskId:        taskId,
 			Command:       execCommand,
@@ -269,24 +169,12 @@ func FireTask(taskId int64) {
 	}
 }
 
-func execCliTask(taskIns model.Task) {
-
-}
-
-func execHttpTask(taskIns model.Task) {
-
-}
-
-func execFileTask(taskIns model.Task) {
-
-}
-
 func parseTask(command string, taskType string) string {
 	switch taskType {
 	case CmdTask:
 		return command
 	case HttpTask:
-		return "echo 'http请求暂未处理'"
+		return "curl -L '" + command + "'"
 	case FileTask:
 		return parseFileTask(command)
 	}

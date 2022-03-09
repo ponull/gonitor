@@ -5,6 +5,7 @@ import (
 	"gonitor/core"
 	"gonitor/web/kernel"
 	"gonitor/web/routes"
+	"gonitor/web/ws"
 	"gonitor/web/yogo"
 )
 
@@ -42,6 +43,7 @@ import (
 
 func StartService() {
 	defer yogo.Db.Close()
+	ws.StartAllService()
 	r := gin.Default()
 	kernel.Load()
 	routes.Load(r)

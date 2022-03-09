@@ -18,6 +18,9 @@ func init() {
 }
 
 func initLog() {
+	if core.Config.App.Debug {
+		return
+	}
 	err := os.MkdirAll(path.Dir(core.Config.App.LogFile), 0777)
 	if err != nil {
 		panic(err)
