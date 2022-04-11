@@ -72,7 +72,7 @@ func (c *cronTask) Stop() {
 func InitTask() {
 	var taskList []model.Task
 	result := Db.Where("is_disable = ?", false).Find(&taskList)
-	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		panic(result.Error)
 	}
 	for _, taskItem := range taskList {
