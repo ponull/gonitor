@@ -9,6 +9,7 @@ import (
 
 func config(router group) {
 	router.Registered(GET, "/", controller.Index)
+	router.Registered(GET, "/getTaskList", controller.GetTaskList)
 }
 
 func Load(r *gin.Engine) {

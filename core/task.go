@@ -187,6 +187,8 @@ func parseFileTask(fileName string) string {
 		return "node " + Config.Script.Folder + "/" + fileName
 	} else if fileSuffix == ".py" {
 		return "python " + Config.Script.Folder + "/" + fileName
+	} else if fileSuffix == ".php" {
+		return "php " + Config.Script.Folder + "/" + fileName
 	}
 	return "echo '不支持的文件类型'"
 }
