@@ -35,11 +35,11 @@ const menuWidth = computed(() => {
   }
 
   .menu-wrap {
-    transition: width 0.25s;
-    -webkit-transition: width 0.25s;
-    -moz-transition: width 0.25s;
-    -webkit-transition: width 0.25s;
-    -o-transition: width 0.25s;
+    transition: width 0.35s;
+    //-webkit-transition: width 0.25s;
+    //-moz-transition: width 0.25s;
+    //-webkit-transition: width 0.25s;
+    //-o-transition: width 0.25s;
   }
 
   .main {

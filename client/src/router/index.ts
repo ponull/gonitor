@@ -1,21 +1,15 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/home.vue'
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
 
-const routes = [
-    {
-        path: '/',
-        name: 'home',
-        component: Home
-    },
-    {
-        path: '/base',
-        name: 'base',
-        component: () => import('../views/baseControl.vue') // 动态路由
-    },
+const routes: Array<RouteRecordRaw> = [
+    // {
+    //     path: '/base',
+    //     name: 'base',
+    //     component: () => import('../views/baseControl.vue') // 动态路由
+    // },
     {
         path: '/admin',
         name: 'admin',
-        component: () => import('../views/form.vue')
+        component: () => import('../view/layout/AdminLayout.vue')
     }
 ]
 

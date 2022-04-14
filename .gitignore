@@ -4,3 +4,4 @@ tmp
 script
 gonitor.exe
 gonitor.db
+gonitor_vue/node_modules/
