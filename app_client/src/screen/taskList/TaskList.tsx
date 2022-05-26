@@ -9,6 +9,10 @@ import Paper from '@mui/material/Paper';
 import Container from "@mui/material/Container";
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import {Button, ButtonGroup} from "@mui/material";
+import Box from "@mui/material/Box";
+import AddIcon from '@mui/icons-material/Add';
+import {TaskAdd} from "./TaskAdd";
+import {useRef} from "react";
 
 function createTask(
     name: string,
@@ -18,7 +22,7 @@ function createTask(
     disabled: boolean,
     lastRunTime: string,
 ) {
-    return { name, type, schedule, singleton, disabled, lastRunTime };
+    return {name, type, schedule, singleton, disabled, lastRunTime};
 }
 
 const taskRows = [
@@ -28,11 +32,22 @@ const taskRows = [
 ];
 
 
-export const TaskList = function (){
+export const TaskList = function () {
+    const taskAddRef = useRef();
+    const showCreateDialog = () => {
+        // @ts-ignore
+        taskAddRef.current.handleClickOpen();
+    }
     return (
-        <Container sx={{ mt: 4, mb: 4 }}>
-            <TableContainer component={Paper} >
-                <Table sx={{ minWidth: 650 }} aria-label="simple table">
+        <Container sx={{mt: 4, mb: 4}}>
+            <TaskAdd ref={taskAddRef}/>
+            <Box sx={{mb: 2, display: "flex", justifyContent: "flex-end",}}>
+                <Button variant="contained" startIcon={<AddIcon/>} onClick={showCreateDialog}>
+                    Add
+                </Button>
+            </Box>
+            <TableContainer component={Paper}>
+                <Table sx={{minWidth: 650}} aria-label="simple table">
                     <TableHead>
                         <TableRow>
                             <TableCell>No.</TableCell>
@@ -49,7 +64,7 @@ export const TaskList = function (){
                         {taskRows.map((taskInfo, inx) => (
                             <TableRow
                                 key={taskInfo.name}
-                                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                sx={{'&:last-child td, &:last-child th': {border: 0}}}
                             >
                                 <TableCell component="th" scope="row">
                                     {inx + 1}
@@ -57,11 +72,13 @@ export const TaskList = function (){
                                 <TableCell>{taskInfo.name}</TableCell>
                                 <TableCell align="right">{taskInfo.type}</TableCell>
                                 <TableCell align="right">{taskInfo.schedule}</TableCell>
-                                <TableCell align="right">{taskInfo.singleton?<CheckCircleOutlineIcon/>:""}</TableCell>
-                                <TableCell align="right">{taskInfo.disabled?<CheckCircleOutlineIcon/>:""}</TableCell>
+                                <TableCell align="right">{taskInfo.singleton ?
+                                    <CheckCircleOutlineIcon/> : ""}</TableCell>
+                                <TableCell align="right">{taskInfo.disabled ?
+                                    <CheckCircleOutlineIcon/> : ""}</TableCell>
                                 <TableCell align="right">{taskInfo.lastRunTime}</TableCell>
                                 <TableCell align="right">
-                                    <ButtonGroup variant="outlined" aria-label="outlined button group">
+                                    <ButtonGroup variant="outlined" aria-label="outlined button group" size="small">
                                         <Button>Detail</Button>
                                         <Button>Edit</Button>
                                         <Button>Delete</Button>
