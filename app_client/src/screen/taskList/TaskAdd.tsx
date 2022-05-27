@@ -12,7 +12,7 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
 import {TransitionProps} from '@mui/material/transitions';
-import {forwardRef, useImperativeHandle} from "react";
+import {forwardRef, Ref, useImperativeHandle} from "react";
 import Container from "@mui/material/Container";
 import {FormControl, InputLabel, MenuItem, Select} from "@mui/material";
 import {SelectChangeEvent} from "@mui/material/Select/SelectInput";
@@ -25,7 +25,11 @@ const Transition = React.forwardRef(function Transition(
 ) {
     return <Slide direction="up" ref={ref} {...props} />;
 });
-export const TaskAdd = forwardRef((props: any, ref: any) => {
+export type TaskAddRefType = {
+    handleClickOpen: Function;
+}
+
+export const TaskAdd = forwardRef((props: any, ref: Ref<TaskAddRefType>) => {
     useImperativeHandle(ref, () => ({
         handleClickOpen,
     }));
@@ -72,25 +76,25 @@ export const TaskAdd = forwardRef((props: any, ref: any) => {
 });
 
 enum executeTypeEnum {
-    HTTP = 'HTTP',
-    CMD = 'CMD',
-    FILE = 'FILE',
+    HTTP = 'Http',
+    CMD = 'Cmd',
+    FILE = 'File',
 }
 
 export const TaskAddForm = () => {
-    const [executeType, setExecuteType] = React.useState('HTTP');
-    const [commandName, setCommandName] = React.useState('Url');
+    const [executeType, setExecuteType] = React.useState(executeTypeEnum.HTTP);
+    const [commandName, setCommandName] = React.useState('Http Url (only support GET method)');
     const handleChange = (event: SelectChangeEvent) => {
-        const executeType = event.target.value;
+        const executeType = event.target.value as executeTypeEnum;
         setExecuteType(executeType);
         switch (executeType) {
-            case 'HTTP':
+            case executeTypeEnum.HTTP:
                 setCommandName('Http Url (only support GET method)')
                 break;
-            case 'CMD':
+            case executeTypeEnum.CMD:
                 setCommandName('Bash Command')
                 break;
-            case 'FILE':
+            case executeTypeEnum.FILE:
                 setCommandName('File Path (Fullpath)')
                 break;
         }
@@ -122,9 +126,9 @@ export const TaskAddForm = () => {
                             onChange={handleChange}
                             label="Execute Type"
                         >
-                            <MenuItem value="HTTP">Http</MenuItem>
-                            <MenuItem value="CMD">Cmd</MenuItem>
-                            <MenuItem value="FILE">File</MenuItem>
+                            <MenuItem value={executeTypeEnum.HTTP}>Http</MenuItem>
+                            <MenuItem value={executeTypeEnum.CMD}>Cmd</MenuItem>
+                            <MenuItem value={executeTypeEnum.FILE}>File</MenuItem>
                         </Select>
                     </FormControl>
                 </Grid>
