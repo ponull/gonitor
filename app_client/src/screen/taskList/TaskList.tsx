@@ -20,13 +20,15 @@ import {
 import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
 import {TaskAdd, TaskAddRefType} from "./TaskAdd";
-import {forwardRef, Ref, useImperativeHandle, useRef, useState} from "react";
+import {forwardRef, Ref, useEffect, useImperativeHandle, useRef, useState} from "react";
 import Dialog from "@mui/material/Dialog";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
+import wsClient from "../../common/Websocket";
+import {subscribableType} from "../../common/Websocket";
 
 class TaskLog {
     id: number;
@@ -136,6 +138,14 @@ export const TaskList = function () {
 const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDialog: Function }) => {
     const {taskInfo, index, showConfirmDeleteDialog} = props;
     const [open, setOpen] = useState(false);
+    useEffect(()=>{
+        wsClient.subscribe(subscribableType.TASK, taskInfo.id, (newTaskInfo) => {
+            console.log(newTaskInfo);
+        })
+        return ()=>{
+            wsClient.unsubscribe(subscribableType.TASK, taskInfo.id);
+        }
+    })
     return (
         <React.Fragment>
 

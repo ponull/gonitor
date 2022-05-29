@@ -37,37 +37,23 @@ func (c *cronTask) Stop() {
 	cronIns.Remove(c.EntryID)
 }
 
-//type dbTask struct {
-//	ID         int
-//	Name       string
-//	Schedule   string
-//	Status     int //当前状态
-//	Command    string
-//	PID        int
-//	IsDisabled bool
-//	Type       string
-//}
+type TaskInfo struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Type         string `json:"type"`
+	Schedule     string `json:"schedule"`
+	IsSingleton  bool   `json:"isSingleton"`
+	IsDisabled   bool   `json:"isDisabled"`
+	RunningCount int64  `json:"runningCount"`
+}
 
-//var tempTaskList = []*dbTask{
-//	&dbTask{
-//		ID:         1,
-//		Name:       "通知脚本",
-//		Schedule:   "@every 1s",
-//		Status:     0,
-//		Command:    "echo 111",
-//		IsDisabled: false,
-//		Type:       "cmd",
-//	},
-//	&dbTask{
-//		ID:         2,
-//		Name:       "结算脚本",
-//		Schedule:   "@every 5s",
-//		Status:     0,
-//		Command:    `dir`,
-//		IsDisabled: false,
-//		Type:       "cmd",
-//	},
-//}
+type TaskLogInfo struct {
+	ID          int64  `json:"id"`
+	TaskId      int64  `json:"task_id"`
+	Command     string `json:"command"`
+	ProcessId   int64  `json:"process_id"`
+	ExecuteTime string `json:"execute_time"`
+}
 
 func InitTask() {
 	var taskList []model.Task

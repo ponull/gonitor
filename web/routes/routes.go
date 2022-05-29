@@ -17,5 +17,5 @@ func Load(r *gin.Engine) {
 	router.Group("", func(g group) {
 		config(g)
 	}, kernel.Middleware...)
-	r.GET("/ws/:channel", ws.WebsocketManager.WsClient)
+	r.GET("/ws/:clientId", ws.WebsocketManager.WsClient)
 }
