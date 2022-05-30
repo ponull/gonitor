@@ -137,6 +137,7 @@ func FireTask(taskId int64) {
 			NextRunTime:  EntryIns.Next.Format("2006-01-02 15:04:05"),
 		})
 		taskLog.ProcessId = cmd.Process.Pid
+		result = dbRt.Save(taskLog)
 		//pn, err := process.NewProcess(int32(cmd.Process.Pid))
 		//if err != nil {
 		//	fmt.Println("获取gonitor进程失败:" + err.Error())
@@ -184,7 +185,7 @@ func FireTask(taskId int64) {
 		TaskID:  taskIns.ID,
 		Status:  0,
 		EntryID: entryID,
-		Type:    "cmd",
+		Type:    taskIns.ExecType,
 	}
 }
 

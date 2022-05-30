@@ -142,18 +142,6 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
     const {taskInfo, index, showConfirmDeleteDialog} = props;
     const [open, setOpen] = useState(false);
     const [taskUpdateInfo] = useSubscribe<TaskInfo>(SubscribeType.TASK, taskInfo.id, taskInfo)
-    const [logList, setLogList] = useState<TaskLog[]>([]);
-    const firstRenderRef = useRef(true);
-    useEffect(()=>{
-        if(!firstRenderRef.current){
-            return;
-        }
-        firstRenderRef.current = false;
-        axios.get(`http://127.0.0.1:8899/getTaskLogList`).then(res => {
-            const data = res.data as TaskLog[];
-            setLogList(data)
-        })
-    })
     return (
         <React.Fragment>
             <TableRow
@@ -192,33 +180,51 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
                     </ButtonGroup>
                 </TableCell>
             </TableRow>
-            <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={11}>
-                    <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 1 }}>
-                            <Typography variant="h6" gutterBottom component="div">
-                                Running Instances
-                            </Typography>
-                            <Table size="small" aria-label="purchases">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Time</TableCell>
-                                        <TableCell>Command</TableCell>
-                                        <TableCell align="right">Process Id</TableCell>
-                                        <TableCell align="right">Function</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {logList.map((taskLog) => (
-                                        <TaskLogRow taskLogInfo={taskLog}/>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </Box>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
+            <TaskLogContainer open={open} taskId={taskUpdateInfo.id}/>
         </React.Fragment>
+    )
+}
+
+const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
+    const {open,taskId} = props
+
+    const [logList, setLogList] = useState<TaskLog[]>([]);
+    useEffect(()=>{
+        if(open){
+
+            axios.get(`http://127.0.0.1:8899/getTaskLogList?task_id=${taskId}`).then(res => {
+                const data = res.data as TaskLog[];
+                setLogList(data)
+            })
+        }
+    },[open])
+    return (
+        <TableRow>
+            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={11}>
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                    <Box sx={{ margin: 1 }}>
+                        <Typography variant="h6" gutterBottom component="div">
+                            Running Instances
+                        </Typography>
+                        <Table size="small" aria-label="purchases">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Time</TableCell>
+                                    <TableCell>Command</TableCell>
+                                    <TableCell align="right">Process Id</TableCell>
+                                    <TableCell align="right">Function</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {logList.map((taskLog) => (
+                                    <TaskLogRow taskLogInfo={taskLog}/>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Box>
+                </Collapse>
+            </TableCell>
+        </TableRow>
     )
 }
 

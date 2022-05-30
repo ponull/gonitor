@@ -22,12 +22,27 @@ SELECT * FROM task
 }
 
 func GetTaskLogList(context *context.Context) *response.Response {
-	taskId := context.Param("task_id")
+	taskId := context.Query("task_id")
 	var taskLogList []subscription.TaskLogInfo
 	core.Db.Raw(`
 SELECT * FROM task_log where task_id = ? and status = 1
 `, taskId).Scan(&taskLogList)
 	return response.Resp().Json(taskLogList)
+}
+
+//已经开始的任务不关闭
+func stopTask(context *context.Context) *response.Response {
+	return response.Resp().String("pending")
+}
+
+//修改状态并且杀死所有正在运行的实例
+func killTask(context *context.Context) *response.Response {
+	return response.Resp().String("pending")
+}
+
+//杀死指定实例
+func killTaskRunningInstance(context *context.Context) *response.Response {
+	return response.Resp().String("pending")
 }
 
 func UpdateTaskInfo(context *context.Context) *response.Response {
