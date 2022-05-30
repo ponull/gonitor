@@ -156,7 +156,6 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
     })
     return (
         <React.Fragment>
-
             <TableRow
                 key={taskUpdateInfo.name}
                 sx={{'&:last-child td, &:last-child th': {border: 0}}}
@@ -211,26 +210,35 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
                                 </TableHead>
                                 <TableBody>
                                     {logList.map((taskLog) => (
-                                        <TableRow key={taskLog.id}>
-                                            <TableCell component="th" scope="row">
-                                                {taskLog.execution_time}
-                                            </TableCell>
-                                            <TableCell>{taskLog.command}</TableCell>
-                                            <TableCell align="right">{taskLog.process_id}</TableCell>
-                                            <TableCell align="right">
-                                                <IconButton
-                                                    size="small"
-                                                    color="error"
-                                                >
-                                                    <StopCircleIcon/>
-                                                </IconButton>
-                                            </TableCell>
-                                        </TableRow>
+                                        <TaskLogRow taskLogInfo={taskLog}/>
                                     ))}
                                 </TableBody>
                             </Table>
                         </Box>
                     </Collapse>
+                </TableCell>
+            </TableRow>
+        </React.Fragment>
+    )
+}
+
+const TaskLogRow = (props: { taskLogInfo: TaskLog; })=>{
+    const {taskLogInfo} = props
+    return (
+        <React.Fragment>
+            <TableRow key={taskLogInfo.id}>
+                <TableCell component="th" scope="row">
+                    {taskLogInfo.execution_time}
+                </TableCell>
+                <TableCell>{taskLogInfo.command}</TableCell>
+                <TableCell align="right">{taskLogInfo.process_id}</TableCell>
+                <TableCell align="right">
+                    <IconButton
+                        size="small"
+                        color="error"
+                    >
+                        <StopCircleIcon/>
+                    </IconButton>
                 </TableCell>
             </TableRow>
         </React.Fragment>
