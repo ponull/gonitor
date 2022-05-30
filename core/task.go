@@ -8,6 +8,8 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/shirou/gopsutil/process"
 	"gonitor/model"
+	"gonitor/web/ws"
+	"gonitor/web/ws/subscription"
 	"log"
 	"os"
 	"os/exec"
@@ -116,6 +118,24 @@ func FireTask(taskId int64) {
 			result = dbRt.Save(taskLog)
 			return
 		}
+		//新加task log  推送到前端 task 运行++
+		var EntryIns cron.Entry
+		for _, entry := range cronIns.Entries() {
+			if entry.ID == crontabList[taskId].EntryID {
+				EntryIns = entry
+			}
+		}
+		ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, taskId, subscription.TaskInfo{
+			ID:           taskId,
+			Name:         taskIns.Name,
+			ExecType:     taskIns.ExecType,
+			Schedule:     taskIns.Schedule,
+			IsSingleton:  taskIns.IsSingleton,
+			IsDisable:    taskIns.IsDisable,
+			RunningCount: 1,
+			LastRunTime:  EntryIns.Prev.Format("2006-01-02 15:04:05"),
+			NextRunTime:  EntryIns.Next.Format("2006-01-02 15:04:05"),
+		})
 		taskLog.ProcessId = cmd.Process.Pid
 		//pn, err := process.NewProcess(int32(cmd.Process.Pid))
 		//if err != nil {
@@ -133,6 +153,19 @@ func FireTask(taskId int64) {
 		//	return
 		//}
 		cmd.Wait()
+
+		ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, taskId, subscription.TaskInfo{
+			ID:           taskId,
+			Name:         taskIns.Name,
+			ExecType:     taskIns.ExecType,
+			Schedule:     taskIns.Schedule,
+			IsSingleton:  taskIns.IsSingleton,
+			IsDisable:    taskIns.IsDisable,
+			RunningCount: 0,
+			LastRunTime:  EntryIns.Prev.Format("2006-01-02 15:04:05"),
+			NextRunTime:  EntryIns.Next.Format("2006-01-02 15:04:05"),
+		})
+		//删除task log  推送到前端 task 运行--
 		taskLog.Output = out.String()
 		taskLog.Status = false
 		taskLog.RunningTime = time.Now().Unix() - taskLog.ExecutionTime

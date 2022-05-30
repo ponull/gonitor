@@ -1,20 +1,25 @@
 package ws
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/robfig/cron/v3"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 )
 
+type subscribeMessage struct {
+	SubscriptionType string      `json:"type"`
+	ID               int64       `json:"id"`
+	Data             interface{} `json:"data"`
+}
+
 type Manager struct {
 	ClientList           map[int64]*Client
 	Register, Unregister chan *Client
+	subscribeMessage     chan *subscribeMessage
 }
 
 func (manager *Manager) Start() {
@@ -27,29 +32,41 @@ func (manager *Manager) Start() {
 		//注销用户
 		case client := <-manager.Unregister:
 			delete(manager.ClientList, client.Id)
+		case subscribeMessage := <-manager.subscribeMessage:
+			for _, client := range manager.ClientList {
+				client.SendSubscribedInfo(subscribeMessage)
+			}
 		}
 	}
 }
 
+func (manager *Manager) SendSubscribed(subscriptionType string, id int64, data interface{}) {
+	manager.subscribeMessage <- &subscribeMessage{
+		SubscriptionType: subscriptionType,
+		ID:               id,
+		Data:             data,
+	}
+}
+
 func (manager *Manager) startKeepAliveService() {
-	cronIns := cron.New()
-	pingMsg := map[string]interface{}{
-		"event": "PING",
-		"data": map[string]string{
-			"time": strconv.FormatInt(time.Now().Unix(), 10),
-		},
-	}
-	pingMsgStr, err := json.Marshal(pingMsg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cronIns.AddFunc("@every 1s", func() {
-		for _, client := range manager.ClientList {
-			client.Message <- pingMsgStr
-			log.Println(client.Message)
-		}
-	})
-	cronIns.Start()
+	//cronIns := cron.New()
+	//pingMsg := map[string]interface{}{
+	//	"event": "PING",
+	//	"data": map[string]string{
+	//		"time": strconv.FormatInt(time.Now().Unix(), 10),
+	//	},
+	//}
+	//pingMsgStr, err := json.Marshal(pingMsg)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//cronIns.AddFunc("@every 1s", func() {
+	//	for _, client := range manager.ClientList {
+	//		client.Message <- pingMsgStr
+	//		log.Println(client.Message)
+	//	}
+	//})
+	//cronIns.Start()
 }
 
 func (manager *Manager) RegisterClient(client *Client) {
@@ -89,9 +106,10 @@ func (manager *Manager) WsClient(ctx *gin.Context) {
 }
 
 var WebsocketManager = Manager{
-	ClientList: make(map[int64]*Client),
-	Register:   make(chan *Client),
-	Unregister: make(chan *Client),
+	ClientList:       make(map[int64]*Client),
+	Register:         make(chan *Client),
+	Unregister:       make(chan *Client),
+	subscribeMessage: make(chan *subscribeMessage),
 }
 
 func StartAllService() {

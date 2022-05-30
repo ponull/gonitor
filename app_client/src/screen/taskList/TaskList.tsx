@@ -27,8 +27,8 @@ import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
-import wsClient from "../../common/Websocket";
-import {subscribableType} from "../../common/Websocket";
+import {useSubscribe,SubscribeType} from "../../common/socket/Websocket";
+import axios from "axios";
 
 class TaskLog {
     id: number;
@@ -49,44 +49,36 @@ class TaskLog {
 class TaskInfo {
     id: number;
     name: string;
-    type: string;
+    execType: string;
     schedule: string;
-    singleton: boolean;
-    disabled: boolean;
+    isSingleton: boolean;
+    isDisable: boolean;
     runningCount: number;
     lastRunTime: string;
     nextRunTime: string;
-    runningProcess: TaskLog[] = [];
 
     constructor(id: number = 0, name: string = "", type: string = "", schedule: string = "",
-                singleton: boolean = false, disabled: boolean = false, runningCount: number = 0, lastRunTime: string = "", nextRunTime: string = "", runningProcess: TaskLog[] = []) {
+                singleton: boolean = false, disabled: boolean = false, runningCount: number = 0, lastRunTime: string = "", nextRunTime: string = "") {
         this.id = id;
         this.name = name;
-        this.type = type;
+        this.execType = type;
         this.schedule = schedule;
-        this.singleton = singleton;
-        this.disabled = disabled;
+        this.isSingleton = singleton;
+        this.isDisable = disabled;
         this.runningCount = runningCount;
         this.lastRunTime = lastRunTime;
         this.nextRunTime = nextRunTime;
-        this.runningProcess = runningProcess;
     }
 }
 
-const logList = [
-    new TaskLog(1, 1, "curl -L https://halo.sg.agreenmall.com", 11454, "2022-05-25 10:00:00"),
-    new TaskLog(2, 1, "curl -L https://halo.sg.agreenmall.com", 4585, "2022-05-25 10:01:00"),
-    new TaskLog(3, 1, "curl -L https://halo.sg.agreenmall.com", 45755, "2022-05-25 10:02:00"),
-]
-
-const taskList = [
-    new TaskInfo(1, "a28i赔率采集", "HTTP", "1 0 0 0 *", true, false, 3, "2022-05-25 10:00:00", "2022-05-25 10:00:10", logList),
-    new TaskInfo(2, "a28i比赛状态更新", "HTTP", "1 0 0 0 *", true, false, 2, "2022-05-25 10:00:00", "2022-05-25 10:00:05", logList),
-    new TaskInfo(3, "比赛结果通知", "HTTP", "1 0 0 0 *", true, false, 6, "2022-05-25 10:00:00", "2022-05-25 10:00:55", logList),
-];
-
+// const logList = [
+//     new TaskLog(1, 1, "curl -L https://halo.sg.agreenmall.com", 11454, "2022-05-25 10:00:00"),
+//     new TaskLog(2, 1, "curl -L https://halo.sg.agreenmall.com", 4585, "2022-05-25 10:01:00"),
+//     new TaskLog(3, 1, "curl -L https://halo.sg.agreenmall.com", 45755, "2022-05-25 10:02:00"),
+// ];
 
 export const TaskList = function () {
+    const [taskList, setTaskList] = useState<TaskInfo[]>([]);
     const taskAddRef = useRef<TaskAddRefType>(null);
     const taskDeleteConfirmDialogRef = useRef<TaskDeleteConfirmDialogRefType>(null);
     const showCreateDialog = () => {
@@ -95,6 +87,17 @@ export const TaskList = function () {
     const showConfirmDeleteDialog = (taskInfo: TaskInfo) => {
         taskDeleteConfirmDialogRef.current?.handleClickOpen(taskInfo);
     }
+    const firstRenderRef = useRef(true);
+    useEffect(()=>{
+        if(!firstRenderRef.current){
+            return;
+        }
+        firstRenderRef.current = false;
+        axios.get(`http://127.0.0.1:8899/getTaskList`).then(res => {
+            const data = res.data as TaskInfo[];
+            setTaskList(data)
+        })
+    })
     return (
         <React.Fragment>
             <Container sx={{mt: 4, mb: 4}}>
@@ -138,19 +141,24 @@ export const TaskList = function () {
 const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDialog: Function }) => {
     const {taskInfo, index, showConfirmDeleteDialog} = props;
     const [open, setOpen] = useState(false);
+    const [taskUpdateInfo] = useSubscribe<TaskInfo>(SubscribeType.TASK, taskInfo.id, taskInfo)
+    const [logList, setLogList] = useState<TaskLog[]>([]);
+    const firstRenderRef = useRef(true);
     useEffect(()=>{
-        wsClient.subscribe(subscribableType.TASK, taskInfo.id, (newTaskInfo) => {
-            console.log(newTaskInfo);
-        })
-        return ()=>{
-            wsClient.unsubscribe(subscribableType.TASK, taskInfo.id);
+        if(!firstRenderRef.current){
+            return;
         }
+        firstRenderRef.current = false;
+        axios.get(`http://127.0.0.1:8899/getTaskLogList`).then(res => {
+            const data = res.data as TaskLog[];
+            setLogList(data)
+        })
     })
     return (
         <React.Fragment>
 
             <TableRow
-                key={taskInfo.name}
+                key={taskUpdateInfo.name}
                 sx={{'&:last-child td, &:last-child th': {border: 0}}}
             >
                 <TableCell>
@@ -165,22 +173,22 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
                 <TableCell component="th" scope="row">
                     {index + 1}
                 </TableCell>
-                <TableCell>{taskInfo.name}</TableCell>
-                <TableCell align="right">{taskInfo.type}</TableCell>
-                <TableCell align="right">{taskInfo.schedule}</TableCell>
-                <TableCell align="right">{taskInfo.singleton ?
+                <TableCell>{taskUpdateInfo.name}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.execType}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.schedule}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.isSingleton ?
                     <CheckCircleOutlineIcon/> : ""}</TableCell>
-                <TableCell align="right">{taskInfo.disabled ?
+                <TableCell align="right">{taskUpdateInfo.isDisable ?
                     <CheckCircleOutlineIcon/> : ""}</TableCell>
-                <TableCell align="right">{taskInfo.runningCount}</TableCell>
-                <TableCell align="right">{taskInfo.lastRunTime}</TableCell>
-                <TableCell align="right">{taskInfo.nextRunTime}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.runningCount}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.lastRunTime}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.nextRunTime}</TableCell>
                 <TableCell align="right">
                     <ButtonGroup variant="outlined" aria-label="outlined button group" size="small">
                         <Button>Detail</Button>
                         <Button>Edit</Button>
                         <Button onClick={() => {
-                            showConfirmDeleteDialog(taskInfo)
+                            showConfirmDeleteDialog(taskUpdateInfo)
                         }}>Delete</Button>
                     </ButtonGroup>
                 </TableCell>
@@ -202,7 +210,7 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {taskInfo.runningProcess.map((taskLog) => (
+                                    {logList.map((taskLog) => (
                                         <TableRow key={taskLog.id}>
                                             <TableCell component="th" scope="row">
                                                 {taskLog.execution_time}

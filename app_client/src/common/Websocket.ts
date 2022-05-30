@@ -12,11 +12,17 @@ enum subscribeType {
     TASK = "task",
     TASK_lOG = "task_log",
 }
+enum ConnectStatus{
+    CONNECTED = "CONNECTED",
+    CONNECTING = "CONNECTING",
+    DISCONNECTED = "DISCONNECTED",
+}
 
 type EventCallback = (data: any) => void;
 
 class WebsocketService {
     private _conn: WebSocket | undefined;
+    private _connectStatus: ConnectStatus = ConnectStatus.DISCONNECTED;
     private subscribed: Map<subscribeType, Map<number, EventCallback>> = new Map();
     public constructor() {
         this.init();
@@ -85,14 +91,17 @@ class WebsocketService {
     }
 
     public onError(event:Event){
+        this._connectStatus = ConnectStatus.DISCONNECTED;
         this.reconnect();
     }
 
     public onClose(){
+        this._connectStatus = ConnectStatus.DISCONNECTED;
         this.reconnect();
     }
 
     public onOpen(){
+        this._connectStatus = ConnectStatus.CONNECTED;
         //直接获取entries会报错 不是循环对象有问题
         // @ts-ignore
         for(let [subscribeType,subscribeTypeMap] of this.subscribed.entries()){
@@ -104,6 +113,10 @@ class WebsocketService {
     }
 
     public reconnect(){
+        if(this._connectStatus === ConnectStatus.CONNECTING){
+            return
+        }
+        this._connectStatus = ConnectStatus.CONNECTING;
         setTimeout(() => {
             this.init();
         }, 1000);

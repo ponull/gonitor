@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	"log"
+	"strconv"
+	"time"
 )
 
 const (
-	subscribeTypeTask    = "TASK"
-	subscribeTypeTaskLog = "TASK_LOG"
+	SubscribeTypeTask    = "TASK"
+	SubscribeTypeTaskLog = "TASK_LOG"
 )
 
 // Client 单个 websocket 信息
@@ -24,8 +26,8 @@ func (client *Client) StartAllService() {
 	go client.writeService()
 	//所有的订阅类型都先加进去，防止读取的时候出问题
 	client.subscribed = map[string]map[int64]bool{
-		subscribeTypeTask:    make(map[int64]bool),
-		subscribeTypeTaskLog: make(map[int64]bool),
+		SubscribeTypeTask:    make(map[int64]bool),
+		SubscribeTypeTaskLog: make(map[int64]bool),
 	}
 }
 
@@ -49,16 +51,28 @@ func (client *Client) readService() {
 		err = json.Unmarshal(message, &selfMessage)
 		//解析失败 通知前端
 		if err != nil {
-			client.Message <- []byte("cannot parse message")
-			break
+			log.Println("cannot parse message")
+			continue
 		}
 		event := selfMessage["event"]
 		log.Println(selfMessage)
 		switch event {
-		case "subscribe":
-			client.subscribe(subscribeTypeTask, 1)
-		case "unsubscribe":
-			client.unsubscribe(subscribeTypeTask, 1)
+		case "SUBSCRIBE":
+			client.subscribe(SubscribeTypeTask, 1)
+		case "UNSUBSCRIBE":
+			client.unsubscribe(SubscribeTypeTask, 1)
+		case "PING":
+			pongMsg := client.success(map[string]interface{}{
+				"event": "PONG",
+				"data": map[string]string{
+					"time": strconv.FormatInt(time.Now().Unix(), 10),
+				},
+			})
+			pongMsgStr, err := json.Marshal(pongMsg)
+			if err != nil {
+				log.Println("json fail", err)
+			}
+			client.Message <- pongMsgStr
 		}
 	}
 }
@@ -104,4 +118,37 @@ func (client *Client) toggleSubscribe(subscriptionType string, taskId int64, isS
 		return
 	}
 	client.subscribed[subscriptionType][taskId] = isSubscribe
+}
+
+func (client *Client) success(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"code": 200,
+		"data": data,
+		"msg":  "",
+	}
+}
+
+func (client *Client) SendSubscribedInfo(subscribeMessage *subscribeMessage) {
+	//_, ok := client.subscribed[subscribeMessage.SubscriptionType][subscribeMessage.ID]
+	////没有订阅这个类型或者这个id 就不管
+	//log.Println("test111111111", subscribeMessage, client.Id,)
+	//if !ok {
+	//	return
+	//}
+	updateMsg := client.success(map[string]interface{}{
+		"event": "UPDATE",
+		"data": map[string]interface{}{
+			"type": subscribeMessage.SubscriptionType,
+			"id":   subscribeMessage.ID,
+			"data": subscribeMessage.Data,
+		},
+	})
+	updateMsgStr, err := json.Marshal(updateMsg)
+	if err != nil {
+		log.Println("json fail", err)
+		return
+	}
+	client.Message <- updateMsgStr
+
+	//client.Message <- subscribeMessage.message
 }
