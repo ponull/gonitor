@@ -93,7 +93,7 @@ export const TaskList = function () {
             return;
         }
         firstRenderRef.current = false;
-        axios.get(`http://127.0.0.1:8899/getTaskList`).then(res => {
+        axios.get(`/api/getTaskList`).then(res => {
             const data = res.data as TaskInfo[];
             setTaskList(data)
         })
@@ -149,7 +149,7 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
             return;
         }
         firstRenderRef.current = false;
-        axios.get(`http://127.0.0.1:8899/getTaskLogList`).then(res => {
+        axios.get(`/api/getTaskLogList`).then(res => {
             const data = res.data as TaskLog[];
             setLogList(data)
         })
