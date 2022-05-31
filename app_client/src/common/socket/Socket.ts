@@ -66,16 +66,16 @@ export default class Socket<T, RT> extends Heart {
         reconnectTime: 5000, // 重连时间间隔
         reconnectCount: 5, // 重连次数 -1 则不限制跳前的回调
         openCb: (e: Event) => {
-            console.log('连接成功的默认回调::::', e)
+            console.log('Default callback for successful connection', e)
         }, // 连接成功的回调
         closeCb: (e: Event) => {
-            console.log('关闭的默认回调::::', e)
+            console.warn('Closed default callback', e)
         }, // 关闭的回调
         messageCb: (e: RT) => {
-            console.log('连接成功的默认回调::::', e)
+            console.log('Default callback for messages received', e)
         }, // 消息的回调
         errorCb: (e: Event) => {
-            console.log('错误的默认回调::::', e)
+            console.error('wrong default callback', e)
         } // 错误的回调
     }
 
@@ -90,10 +90,10 @@ export default class Socket<T, RT> extends Heart {
      */
     create(): void {
         if (!('WebSocket' in window)) {
-            throw new Error('当前浏览器不支持，无法使用')
+            throw new Error('The current browser does not support it and cannot be used')
         }
         if (!this.options.url) {
-            throw new Error('地址不存在，无法建立通道')
+            throw new Error('The address does not exist, the channel cannot be established')
         }
         // this.ws = null
         this.ws = new WebSocket(this.options.url)
@@ -190,7 +190,7 @@ export default class Socket<T, RT> extends Heart {
      */
     send(data: T | string): void {
         if (this.ws.readyState !== this.ws.OPEN) {
-            throw new Error('没有连接到服务器，无法推送')
+            throw new Error('Not connected to server, cannot push')
         }
         data = JSON.stringify(data)
         this.ws.send(data)

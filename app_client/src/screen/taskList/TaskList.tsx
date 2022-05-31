@@ -8,6 +8,8 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Container from "@mui/material/Container";
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import RunCircleIcon from '@mui/icons-material/RunCircle';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import {
     Button,
     ButtonGroup,
@@ -22,13 +24,13 @@ import AddIcon from '@mui/icons-material/Add';
 import {TaskAdd, TaskAddRefType} from "./TaskAdd";
 import {forwardRef, Ref, useEffect, useImperativeHandle, useRef, useState} from "react";
 import Dialog from "@mui/material/Dialog";
-import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import {useSubscribe,SubscribeType} from "../../common/socket/Websocket";
-import axios from "axios";
+import httpRequest from "../../common/request/HttpRequest";
+import { useNavigate } from "react-router-dom";
 
 class TaskLog {
     id: number;
@@ -36,13 +38,15 @@ class TaskLog {
     command: string;
     process_id: number;
     execution_time: string;
+    status: boolean
 
-    constructor(id: number = 0, task_id: number = 0, command: string = "", process_id: number = 0, execution_time: string = "") {
+    constructor(id: number = 0, task_id: number = 0, command: string = "", process_id: number = 0, execution_time: string = "", status=false) {
         this.id = id;
         this.task_id = task_id;
         this.command = command;
         this.process_id = process_id;
         this.execution_time = execution_time;
+        this.status = status;
     }
 }
 
@@ -93,11 +97,17 @@ export const TaskList = function () {
             return;
         }
         firstRenderRef.current = false;
-        axios.get(`http://127.0.0.1:8899/getTaskList`).then(res => {
-            const data = res.data as TaskInfo[];
-            setTaskList(data)
-        })
+
+        httpRequest.get(`/getTaskList`)
+            .then(res => {
+                const data = res.data as TaskInfo[];
+                setTaskList(data)
+            })
     })
+    const deleteTaskList = (taskId:number) => {
+        const newTaskList = taskList.filter(taskInfo => taskInfo.id !== taskId);
+        setTaskList(newTaskList)
+    }
     return (
         <React.Fragment>
             <Container sx={{mt: 4, mb: 4}}>
@@ -132,7 +142,7 @@ export const TaskList = function () {
                         </TableBody>
                     </Table>
                 </TableContainer>
-                <DeleteConfirmDialog ref={taskDeleteConfirmDialogRef}/>
+                <DeleteConfirmDialog ref={taskDeleteConfirmDialogRef} deleteTaskById={deleteTaskList}/>
             </Container>
         </React.Fragment>
     )
@@ -142,6 +152,11 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
     const {taskInfo, index, showConfirmDeleteDialog} = props;
     const [open, setOpen] = useState(false);
     const [taskUpdateInfo] = useSubscribe<TaskInfo>(SubscribeType.TASK, taskInfo.id, taskInfo)
+    const navigate = useNavigate();
+    const gotoTaskInfo = () => {
+        console.log(111)
+        navigate(`/admin/taskInfo/${taskInfo.id}`)
+    }
     return (
         <React.Fragment>
             <TableRow
@@ -172,7 +187,7 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
                 <TableCell align="right">{taskUpdateInfo.nextRunTime}</TableCell>
                 <TableCell align="right">
                     <ButtonGroup variant="outlined" aria-label="outlined button group" size="small">
-                        <Button>Detail</Button>
+                        <Button onClick={gotoTaskInfo}>Detail</Button>
                         <Button>Edit</Button>
                         <Button onClick={() => {
                             showConfirmDeleteDialog(taskUpdateInfo)
@@ -189,35 +204,53 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
     const {open,taskId} = props
 
     const [logList, setLogList] = useState<TaskLog[]>([]);
+    const deleteEndLog = (logId: number) => {
+        const newLogList = logList.filter(log => log.id !== logId);
+        setLogList(newLogList);
+    }
+    const [taskLogNew] = useSubscribe<TaskLog>(SubscribeType.TASK_LOG_ADD, taskId, new TaskLog())
+    const firstRenderRef= useRef(true)
     useEffect(()=>{
-        if(open){
+        if(firstRenderRef.current){
+            firstRenderRef.current = false
 
-            axios.get(`http://127.0.0.1:8899/getTaskLogList?task_id=${taskId}`).then(res => {
-                const data = res.data as TaskLog[];
-                setLogList(data)
-            })
+            httpRequest.get(`getTaskLogList?task_id=${taskId}`)
+                .then(res => {
+                    const data = res.data as TaskLog[];
+                    setLogList(data)
+                })
+            // axios.get(`http://127.0.0.1:8899/getTaskLogList?task_id=${taskId}`).then(res => {
+            //     const data = res.data as TaskLog[];
+            //     setLogList(data)
+            // })
+        }else{
+            if(taskLogNew.id !== 0){
+                console.log(taskLogNew)
+                setLogList([taskLogNew,...logList])
+            }
         }
-    },[open])
+    },[taskLogNew])
     return (
         <TableRow>
             <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={11}>
                 <Collapse in={open} timeout="auto" unmountOnExit>
                     <Box sx={{ margin: 1 }}>
-                        <Typography variant="h6" gutterBottom component="div">
-                            Running Instances
-                        </Typography>
+                        {/*<Typography variant="h6" gutterBottom component="div">*/}
+                        {/*    Running Instances*/}
+                        {/*</Typography>*/}
                         <Table size="small" aria-label="purchases">
                             <TableHead>
                                 <TableRow>
                                     <TableCell>Time</TableCell>
                                     <TableCell>Command</TableCell>
                                     <TableCell align="right">Process Id</TableCell>
+                                    <TableCell align="right">Status</TableCell>
                                     <TableCell align="right">Function</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {logList.map((taskLog) => (
-                                    <TaskLogRow taskLogInfo={taskLog}/>
+                                    <TaskLogRow key={taskLog.id} taskLogInfo={taskLog} handleDelete={deleteEndLog}/>
                                 ))}
                             </TableBody>
                         </Table>
@@ -227,21 +260,33 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
         </TableRow>
     )
 }
+const TaskLogRow = (props: { taskLogInfo: TaskLog;handleDelete:(id:number)=>void })=>{
+    const {taskLogInfo, handleDelete} = props
 
-const TaskLogRow = (props: { taskLogInfo: TaskLog; })=>{
-    const {taskLogInfo} = props
+    const [taskLogUpdateInfo] = useSubscribe<TaskLog>(SubscribeType.TASK_lOG, taskLogInfo.id, taskLogInfo)
+    useEffect(()=>{
+        if(!taskLogUpdateInfo.status){
+            setTimeout(()=>{
+                handleDelete(taskLogUpdateInfo.id)
+            },3000)
+        }
+    }, [taskLogUpdateInfo])
     return (
         <React.Fragment>
-            <TableRow key={taskLogInfo.id}>
+            <TableRow key={taskLogUpdateInfo.id}>
                 <TableCell component="th" scope="row">
-                    {taskLogInfo.execution_time}
+                    {taskLogUpdateInfo.execution_time}
                 </TableCell>
-                <TableCell>{taskLogInfo.command}</TableCell>
-                <TableCell align="right">{taskLogInfo.process_id}</TableCell>
+                <TableCell>{taskLogUpdateInfo.command}</TableCell>
+                <TableCell align="right">{taskLogUpdateInfo.process_id}</TableCell>
+                <TableCell align="right">{
+                    taskLogUpdateInfo.status?taskLogUpdateInfo.process_id > 0?<RunCircleIcon color="success"/>:<HourglassEmptyIcon/>:<StopCircleIcon color="disabled"/>
+                }</TableCell>
                 <TableCell align="right">
                     <IconButton
                         size="small"
                         color="error"
+                        disabled={!taskLogUpdateInfo.status}
                     >
                         <StopCircleIcon/>
                     </IconButton>
@@ -256,7 +301,8 @@ type TaskDeleteConfirmDialogRefType = {
     handleClickOpen: Function,
 }
 
-const DeleteConfirmDialog = forwardRef((props: any, ref: Ref<TaskDeleteConfirmDialogRefType>) => {
+const DeleteConfirmDialog = forwardRef((props: {deleteTaskById:Function}, ref: Ref<TaskDeleteConfirmDialogRefType>) => {
+    const {deleteTaskById} = props
     useImperativeHandle(ref, () => ({
         handleClickOpen,
     }));
@@ -269,6 +315,23 @@ const DeleteConfirmDialog = forwardRef((props: any, ref: Ref<TaskDeleteConfirmDi
     const handleClose = () => {
         setOpen(false);
     };
+    const deleteTask = () => {
+        httpRequest.post("deleteTask", {
+            task_id: taskInfo.id
+        })
+            .then(res => {
+                const data = res.data
+                if(data.code === 0){
+                    deleteTaskById(taskInfo.id)
+                }
+            })
+            .catch(err => {
+                console.log(err)
+            })
+            .finally(()=>{
+                handleClose()
+            })
+    }
     return (
         <React.Fragment>
             <Dialog open={open} onClose={handleClose} aria-labelledby="form-dialog-title">
@@ -282,7 +345,7 @@ const DeleteConfirmDialog = forwardRef((props: any, ref: Ref<TaskDeleteConfirmDi
                     <Button onClick={handleClose} color="primary">
                         Cancel
                     </Button>
-                    <Button onClick={handleClose} color="primary">
+                    <Button onClick={deleteTask} color="primary">
                         Delete
                     </Button>
                 </DialogActions>

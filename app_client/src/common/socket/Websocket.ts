@@ -16,6 +16,7 @@ type EventCallback = Dispatch<SetStateAction<any>>;
 export enum SubscribeType {
     TASK = "TASK",
     TASK_lOG = "TASK_LOG",
+    TASK_LOG_ADD = "TASK_LOG_ADD",
 }
 export enum EventType {
     SUBSCRIBE = 'SUBSCRIBE',
@@ -38,7 +39,6 @@ const wbSocket = new Socket<SocketSendType, SubscribeResponse>({
         const {event, data} = res;
         switch (event) {
             case EventType.UPDATE:
-                console.log("收到更新信息", data)
                 const subscribeType = data.type;
                 const targetId = data.id;
                 const dataInfo = data.data;
@@ -51,10 +51,10 @@ const wbSocket = new Socket<SocketSendType, SubscribeResponse>({
                 }
                 break;
             case EventType.PONG:
-                console.log("收到服务端心跳回应")
+                // console.log("收到服务端心跳回应")
                 break;
             default:
-                console.log("不明白服务端想说啥")
+                // console.log("不明白服务端想说啥")
         }
     },
 

@@ -4,6 +4,7 @@ import {Link, Route, Routes} from "react-router-dom";
 import Layout from "./screen/layout/Layout";
 import {Dashboard} from "./screen/dashboard/Dashboard";
 import {TaskList} from "./screen/taskList/TaskList";
+import {TaskInfo} from "./screen/taskInfo/TaskInfo";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="admin" element={<Layout />} >
             <Route path="" element={<Dashboard />} />
             <Route path="taskList" element={<TaskList />} />
+            <Route path="taskInfo/:taskId" element={<TaskInfo />} />
         </Route>
       </Routes>
     </div>

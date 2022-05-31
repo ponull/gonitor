@@ -8,7 +8,6 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/shirou/gopsutil/process"
 	"gonitor/model"
-	"gonitor/web/ws"
 	"gonitor/web/ws/subscription"
 	"log"
 	"os"
@@ -105,6 +104,8 @@ func FireTask(taskId int64) {
 			fmt.Println(dbRt.Error.Error())
 			return
 		}
+		EntryIns := getTaskEntryIns(taskId)
+		subscription.SendNewTaskLogFormOrm(&taskLog)
 		cmd := exec.Command("cmd", "/C", execCommand)
 		var out bytes.Buffer
 		cmd.Stdout = &out
@@ -119,25 +120,14 @@ func FireTask(taskId int64) {
 			return
 		}
 		//新加task log  推送到前端 task 运行++
-		var EntryIns cron.Entry
-		for _, entry := range cronIns.Entries() {
-			if entry.ID == crontabList[taskId].EntryID {
-				EntryIns = entry
-			}
-		}
-		ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, taskId, subscription.TaskInfo{
-			ID:           taskId,
-			Name:         taskIns.Name,
-			ExecType:     taskIns.ExecType,
-			Schedule:     taskIns.Schedule,
-			IsSingleton:  taskIns.IsSingleton,
-			IsDisable:    taskIns.IsDisable,
-			RunningCount: 1,
-			LastRunTime:  EntryIns.Prev.Format("2006-01-02 15:04:05"),
-			NextRunTime:  EntryIns.Next.Format("2006-01-02 15:04:05"),
-		})
+		subscription.SendTaskInfoFormOrm(
+			&taskIns,
+			1,
+			EntryIns.Prev.Format("2006-01-02 15:04:05"),
+			EntryIns.Next.Format("2006-01-02 15:04:05"))
 		taskLog.ProcessId = cmd.Process.Pid
 		result = dbRt.Save(taskLog)
+		subscription.SendTaskLogInfoFormOrm(&taskLog)
 		//pn, err := process.NewProcess(int32(cmd.Process.Pid))
 		//if err != nil {
 		//	fmt.Println("获取gonitor进程失败:" + err.Error())
@@ -155,21 +145,16 @@ func FireTask(taskId int64) {
 		//}
 		cmd.Wait()
 
-		ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, taskId, subscription.TaskInfo{
-			ID:           taskId,
-			Name:         taskIns.Name,
-			ExecType:     taskIns.ExecType,
-			Schedule:     taskIns.Schedule,
-			IsSingleton:  taskIns.IsSingleton,
-			IsDisable:    taskIns.IsDisable,
-			RunningCount: 0,
-			LastRunTime:  EntryIns.Prev.Format("2006-01-02 15:04:05"),
-			NextRunTime:  EntryIns.Next.Format("2006-01-02 15:04:05"),
-		})
+		subscription.SendTaskInfoFormOrm(
+			&taskIns,
+			0,
+			EntryIns.Prev.Format("2006-01-02 15:04:05"),
+			EntryIns.Next.Format("2006-01-02 15:04:05"))
 		//删除task log  推送到前端 task 运行--
 		taskLog.Output = out.String()
 		taskLog.Status = false
 		taskLog.RunningTime = time.Now().Unix() - taskLog.ExecutionTime
+		subscription.SendTaskLogInfoFormOrm(&taskLog)
 		result = dbRt.Save(taskLog)
 		if dbRt.Error != nil {
 			return
@@ -187,6 +172,16 @@ func FireTask(taskId int64) {
 		EntryID: entryID,
 		Type:    taskIns.ExecType,
 	}
+}
+
+func getTaskEntryIns(taskId int64) cron.Entry {
+	var EntryIns cron.Entry
+	for _, entry := range cronIns.Entries() {
+		if entry.ID == crontabList[taskId].EntryID {
+			EntryIns = entry
+		}
+	}
+	return EntryIns
 }
 
 func parseTask(command string, taskType string) string {

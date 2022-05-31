@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	SubscribeTypeTask    = "TASK"
-	SubscribeTypeTaskLog = "TASK_LOG"
+	SubscribeTypeTask       = "TASK"
+	SubscribeTypeTaskLog    = "TASK_LOG"
+	SubscribeTypeTaskLogAdd = "TASK_LOG_ADD"
 )
 
 // Client 单个 websocket 信息

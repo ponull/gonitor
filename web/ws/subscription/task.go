@@ -1,5 +1,10 @@
 package subscription
 
+import (
+	"gonitor/model"
+	"gonitor/web/ws"
+)
+
 type TaskInfo struct {
 	ID           int64  `json:"id"`
 	Name         string `json:"name"`
@@ -13,14 +18,16 @@ type TaskInfo struct {
 	RunningCount int64  `json:"runningCount"`
 }
 
-func (t *TaskInfo) Push() {
-
-}
-
-func (t *TaskInfo) Subscribe() {
-
-}
-
-func (t *TaskInfo) Unsubscribe() {
-
+func SendTaskInfoFormOrm(taskModel *model.Task, runningCount int64, lastRunTime, nextRunTime string) {
+	ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, taskModel.ID, TaskInfo{
+		ID:           taskModel.ID,
+		Name:         taskModel.Name,
+		ExecType:     taskModel.ExecType,
+		Schedule:     taskModel.Schedule,
+		IsSingleton:  taskModel.IsSingleton,
+		IsDisable:    taskModel.IsDisable,
+		RunningCount: runningCount,
+		LastRunTime:  lastRunTime,
+		NextRunTime:  nextRunTime,
+	})
 }

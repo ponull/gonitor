@@ -12,10 +12,11 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
 import {TransitionProps} from '@mui/material/transitions';
-import {forwardRef, Ref, useImperativeHandle} from "react";
+import {forwardRef, Ref, useImperativeHandle, useRef, useState} from "react";
 import Container from "@mui/material/Container";
 import {FormControl, InputLabel, MenuItem, Select} from "@mui/material";
 import {SelectChangeEvent} from "@mui/material/Select/SelectInput";
+import httpRequest from "../../common/request/HttpRequest";
 
 const Transition = React.forwardRef(function Transition(
     props: TransitionProps & {
@@ -29,12 +30,16 @@ export type TaskAddRefType = {
     handleClickOpen: Function;
 }
 
+type TaskAddFormRefType = {
+    getFormValues: Function;
+}
+
 export const TaskAdd = forwardRef((props: any, ref: Ref<TaskAddRefType>) => {
     useImperativeHandle(ref, () => ({
         handleClickOpen,
     }));
     const [open, setOpen] = React.useState(false);
-
+    const formRef = useRef<TaskAddFormRefType>(null);
     const handleClickOpen = () => {
         setOpen(true);
     };
@@ -42,6 +47,17 @@ export const TaskAdd = forwardRef((props: any, ref: Ref<TaskAddRefType>) => {
     const handleClose = () => {
         setOpen(false);
     };
+
+    const handleSubmit = () => {
+        const formValue = formRef.current?.getFormValues()
+        httpRequest.post("addTask", formValue)
+            .then(res => {
+                console.log(res)
+            })
+            .catch(err => {
+                console.log(err)
+            })
+    }
 
     return (
         <Dialog
@@ -63,13 +79,13 @@ export const TaskAdd = forwardRef((props: any, ref: Ref<TaskAddRefType>) => {
                     <Typography sx={{ml: 2, flex: 1}} variant="h6" component="div">
                         Add Task
                     </Typography>
-                    <Button autoFocus color="inherit" onClick={handleClose}>
+                    <Button autoFocus color="inherit" onClick={handleSubmit}>
                         save
                     </Button>
                 </Toolbar>
             </AppBar>
             <Container maxWidth={"md"} sx={{mt:4}}>
-                <TaskAddForm/>
+                <TaskAddForm ref={formRef}/>
             </Container>
         </Dialog>
     );
@@ -81,10 +97,26 @@ enum executeTypeEnum {
     FILE = 'File',
 }
 
-export const TaskAddForm = () => {
-    const [executeType, setExecuteType] = React.useState(executeTypeEnum.HTTP);
-    const [commandName, setCommandName] = React.useState('Http Url (only support GET method)');
-    const handleChange = (event: SelectChangeEvent) => {
+export const TaskAddForm = forwardRef((props: any, ref: Ref<TaskAddFormRefType>) => {
+    useImperativeHandle(ref, () => ({
+        getFormValues: getFormValues,
+    }));
+    const getFormValues = () => {
+        return {
+            name: taskName,
+            exec_type: executeType,
+            command,
+            schedule,
+            retry_times: retryTimes,
+            retry_interval: retryInterval,
+            is_singleton: IsSingleton,
+            is_disable: IsDisable
+        }
+    }
+    const [taskName, setTaskName] = useState("")
+    const handleTaskNameChange = (event:any) => setTaskName(event.target.value)
+    const [executeType, setExecuteType] = useState(executeTypeEnum.HTTP)
+    const handleExecuteTypeChange = (event: SelectChangeEvent) => {
         const executeType = event.target.value as executeTypeEnum;
         setExecuteType(executeType);
         switch (executeType) {
@@ -99,6 +131,19 @@ export const TaskAddForm = () => {
                 break;
         }
     };
+    const [commandName, setCommandName] = useState('Http Url (only support GET method)');
+    const [command, setCommand] = useState("");
+    const handleCommandChange = (event:any) => setCommand(event.target.value)
+    const [schedule, setSchedule] = useState("")
+    const handleScheduleChange = (event:any) => setSchedule(event.target.value)
+    const [retryTimes, setRetryTimes] = useState(0)
+    const handleRetryTimesChange = (event:any) => setRetryTimes(event.target.value)
+    const [retryInterval, setRetryInterval] = useState(3000)
+    const handleRetryIntervalChange = (event:any) => setRetryInterval(event.target.value)
+    const [IsSingleton, setIsSingleton] = useState(false)
+    const handleIsSingletonChange = (event:any) => setIsSingleton(event.target.checked)
+    const [IsDisable, setIsDisable] = useState(false)
+    const handleIsDisableChange = (event:any) => setIsDisable(event.target.checked)
     return (
         <React.Fragment>
             <Typography variant="h6" gutterBottom>
@@ -108,22 +153,23 @@ export const TaskAddForm = () => {
                 <Grid item xs={12}>
                     <TextField
                         required
-                        id="firstName"
-                        name="firstName"
+                        id="taskName"
+                        name="taskName"
                         label="Name"
+                        value={taskName}
+                        onChange={handleTaskNameChange}
                         fullWidth
-                        autoComplete="given-name"
                         variant="standard"
                     />
                 </Grid>
                 <Grid item xs={12}>
                     <FormControl variant="standard" sx={{minWidth: 120}}>
-                        <InputLabel id="demo-simple-select-standard-label">Execute Type</InputLabel>
+                        <InputLabel id="exec-type-label">Execute Type</InputLabel>
                         <Select
-                            labelId="demo-simple-select-standard-label"
-                            id="demo-simple-select-standard"
+                            labelId="exec-type-label"
+                            id="exec-type"
                             value={executeType}
-                            onChange={handleChange}
+                            onChange={handleExecuteTypeChange}
                             label="Execute Type"
                         >
                             <MenuItem value={executeTypeEnum.HTTP}>Http</MenuItem>
@@ -135,33 +181,36 @@ export const TaskAddForm = () => {
                 <Grid item xs={12}>
                     <TextField
                         required
-                        id="address2"
-                        name="address2"
+                        id="command"
+                        name="command"
                         label={commandName}
+                        value={command}
+                        onChange={handleCommandChange}
                         fullWidth
-                        autoComplete="shipping address-line2"
                         variant="standard"
                     />
                 </Grid>
                 <Grid item xs={12}>
                     <TextField
                         required
-                        id="address1"
-                        name="address1"
+                        id="schedule"
+                        name="schedule"
                         label="Schedule"
+                        value={schedule}
+                        onChange={handleScheduleChange}
                         fullWidth
-                        autoComplete="shipping address-line1"
                         variant="standard"
                     />
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <TextField
                         required
-                        id="address1"
-                        name="address1"
+                        id="retryTimes"
+                        name="retryTimes"
                         label="Retry Times"
+                        value={retryTimes}
+                        onChange={handleRetryTimesChange}
                         fullWidth
-                        autoComplete="shipping address-line1"
                         variant="standard"
                         inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                     />
@@ -172,25 +221,26 @@ export const TaskAddForm = () => {
                         id="address1"
                         name="address1"
                         label="Retry Interval"
+                        value={retryInterval}
+                        onChange={handleRetryIntervalChange}
                         fullWidth
-                        autoComplete="shipping address-line1"
                         variant="standard"
                         inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                     />
                 </Grid>
                 <Grid item xs={12}>
                     <FormControlLabel
-                        control={<Checkbox name="saveAddress" value="yes"/>}
+                        control={<Checkbox name="saveAddress" checked={IsSingleton} onChange={handleIsSingletonChange}/>}
                         label="Singleton"
                     />
                 </Grid>
                 <Grid item xs={12}>
                     <FormControlLabel
-                        control={<Checkbox name="saveAddress" value="yes"/>}
+                        control={<Checkbox name="saveAddress" checked={IsDisable} onChange={handleIsDisableChange}/>}
                         label="Disable"
                     />
                 </Grid>
             </Grid>
         </React.Fragment>
     );
-}
+});

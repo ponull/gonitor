@@ -38,7 +38,7 @@ var startCmd = &cobra.Command{
 			os.Exit(0)
 		}
 		log.Println("gonitor 启动中")
-		core.InitTask()
+		//core.InitTask()
 		web.StartService()
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill)
