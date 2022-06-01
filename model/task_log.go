@@ -10,6 +10,7 @@ type TaskLog struct {
 	ProcessId     int    `gorm:"column:process_id" json:"process_id"`         //执行类型
 	ExecutionTime int64  `gorm:"column:execution_time" json:"execution_time"` //执行时间
 	RunningTime   int64  `gorm:"column:running_time" json:"running_time"`     //运行时间
+	RetryTimes    int8   `gorm:"column:retry_times" json:"retry_times"`       //重试次数
 }
 
 func (TaskLog) TableName() string {

@@ -16,3 +16,15 @@ type Base struct {
 func GetConn() *gorm.DB {
 	return yogo.Db
 }
+
+type Page struct {
+	CurrentPage int64       `json:"currentPage"`
+	PageSize    int64       `json:"pageSize"`
+	Total       int64       `json:"total"` // 总记录数
+	Pages       int64       `json:"pages"` // 总页数
+	Data        interface{} `json:"data"`  // 实际的list数据
+} // 分页response返回给前端
+
+//func Paginate(db *gorm.DB) *gorm.DB {
+//	return db.Offset()
+//}

@@ -104,7 +104,7 @@ func FireTask(taskId int64) {
 			fmt.Println(dbRt.Error.Error())
 			return
 		}
-		EntryIns := getTaskEntryIns(taskId)
+		EntryIns := GetTaskEntryIns(taskId)
 		subscription.SendNewTaskLogFormOrm(&taskLog)
 		cmd := exec.Command("cmd", "/C", execCommand)
 		var out bytes.Buffer
@@ -174,7 +174,7 @@ func FireTask(taskId int64) {
 	}
 }
 
-func getTaskEntryIns(taskId int64) cron.Entry {
+func GetTaskEntryIns(taskId int64) cron.Entry {
 	var EntryIns cron.Entry
 	for _, entry := range cronIns.Entries() {
 		if entry.ID == crontabList[taskId].EntryID {
@@ -182,6 +182,10 @@ func getTaskEntryIns(taskId int64) cron.Entry {
 		}
 	}
 	return EntryIns
+}
+
+func GetTaskRunningCount(taskId int64) int64 {
+	return 0
 }
 
 func parseTask(command string, taskType string) string {

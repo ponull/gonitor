@@ -1,10 +1,13 @@
 package task
 
 import (
+	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron/v3"
 	"gonitor/core"
 	"gonitor/model"
+	"gonitor/web/ws/subscription"
 	"sync"
 	"time"
 )
@@ -21,21 +24,62 @@ var Manager manager = manager{
 
 type manager struct {
 	cron              *cron.Cron
-	TaskList          []*instance
+	TaskList          map[int64]*taskInstance
 	RunningProcessMap sync.Map //key是logid  value是进程id
 }
 
-type instance struct {
-	RunningInstances []*runningInstance
-	RunningCount     int
-	EntryId          cron.EntryID
+func (tm *manager) AddTask(taskId int64) error {
+	//先看 如果已经有了 就不需要添加了
+	if _, ok := Manager.TaskList[taskId]; ok {
+		return errors.New("this task has in cron task")
+	}
+	taskIns := &taskInstance{
+		TaskID:           taskId,
+		RunningInstances: nil,
+		RunningCount:     0,
+		EntryId:          0,
+	}
+	task := &model.Task{}
+	dbRt := core.Db.Where("id = ?", taskId).First(task)
+	if dbRt.Error != nil {
+		fmt.Println("获取任务信息失败")
+		return dbRt.Error
+	}
+	entryID, err := Manager.cron.AddFunc(task.Schedule, func() {
+		err := checkTask(taskId)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		tas
+
+	})
+	if err != nil {
+		fmt.Println("cron add fun fail", err)
+		return err
+	}
+	taskIns.EntryId = entryID
+	Manager.TaskList[taskId] = taskIns
+	return nil
 }
 
-type runningInstance struct {
-	ProcessId int
-}
-
-func (tm *manager) AddTask(taskId int) error {
+//checkTask 检查任务是否可以执行
+func checkTask(taskId int64) error {
+	taskIns := model.Task{}
+	result := core.Db.Where("id = ?", taskId).First(&taskIns)
+	if result.Error != nil {
+		return errors.New("任务不存在或已被删除")
+	}
+	if taskIns.IsDisable {
+		return errors.New("任务被禁用")
+	}
+	if taskIns.IsSingleton {
+		taskLogIns := model.TaskLog{}
+		result = core.Db.Where("task_id = ? AND status = ?", taskId, true).First(&taskLogIns)
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return errors.New("单例模式, 上次运行还未结束")
+		}
+	}
 	return nil
 }
 
@@ -43,74 +87,29 @@ func (tm *manager) DeleteTask(taskId int) error {
 	return nil
 }
 
-func (ti *instance) Start() {
-
-}
-
-func (ti *instance) Stop() {
-
-}
-
-func (tri *runningInstance) Start(taskModel model.Task) (string, error) {
-	taskLogId, err := beforeRun(taskModel)
-	if err != nil {
-		return "", err
-	}
-	handler := CreateHandler(taskModel)
-	var execTimes int8 = 1
-	if taskModel.RetryTimes > 0 {
-		execTimes += taskModel.RetryTimes
-	}
-	var i int8 = 0
-	var output string
-	for i < execTimes {
-		output, err = handler.Run(taskModel, taskLogId)
-		if err == nil {
-			return output, err
-		}
-		i++
-		if i < execTimes {
-			fmt.Println("任务执行失败")
-		}
-		if taskModel.RetryInterval > 0 {
-			time.Sleep(time.Duration(taskModel.RetryInterval) * time.Second)
-		} else {
-			time.Sleep(time.Duration(i) * time.Minute)
-		}
-	}
-	return output, nil
-}
-
-func (tri *runningInstance) Stop() {
-
-}
-
 //beforeRun 运行之前 插入log
-func beforeRun(taskModel model.Task) (int64, error) {
-	taskLogModel := model.TaskLog{
+func beforeRun(taskModel *model.Task) (*model.TaskLog, error) {
+	taskLogModel := &model.TaskLog{
 		TaskId:        taskModel.ID,
 		Command:       taskModel.Command,
 		Status:        true,
 		ExecType:      taskModel.ExecType,
 		ExecutionTime: time.Now().Unix(),
 	}
-	dbRt := core.Db.Create(&taskLogModel)
+	dbRt := core.Db.Create(taskLogModel)
 	if dbRt.Error != nil {
 		fmt.Println(dbRt.Error.Error())
-		return 0, dbRt.Error
+		return taskLogModel, dbRt.Error
 	}
-	return taskLogModel.ID, nil
+	subscription.SendNewTaskLogFormOrm(taskLogModel)
+	return taskLogModel, nil
 }
 
 //endRun 运行之后  更新输出信息
-func endRun(taskLogId int64, output string) error {
+func endRun(taskLog *model.TaskLog, output string) error {
 	taskLogModel := model.TaskLog{}
-	dbRt := core.Db.Where("id = ?", taskLogId).First(&taskLogModel)
-	if dbRt.Error != nil {
-		return dbRt.Error
-	}
-	taskLogModel.Output = output
-	dbRt = core.Db.Save(&taskLogModel)
+	taskLog.Output = output
+	dbRt := core.Db.Save(&taskLogModel)
 	if dbRt.Error != nil {
 		return dbRt.Error
 	}

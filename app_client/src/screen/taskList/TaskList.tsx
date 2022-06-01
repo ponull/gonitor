@@ -17,7 +17,7 @@ import {
     DialogActions,
     DialogContent,
     DialogContentText,
-    DialogTitle
+    DialogTitle, Skeleton
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
@@ -28,52 +28,11 @@ import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
-import {useSubscribe,SubscribeType} from "../../common/socket/Websocket";
+import {useSubscribe, SubscribeType} from "../../common/socket/Websocket";
 import httpRequest from "../../common/request/HttpRequest";
-import { useNavigate } from "react-router-dom";
-
-class TaskLog {
-    id: number;
-    task_id: number;
-    command: string;
-    process_id: number;
-    execution_time: string;
-    status: boolean
-
-    constructor(id: number = 0, task_id: number = 0, command: string = "", process_id: number = 0, execution_time: string = "", status=false) {
-        this.id = id;
-        this.task_id = task_id;
-        this.command = command;
-        this.process_id = process_id;
-        this.execution_time = execution_time;
-        this.status = status;
-    }
-}
-
-class TaskInfo {
-    id: number;
-    name: string;
-    execType: string;
-    schedule: string;
-    isSingleton: boolean;
-    isDisable: boolean;
-    runningCount: number;
-    lastRunTime: string;
-    nextRunTime: string;
-
-    constructor(id: number = 0, name: string = "", type: string = "", schedule: string = "",
-                singleton: boolean = false, disabled: boolean = false, runningCount: number = 0, lastRunTime: string = "", nextRunTime: string = "") {
-        this.id = id;
-        this.name = name;
-        this.execType = type;
-        this.schedule = schedule;
-        this.isSingleton = singleton;
-        this.isDisable = disabled;
-        this.runningCount = runningCount;
-        this.lastRunTime = lastRunTime;
-        this.nextRunTime = nextRunTime;
-    }
-}
+import {useNavigate} from "react-router-dom";
+import {useSnackbar} from "notistack";
+import {TaskInfo as TaskInfoModel, TaskLog as TaskLogModel} from "../../models/Task";
 
 // const logList = [
 //     new TaskLog(1, 1, "curl -L https://halo.sg.agreenmall.com", 11454, "2022-05-25 10:00:00"),
@@ -82,29 +41,37 @@ class TaskInfo {
 // ];
 
 export const TaskList = function () {
-    const [taskList, setTaskList] = useState<TaskInfo[]>([]);
+    const [taskList, setTaskList] = useState<TaskInfoModel[]>([]);
     const taskAddRef = useRef<TaskAddRefType>(null);
     const taskDeleteConfirmDialogRef = useRef<TaskDeleteConfirmDialogRefType>(null);
+    // const {enqueueSnackbar, closeSnackbar} = useSnackbar();
+    // enqueueSnackbar("666666", {variant: "error"});
+    const [loading, setLoading] = useState(true)
     const showCreateDialog = () => {
         taskAddRef.current?.handleClickOpen();
     }
-    const showConfirmDeleteDialog = (taskInfo: TaskInfo) => {
+    const showConfirmDeleteDialog = (taskInfo: TaskInfoModel) => {
         taskDeleteConfirmDialogRef.current?.handleClickOpen(taskInfo);
     }
     const firstRenderRef = useRef(true);
-    useEffect(()=>{
-        if(!firstRenderRef.current){
+    useEffect(() => {
+        if (!firstRenderRef.current) {
             return;
         }
         firstRenderRef.current = false;
 
         httpRequest.get(`/getTaskList`)
             .then(res => {
-                const data = res.data as TaskInfo[];
+                const data = res.data as TaskInfoModel[];
                 setTaskList(data)
             })
+            .catch(err => {
+            })
+            .finally(()=>{
+                setLoading(false)
+            })
     })
-    const deleteTaskList = (taskId:number) => {
+    const deleteTaskList = (taskId: number) => {
         const newTaskList = taskList.filter(taskInfo => taskInfo.id !== taskId);
         setTaskList(newTaskList)
     }
@@ -135,10 +102,27 @@ export const TaskList = function () {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {taskList.map((taskInfo, inx) => (
-                                <TaskRow key={taskInfo.id} taskInfo={taskInfo} index={inx}
-                                         showConfirmDeleteDialog={showConfirmDeleteDialog}/>
-                            ))}
+                            {/*{taskList && taskList?.map((taskInfo, inx) => (*/}
+                            {/*    <TaskRow key={taskInfo.id} taskInfo={taskInfo} index={inx}*/}
+                            {/*             showConfirmDeleteDialog={showConfirmDeleteDialog}/>*/}
+                            {/*))}*/}
+                            {loading ?
+                                new Array(5).fill(0).map((_, rowIdx) => (
+                                    <TableRow key={"row" + rowIdx}>
+                                        {new Array(11).fill(0).map((_, cellIdx) => (
+                                            <TableCell>
+                                                <Skeleton key={"row" + rowIdx + "cell" + cellIdx}>
+                                                    <TableCell component="th" scope="row"/>
+                                                </Skeleton>
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                                : taskList && taskList?.map((taskInfo, inx) => (
+                                    <TaskRow key={'taskItem' + taskInfo.id} taskInfo={taskInfo} index={inx}
+                                             showConfirmDeleteDialog={showConfirmDeleteDialog}/>
+                                ))
+                            }
                         </TableBody>
                     </Table>
                 </TableContainer>
@@ -148,10 +132,10 @@ export const TaskList = function () {
     )
 }
 
-const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDialog: Function }) => {
+const TaskRow = (props: { taskInfo: TaskInfoModel, index: number, showConfirmDeleteDialog: Function }) => {
     const {taskInfo, index, showConfirmDeleteDialog} = props;
     const [open, setOpen] = useState(false);
-    const [taskUpdateInfo] = useSubscribe<TaskInfo>(SubscribeType.TASK, taskInfo.id, taskInfo)
+    const [taskUpdateInfo] = useSubscribe<TaskInfoModel>(SubscribeType.TASK, taskInfo.id, taskInfo)
     const navigate = useNavigate();
     const gotoTaskInfo = () => {
         console.log(111)
@@ -169,7 +153,7 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
                         size="small"
                         onClick={() => setOpen(!open)}
                     >
-                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                        {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon/>}
                     </IconButton>
                 </TableCell>
                 <TableCell component="th" scope="row">
@@ -201,40 +185,40 @@ const TaskRow = (props: { taskInfo: TaskInfo, index: number, showConfirmDeleteDi
 }
 
 const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
-    const {open,taskId} = props
+    const {open, taskId} = props
 
-    const [logList, setLogList] = useState<TaskLog[]>([]);
+    const [logList, setLogList] = useState<TaskLogModel[]>([]);
     const deleteEndLog = (logId: number) => {
         const newLogList = logList.filter(log => log.id !== logId);
         setLogList(newLogList);
     }
-    const [taskLogNew] = useSubscribe<TaskLog>(SubscribeType.TASK_LOG_ADD, taskId, new TaskLog())
-    const firstRenderRef= useRef(true)
-    useEffect(()=>{
-        if(firstRenderRef.current){
+    const [taskLogNew] = useSubscribe<TaskLogModel>(SubscribeType.TASK_LOG_ADD, taskId, new TaskLogModel())
+    const firstRenderRef = useRef(true)
+    useEffect(() => {
+        if (firstRenderRef.current) {
             firstRenderRef.current = false
 
             httpRequest.get(`getTaskLogList?task_id=${taskId}`)
                 .then(res => {
-                    const data = res.data as TaskLog[];
+                    const data = res.data as TaskLogModel[];
                     setLogList(data)
                 })
             // axios.get(`http://127.0.0.1:8899/getTaskLogList?task_id=${taskId}`).then(res => {
             //     const data = res.data as TaskLog[];
             //     setLogList(data)
             // })
-        }else{
-            if(taskLogNew.id !== 0){
+        } else {
+            if (taskLogNew.id !== 0) {
                 console.log(taskLogNew)
-                setLogList([taskLogNew,...logList])
+                setLogList([taskLogNew, ...logList])
             }
         }
-    },[taskLogNew])
+    }, [taskLogNew])
     return (
         <TableRow>
-            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={11}>
+            <TableCell style={{paddingBottom: 0, paddingTop: 0}} colSpan={11}>
                 <Collapse in={open} timeout="auto" unmountOnExit>
-                    <Box sx={{ margin: 1 }}>
+                    <Box sx={{margin: 1}}>
                         {/*<Typography variant="h6" gutterBottom component="div">*/}
                         {/*    Running Instances*/}
                         {/*</Typography>*/}
@@ -249,8 +233,8 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {logList.map((taskLog) => (
-                                    <TaskLogRow key={taskLog.id} taskLogInfo={taskLog} handleDelete={deleteEndLog}/>
+                                {logList && logList.map((taskLog) => (
+                                    <TaskLogRow key={"taskLog" + taskLog.id} taskLogInfo={taskLog} handleDelete={deleteEndLog}/>
                                 ))}
                             </TableBody>
                         </Table>
@@ -260,15 +244,15 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
         </TableRow>
     )
 }
-const TaskLogRow = (props: { taskLogInfo: TaskLog;handleDelete:(id:number)=>void })=>{
+const TaskLogRow = (props: { taskLogInfo: TaskLogModel; handleDelete: (id: number) => void }) => {
     const {taskLogInfo, handleDelete} = props
 
-    const [taskLogUpdateInfo] = useSubscribe<TaskLog>(SubscribeType.TASK_lOG, taskLogInfo.id, taskLogInfo)
-    useEffect(()=>{
-        if(!taskLogUpdateInfo.status){
-            setTimeout(()=>{
+    const [taskLogUpdateInfo] = useSubscribe<TaskLogModel>(SubscribeType.TASK_lOG, taskLogInfo.id, taskLogInfo)
+    useEffect(() => {
+        if (!taskLogUpdateInfo.status) {
+            setTimeout(() => {
                 handleDelete(taskLogUpdateInfo.id)
-            },3000)
+            }, 3000)
         }
     }, [taskLogUpdateInfo])
     return (
@@ -280,7 +264,8 @@ const TaskLogRow = (props: { taskLogInfo: TaskLog;handleDelete:(id:number)=>void
                 <TableCell>{taskLogUpdateInfo.command}</TableCell>
                 <TableCell align="right">{taskLogUpdateInfo.process_id}</TableCell>
                 <TableCell align="right">{
-                    taskLogUpdateInfo.status?taskLogUpdateInfo.process_id > 0?<RunCircleIcon color="success"/>:<HourglassEmptyIcon/>:<StopCircleIcon color="disabled"/>
+                    taskLogUpdateInfo.status ? taskLogUpdateInfo.process_id > 0 ? <RunCircleIcon color="success"/> :
+                        <HourglassEmptyIcon/> : <StopCircleIcon color="disabled"/>
                 }</TableCell>
                 <TableCell align="right">
                     <IconButton
@@ -301,14 +286,14 @@ type TaskDeleteConfirmDialogRefType = {
     handleClickOpen: Function,
 }
 
-const DeleteConfirmDialog = forwardRef((props: {deleteTaskById:Function}, ref: Ref<TaskDeleteConfirmDialogRefType>) => {
+const DeleteConfirmDialog = forwardRef((props: { deleteTaskById: Function }, ref: Ref<TaskDeleteConfirmDialogRefType>) => {
     const {deleteTaskById} = props
     useImperativeHandle(ref, () => ({
         handleClickOpen,
     }));
     const [open, setOpen] = useState(false);
-    const [taskInfo, setTaskInfo] = useState(new TaskInfo());
-    const handleClickOpen = (taskInfo: TaskInfo) => {
+    const [taskInfo, setTaskInfo] = useState(new TaskInfoModel());
+    const handleClickOpen = (taskInfo: TaskInfoModel) => {
         setTaskInfo(taskInfo);
         setOpen(true);
     };
@@ -321,14 +306,14 @@ const DeleteConfirmDialog = forwardRef((props: {deleteTaskById:Function}, ref: R
         })
             .then(res => {
                 const data = res.data
-                if(data.code === 0){
+                if (data.code === 0) {
                     deleteTaskById(taskInfo.id)
                 }
             })
             .catch(err => {
                 console.log(err)
             })
-            .finally(()=>{
+            .finally(() => {
                 handleClose()
             })
     }

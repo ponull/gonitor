@@ -6,6 +6,7 @@ import (
 	"gonitor/model"
 	"gonitor/web/context"
 	"gonitor/web/response"
+	"gonitor/web/response/errorCode"
 	"gonitor/web/ws"
 	"gonitor/web/ws/subscription"
 	"strconv"
@@ -21,7 +22,7 @@ func GetTaskList(context *context.Context) *response.Response {
 	core.Db.Raw(`
 SELECT * FROM task WHERE delete_time IS NULL
 `).Scan(&taskList)
-	return response.Resp().Json(taskList)
+	return response.Resp().Success("success", taskList)
 }
 
 func GetTaskLogList(context *context.Context) *response.Response {
@@ -66,7 +67,14 @@ func UpdateTaskInfo(context *context.Context) *response.Response {
 }
 
 func GetTaskInfo(context *context.Context) *response.Response {
-	return response.Resp().String("1111")
+	taskId := context.Query("task_id")
+	taskModel := model.Task{}
+	taskInfo := subscription.TaskInfo{}
+	dbRt := core.Db.Where("id = ?", taskId).First(&taskModel).Scan(&taskInfo)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "Invalid task id", nil)
+	}
+	return response.Resp().Success("success", taskInfo)
 }
 
 func AddTask(context *context.Context) *response.Response {
@@ -83,7 +91,7 @@ func AddTask(context *context.Context) *response.Response {
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
 	if err != nil {
-		return response.Resp().Error(40001, "parse fail", nil)
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail", nil)
 	}
 	//todo 解析schedule 是否正确
 	cronParser := cron.NewParser(
@@ -91,7 +99,7 @@ func AddTask(context *context.Context) *response.Response {
 	)
 	_, err = cronParser.Parse(taskInfo.Schedule)
 	if err != nil {
-		return response.Resp().Error(40001, "schedule format error", nil)
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
 	}
 	taskModel := &model.Task{
 		Name:          taskInfo.Name,
@@ -105,7 +113,7 @@ func AddTask(context *context.Context) *response.Response {
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
-		return response.Resp().Error(40001, "insert fail", nil)
+		return response.Resp().Error(errorCode.DB_ERROR, "insert fail", nil)
 	}
 	return response.Resp().Success("add success", taskInfo)
 }
@@ -115,7 +123,7 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel := &model.Task{}
 	dbRt := core.Db.Where("id = ?", taskId).First(taskModel)
 	if dbRt.Error != nil {
-		return response.Resp().Error(40001, "invalid task id", nil)
+		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
 	taskName := context.PostForm("name")
 	execType := context.PostForm("exec_type")
@@ -139,7 +147,7 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel.RetryInterval = int(retryInterval)
 	dbRt = core.Db.Save(taskModel)
 	if dbRt.Error != nil {
-		return response.Resp().Error(40001, "update fail", nil)
+		return response.Resp().Error(errorCode.DB_ERROR, "update fail", nil)
 	}
 	return response.Resp().Success("edit success", taskModel)
 }
@@ -151,15 +159,26 @@ func DeleteTask(context *context.Context) *response.Response {
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
 	if err != nil {
-		return response.Resp().Error(40001, "parse fail", nil)
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail", nil)
 	}
 	taskModel := model.Task{}
 	dbRt := core.Db.Where("id = ?", taskInfo.ID).First(&taskModel)
 	if dbRt.Error != nil {
-		return response.Resp().Error(40001, "invalid task id", nil)
+		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
 	if dbRt = core.Db.Delete(&taskModel); dbRt.Error != nil {
-		return response.Resp().Error(40001, "delete task fail", nil)
+		return response.Resp().Error(errorCode.DB_ERROR, "delete task fail", nil)
 	}
 	return response.Resp().Success("delete success", taskModel)
+}
+
+func GetEndedTaskLogList(context *context.Context) *response.Response {
+	taskId := context.Query("task_id")
+	core.Db.Scopes()
+	//下面只展示已经结束的
+	var taskLogList []subscription.TaskLogInfo
+	core.Db.Raw(`
+SELECT * FROM task_log WHERE task_id = ? and status = 0
+`, taskId).Scan(&taskLogList)
+	return response.Resp().Json(taskLogList)
 }
