@@ -4,7 +4,7 @@ import "github.com/robfig/cron/v3"
 
 type taskInstance struct {
 	TaskID           int64
-	RunningInstances map[int64]*runningInstance
+	RunningInstances map[int64]*RunningInstance
 	RunningCount     int
 	EntryId          cron.EntryID
 }

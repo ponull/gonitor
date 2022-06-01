@@ -18,6 +18,12 @@ const (
 	FileTask = "file"
 )
 
+const (
+	SkipIfStillRunning     = "skip"
+	DelayIfStillRunning    = "delay"
+	ParallelIfStillRunning = "parallel"
+)
+
 var Manager manager = manager{
 	cron: cron.New(),
 }
@@ -45,15 +51,9 @@ func (tm *manager) AddTask(taskId int64) error {
 		fmt.Println("获取任务信息失败")
 		return dbRt.Error
 	}
-	entryID, err := Manager.cron.AddFunc(task.Schedule, func() {
-		err := checkTask(taskId)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		tas
-
-	})
+	taskChain, err := wrapTask(ParallelIfStillRunning)
+	jobWrapper := NewExecJobWrapper(task)
+	entryID, err := Manager.cron.AddJob(task.Schedule, taskChain.Then(jobWrapper))
 	if err != nil {
 		fmt.Println("cron add fun fail", err)
 		return err
@@ -114,4 +114,15 @@ func endRun(taskLog *model.TaskLog, output string) error {
 		return dbRt.Error
 	}
 	return nil
+}
+
+func wrapTask(queueType string) (cron.Chain, error) {
+	switch queueType {
+	case DelayIfStillRunning:
+		return cron.NewChain(cron.DelayIfStillRunning(cron.DefaultLogger)), nil
+	case SkipIfStillRunning:
+		return cron.NewChain(cron.SkipIfStillRunning(cron.DefaultLogger)), nil
+	default:
+		return cron.NewChain(cron.Recover(cron.DefaultLogger)), nil
+	}
 }
