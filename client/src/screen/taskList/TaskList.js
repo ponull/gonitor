@@ -49,7 +49,7 @@ export const TaskList = function () {
         schedule:"",
         retry_times: 0,
         retry_interval: 3000,
-        execute_strategy: 0,
+        exec_strategy: StrategyEnum.PARALLEL,
         is_disable: false
     });
     const taskDeleteConfirmDialogRef = useRef(null);

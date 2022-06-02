@@ -20,7 +20,7 @@ func SendTaskLogInfoFormOrm(taskLogModel *model.TaskLog) {
 		TaskID:        taskLogModel.TaskId,
 		Command:       taskLogModel.Command,
 		ProcessID:     taskLogModel.ProcessId,
-		ExecutionTime: taskLogModel.ExecutionTime.Format("2006-01-02 15:04:05"),
+		ExecutionTime: taskLogModel.ExecTime.Format("2006-01-02 15:04:05"),
 		Status:        taskLogModel.Status,
 	})
 }
@@ -31,7 +31,7 @@ func SendNewTaskLogFormOrm(taskLogModel *model.TaskLog) {
 		TaskID:        taskLogModel.TaskId,
 		Command:       taskLogModel.Command,
 		ProcessID:     taskLogModel.ProcessId,
-		ExecutionTime: taskLogModel.ExecutionTime.Format("2006-01-02 15:04:05"),
+		ExecutionTime: taskLogModel.ExecTime.Format("2006-01-02 15:04:05"),
 		Status:        taskLogModel.Status,
 	})
 }

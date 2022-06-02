@@ -58,6 +58,12 @@ function generateClientId(min = 111111, max = 999999) {
 //订阅
 export function useSubscribe(subscribeType, targetId, originData) {
     const [subscribeInfo, setSubscribeInfo] = useState(originData);
+    const setSubscribeInfoAction = (data) => {
+        setSubscribeInfo({
+            ...originData,
+            ...data,
+        });
+    }
     useEffect(() => {
         wbSocket.send({
             event: EventType.SUBSCRIBE,
@@ -70,7 +76,7 @@ export function useSubscribe(subscribeType, targetId, originData) {
             subscribed[subscribeType] = {};
         }
         const subscribeTypeMap = subscribed[subscribeType];
-        subscribeTypeMap[targetId] = setSubscribeInfo;
+        subscribeTypeMap[targetId] = setSubscribeInfoAction;
         subscribed[subscribeType] = subscribeTypeMap;
         return () => {
             wbSocket.send({
@@ -84,6 +90,7 @@ export function useSubscribe(subscribeType, targetId, originData) {
             delete subscribeTypeMap[targetId];
             subscribed[subscribeType] = subscribeTypeMap;
         }
+        //eslint-disable-next-line
     }, [subscribeType, targetId])
     return [
         subscribeInfo,

@@ -29,9 +29,9 @@ export const ExecuteTypeEnum = {
 }
 
 export const StrategyEnum = {
-    PARALLEL : 'parallel',
-    SKIP : 'skip',
-    DELAY : 'delay',
+    PARALLEL : 0,
+    SKIP : 1,
+    DELAY : 2,
     getLanguage : function(type){
         switch(type){
             case this.PARALLEL:

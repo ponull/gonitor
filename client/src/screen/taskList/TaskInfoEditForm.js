@@ -11,6 +11,7 @@ import {ExecuteTypeEnum} from "../../enum/task";
 
 export const TaskInfoEditForm = forwardRef((props, ref) => {
     const {taskInfo} = props
+    console.log(taskInfo)
     useImperativeHandle(ref, () => ({
         getFormValues: getFormValues,
     }));
@@ -43,9 +44,9 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleRetryTimesChange = (event) => setRetryTimes(event.target.value)
     const [retryInterval, setRetryInterval] = useState(taskInfo.retry_interval)
     const handleRetryIntervalChange = (event) => setRetryInterval(event.target.value)
-    const [ExecStrategy, setExecStrategy] = useState(taskInfo.execute_strategy)
+    const [ExecStrategy, setExecStrategy] = useState(taskInfo.exec_strategy)
     const handleExecStrategyChange = (event) => setExecStrategy(event.target.value)
-    const [IsDisable, setIsDisable] = useState(false)
+    const [IsDisable, setIsDisable] = useState(taskInfo.is_disable)
     const handleIsDisableChange = (event) => setIsDisable(event.target.checked)
     return (
         <React.Fragment>

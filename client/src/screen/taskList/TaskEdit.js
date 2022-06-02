@@ -7,18 +7,12 @@ import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
-import {TransitionProps} from '@mui/material/transitions';
 import {forwardRef, useImperativeHandle, useRef} from "react";
 import Container from "@mui/material/Container";
 import httpRequest from "../../common/request/HttpRequest";
 import {TaskInfoEditForm} from "./TaskInfoEditForm";
 
-const Transition = forwardRef(function Transition(
-    props: TransitionProps & {
-        children: React.ReactElement;
-    },
-    ref: React.Ref<unknown>,
-) {
+const Transition = forwardRef(function Transition(props, ref,) {
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
@@ -39,7 +33,8 @@ export const TaskEdit = forwardRef((props, ref) => {
 
     const handleSubmit = () => {
         const formValue = formRef.current?.getFormValues()
-        httpRequest.post("addTask", formValue)
+        formValue.task_id = taskInfo.id;
+        httpRequest.post("editTask", formValue)
             .then(res => {
                 refreshTaskList();
                 setOpen(false);
@@ -67,7 +62,7 @@ export const TaskEdit = forwardRef((props, ref) => {
                         <CloseIcon/>
                     </IconButton>
                     <Typography sx={{ml: 2, flex: 1}} variant="h6" component="div">
-                        Add Task
+                        Edit Task
                     </Typography>
                     <Button autoFocus color="inherit" onClick={handleSubmit}>
                         save

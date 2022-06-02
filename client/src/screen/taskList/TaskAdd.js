@@ -7,19 +7,13 @@ import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
-import {TransitionProps} from '@mui/material/transitions';
 import {forwardRef, useImperativeHandle, useRef} from "react";
 import Container from "@mui/material/Container";
 import httpRequest from "../../common/request/HttpRequest";
 import {TaskInfoEditForm} from "./TaskInfoEditForm";
 import {ExecuteTypeEnum} from "../../enum/task";
 
-const Transition = forwardRef(function Transition(
-    props: TransitionProps & {
-        children: React.ReactElement;
-    },
-    ref: React.Ref<unknown>,
-) {
+const Transition = forwardRef(function Transition(props, ref,) {
     return <Slide direction="up" ref={ref} {...props} />;
 });
 

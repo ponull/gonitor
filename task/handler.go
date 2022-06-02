@@ -87,12 +87,12 @@ func (e *ExecJobWrapper) execSystemCommand() (string, error) {
 //beforeRun 运行之前 插入log
 func (e *ExecJobWrapper) beforeRun() error {
 	taskLogModel := &model.TaskLog{
-		TaskId:        e.taskInfo.ID,
-		Command:       e.taskInfo.Command,
-		Status:        true,
-		ExecType:      e.taskInfo.ExecType,
-		ExecutionTime: time.Now(),
-		OutputFile:    fmt.Sprintf("%d/%s_%s.out", e.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
+		TaskId:     e.taskInfo.ID,
+		Command:    e.taskInfo.Command,
+		Status:     true,
+		ExecType:   e.taskInfo.ExecType,
+		ExecTime:   time.Now(),
+		OutputFile: fmt.Sprintf("%d/%s_%s.out", e.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
 	}
 	dbRt := core.Db.Create(taskLogModel)
 	if dbRt.Error != nil {
@@ -105,7 +105,7 @@ func (e *ExecJobWrapper) beforeRun() error {
 
 func (e *ExecJobWrapper) afterRun() {
 	e.taskLog.Status = false
-	e.taskLog.RunningTime = time.Now().Unix() - e.taskLog.ExecutionTime.Unix()
+	e.taskLog.RunningTime = time.Now().Unix() - e.taskLog.ExecTime.Unix()
 	dbRt := core.Db.Save(e.taskLog)
 	if dbRt.Error != nil {
 		fmt.Println("保存任务日志失败", dbRt.Error.Error())

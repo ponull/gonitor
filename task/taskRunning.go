@@ -19,7 +19,7 @@ func (ri *RunningInstance) stop() {
 	ri.Process.Kill()
 	//ri.TaskLogInfo.Output = "主动停止"
 	ri.TaskLogInfo.Status = false
-	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecutionTime.Unix()
+	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecTime.Unix()
 	core.Db.Save(ri.TaskLogInfo)
 
 	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
