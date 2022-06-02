@@ -45,8 +45,8 @@ export const TaskList = function () {
         id: 0,
         name: "",
         exec_type: "",
-        command:"",
-        schedule:"",
+        command: "",
+        schedule: "",
         retry_times: 0,
         retry_interval: 3000,
         exec_strategy: StrategyEnum.PARALLEL,
@@ -69,7 +69,14 @@ export const TaskList = function () {
     const getTaskList = async () => {
         const res = await httpRequest.get("/getTaskList");
         if (res.code === 0) {
-            setTaskList(res.data);
+            const newTaskList = res.data.map(taskInfo => {
+                return {
+                    ...taskInfo,
+                    //这个作为key 是为了修改之后返回来就可以渲染，否则从新拿到的数据不渲染 不生成随机字符串是为了只渲染修改的那一条就可以了
+                    uniKey: taskInfo.update_time + "_" + taskInfo.id
+                }
+            })
+            setTaskList(newTaskList);
         }
     }
     const refreshTaskList = () => {
@@ -100,7 +107,7 @@ export const TaskList = function () {
                     <LoadingButton
                         loading={refreshLoading}
                         loadingPosition="start"
-                        startIcon={<RefreshIcon />}
+                        startIcon={<RefreshIcon/>}
                         variant="contained"
                         sx={{mr: 2}}
                         onClick={refreshTaskList}
@@ -134,13 +141,13 @@ export const TaskList = function () {
                                     <TableRow key={"row" + rowIdx}>
                                         {new Array(11).fill(0).map((_, cellIdx) => (
                                             <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
-                                                <Skeleton variant="text" />
+                                                <Skeleton variant="text"/>
                                             </TableCell>
                                         ))}
                                     </TableRow>
                                 ))
                                 : taskList && taskList?.map((taskInfo, inx) => (
-                                <TaskRow key={'taskItem' + taskInfo.id} taskInfo={taskInfo} index={inx}
+                                <TaskRow key={taskInfo.uniKey} taskInfo={taskInfo} index={inx}
                                          showConfirmDeleteDialog={showConfirmDeleteDialog}
                                          showEditDialog={showEditDialog}/>
                             ))
@@ -155,7 +162,7 @@ export const TaskList = function () {
 }
 
 const TaskRow = (props) => {
-    const {taskInfo, index, showConfirmDeleteDialog,showEditDialog} = props;
+    const {taskInfo, index, showConfirmDeleteDialog, showEditDialog} = props;
     const [open, setOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const handleMenuClose = () => {
@@ -228,7 +235,7 @@ const TaskRow = (props) => {
                                 <Paper>
                                     <ClickAwayListener onClickAway={handleMenuClose}>
                                         <MenuList id="split-button-menu" autoFocusItem>
-                                            <MenuItem onClick={()=>{
+                                            <MenuItem onClick={() => {
                                                 showEditDialog(taskUpdateInfo)
                                             }}>EDIT</MenuItem>
                                             <MenuItem onClick={() => {

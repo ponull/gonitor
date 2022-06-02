@@ -20,6 +20,7 @@ type taskInfo struct {
 	ExecStrategy  int8   `json:"exec_strategy"`  //执行策略
 	RetryTimes    int8   `json:"retry_times"`    //重试次数
 	RetryInterval int    `json:"retry_interval"` //重试间隔
+	UpdateTime    string `json:"update_time"`    //更新时间
 }
 
 func GetTaskList(context *context.Context) *response.Response {
