@@ -67,7 +67,7 @@ func (tm *manager) StartOnceTask(taskId int64) (string, error) {
 	}
 	jobWrapper := NewExecJobWrapper(task)
 	jobWrapper.Run()
-	return jobWrapper.taskLog.Output, nil
+	return jobWrapper.output, nil
 }
 
 // UpdateTask 更新cron的任务，并启动

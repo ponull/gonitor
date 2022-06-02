@@ -5,6 +5,7 @@ App:
 
 Script:
  Folder: script
+ LogFolder: tmp/log
 
 Sqlite:
  DbPath: gonitor.db

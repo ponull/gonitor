@@ -35,7 +35,7 @@ import httpRequest from "../../common/request/HttpRequest";
 import {useNavigate} from "react-router-dom";
 import {Refresh as RefreshIcon} from "@mui/icons-material";
 import {TaskEdit} from "./TaskEdit";
-
+import {StrategyEnum} from "../../enum/task";
 
 export const TaskList = function () {
     const [taskList, setTaskList] = useState([]);
@@ -154,12 +154,6 @@ export const TaskList = function () {
     )
 }
 
-const StrategyLang = {
-    0: "Parallel",
-    1: "Skip",
-    2: "Delay",
-}
-
 const TaskRow = (props) => {
     const {taskInfo, index, showConfirmDeleteDialog,showEditDialog} = props;
     const [open, setOpen] = useState(false);
@@ -194,7 +188,7 @@ const TaskRow = (props) => {
                 <TableCell>{taskUpdateInfo.name}</TableCell>
                 <TableCell align="right">{taskUpdateInfo.exec_type}</TableCell>
                 <TableCell align="right">{taskUpdateInfo.schedule}</TableCell>
-                <TableCell align="right">{StrategyLang[taskUpdateInfo.execute_strategy]}</TableCell>
+                <TableCell align="right">{StrategyEnum.getLanguage(taskUpdateInfo.exec_strategy)}</TableCell>
                 <TableCell align="right">{taskUpdateInfo.is_disable ?
                     <CheckCircleOutlineIcon/> : ""}</TableCell>
                 <TableCell align="right">{taskUpdateInfo.running_count}</TableCell>

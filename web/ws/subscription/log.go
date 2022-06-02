@@ -10,7 +10,7 @@ type TaskLogInfo struct {
 	TaskID        int64  `json:"task_id"`
 	Command       string `json:"command"` //执行命令
 	ProcessID     int    `json:"process_id"`
-	ExecutionTime int64  `json:"execution_time"` //定时规则
+	ExecutionTime string `json:"execution_time"` //定时规则
 	Status        bool   `json:"status"`
 }
 
@@ -20,7 +20,7 @@ func SendTaskLogInfoFormOrm(taskLogModel *model.TaskLog) {
 		TaskID:        taskLogModel.TaskId,
 		Command:       taskLogModel.Command,
 		ProcessID:     taskLogModel.ProcessId,
-		ExecutionTime: taskLogModel.ExecutionTime,
+		ExecutionTime: taskLogModel.ExecutionTime.Format("2006-01-02 15:04:05"),
 		Status:        taskLogModel.Status,
 	})
 }
@@ -31,7 +31,7 @@ func SendNewTaskLogFormOrm(taskLogModel *model.TaskLog) {
 		TaskID:        taskLogModel.TaskId,
 		Command:       taskLogModel.Command,
 		ProcessID:     taskLogModel.ProcessId,
-		ExecutionTime: taskLogModel.ExecutionTime,
+		ExecutionTime: taskLogModel.ExecutionTime.Format("2006-01-02 15:04:05"),
 		Status:        taskLogModel.Status,
 	})
 }

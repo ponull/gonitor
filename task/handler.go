@@ -6,6 +6,8 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"gonitor/core"
 	"gonitor/model"
+	"gonitor/utils"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -15,6 +17,7 @@ import (
 type ExecJobWrapper struct {
 	taskInfo *model.Task
 	taskLog  *model.TaskLog
+	output   string
 }
 
 func (e *ExecJobWrapper) Run() {
@@ -34,7 +37,7 @@ func (e *ExecJobWrapper) Run() {
 	for i < execTimes {
 		output, err = e.execSystemCommand()
 		if err == nil {
-			e.taskLog.Output = output
+			e.output = output
 			return
 		}
 		i++
@@ -47,7 +50,7 @@ func (e *ExecJobWrapper) Run() {
 			time.Sleep(time.Duration(i) * time.Minute)
 		}
 	}
-	e.taskLog.Output = "所有执行次数都失败"
+	e.output = "所有执行次数都失败"
 }
 
 func (e *ExecJobWrapper) execSystemCommand() (string, error) {
@@ -88,7 +91,8 @@ func (e *ExecJobWrapper) beforeRun() error {
 		Command:       e.taskInfo.Command,
 		Status:        true,
 		ExecType:      e.taskInfo.ExecType,
-		ExecutionTime: time.Now().Unix(),
+		ExecutionTime: time.Now(),
+		OutputFile:    fmt.Sprintf("%d/%s_%s.out", e.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
 	}
 	dbRt := core.Db.Create(taskLogModel)
 	if dbRt.Error != nil {
@@ -101,12 +105,21 @@ func (e *ExecJobWrapper) beforeRun() error {
 
 func (e *ExecJobWrapper) afterRun() {
 	e.taskLog.Status = false
-	e.taskLog.RunningTime = time.Now().Unix() - e.taskLog.ExecutionTime
+	e.taskLog.RunningTime = time.Now().Unix() - e.taskLog.ExecutionTime.Unix()
 	dbRt := core.Db.Save(e.taskLog)
 	if dbRt.Error != nil {
 		fmt.Println("保存任务日志失败", dbRt.Error.Error())
 	}
+	e.writeLogOutput()
 	delete(Manager.TaskList[e.taskInfo.ID].RunningInstances, e.taskLog.ID)
+}
+
+func (e *ExecJobWrapper) writeLogOutput() {
+	filePath := path.Join(core.Config.Script.LogFolder, e.taskLog.OutputFile)
+	err := os.MkdirAll(path.Dir(filePath), 0666)
+	err = ioutil.WriteFile(filePath, []byte(e.output), 0666)
+	if err != nil {
+	}
 }
 
 func NewExecJobWrapper(taskInfo *model.Task) *ExecJobWrapper {

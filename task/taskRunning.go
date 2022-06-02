@@ -4,6 +4,8 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"gonitor/core"
 	"gonitor/model"
+	"io/ioutil"
+	"path"
 	"time"
 )
 
@@ -15,10 +17,13 @@ type RunningInstance struct {
 
 func (ri *RunningInstance) stop() {
 	ri.Process.Kill()
-	ri.TaskLogInfo.Output = "主动停止"
+	//ri.TaskLogInfo.Output = "主动停止"
 	ri.TaskLogInfo.Status = false
-	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecutionTime
+	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecutionTime.Unix()
 	core.Db.Save(ri.TaskLogInfo)
+
+	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
+	ioutil.WriteFile(filePath, []byte("主动停止"), 0666)
 }
 
 //

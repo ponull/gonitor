@@ -61,9 +61,7 @@ func (ti *taskInstance) pushNestTaskInfo() {
 }
 
 func (ti *taskInstance) getTaskChain() cron.Chain {
-	//TODO 应该从自己数据库读取 暂时写死
-	queueType := 0
-	switch queueType {
+	switch ti.TaskInfo.ExecStrategy {
 	case DelayIfStillRunning:
 		return cron.NewChain(cron.DelayIfStillRunning(cron.DefaultLogger))
 	case SkipIfStillRunning:

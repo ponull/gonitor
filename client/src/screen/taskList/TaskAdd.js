@@ -12,6 +12,7 @@ import {forwardRef, useImperativeHandle, useRef} from "react";
 import Container from "@mui/material/Container";
 import httpRequest from "../../common/request/HttpRequest";
 import {TaskInfoEditForm} from "./TaskInfoEditForm";
+import {ExecuteTypeEnum} from "../../enum/task";
 
 const Transition = forwardRef(function Transition(
     props: TransitionProps & {
@@ -26,7 +27,7 @@ export const TaskAdd = forwardRef((props, ref) => {
     const {refreshTaskList} = props;
     const taskInfo = {
         name: "",
-        exec_type: "",
+        exec_type: ExecuteTypeEnum.HTTP,
         command:"",
         schedule:"",
         retry_times: 0,

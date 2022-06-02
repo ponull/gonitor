@@ -44,5 +44,7 @@ func initDb() {
 	}
 	db.AutoMigrate(&model.Task{})
 	db.AutoMigrate(&model.TaskLog{})
+	db.AutoMigrate(&model.User{})
+	db.AutoMigrate(&model.UserToken{})
 	core.Db = db
 }

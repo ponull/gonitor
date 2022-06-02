@@ -7,7 +7,6 @@ import (
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
-	"gonitor/web/ws"
 	"gonitor/web/ws/subscription"
 	"strconv"
 )
@@ -50,20 +49,21 @@ func killTaskRunningInstance(context *context.Context) *response.Response {
 }
 
 func UpdateTaskInfo(context *context.Context) *response.Response {
-	taskInfo := subscription.TaskInfo{
-		ID:              1,
-		Name:            "测试名字",
-		ExecType:        "CMD",
-		Command:         "curl -H www.baidu.com",
-		Schedule:        "@every 1s",
-		IsDisable:       false,
-		ExecuteStrategy: 0,
-		LastRunTime:     "2020-1-6",
-		NextRunTime:     "2022-6-8",
-		RunningCount:    12,
-	}
-	ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, 1, taskInfo)
-	return response.Resp().Json(taskInfo)
+	//taskInfo := subscription.TaskInfo{
+	//	ID:              1,
+	//	Name:            "测试名字",
+	//	ExecType:        "CMD",
+	//	Command:         "curl -H www.baidu.com",
+	//	Schedule:        "@every 1s",
+	//	IsDisable:       false,
+	//	ExecuteStrategy: 0,
+	//	LastRunTime:     "2020-1-6",
+	//	NextRunTime:     "2022-6-8",
+	//	RunningCount:    12,
+	//}
+	//ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, 1, taskInfo)
+	//return response.Resp().Json(taskInfo)
+	return response.Resp().String("pending")
 }
 
 func GetTaskInfo(context *context.Context) *response.Response {
@@ -79,14 +79,14 @@ func GetTaskInfo(context *context.Context) *response.Response {
 
 func AddTask(context *context.Context) *response.Response {
 	type taskInfoStruct struct {
-		Name            string `json:"name"`
-		ExecType        string `json:"exec_type"`
-		Command         string `json:"command"`
-		Schedule        string `json:"schedule"`
-		IsDisable       bool   `json:"is_disable"`
-		ExecuteStrategy int8   `json:"execute_strategy"`
-		RetryTimes      int8   `json:"retry_times"`
-		RetryInterval   int    `json:"retry_interval"`
+		Name          string `json:"name"`
+		ExecType      string `json:"exec_type"`
+		Command       string `json:"command"`
+		Schedule      string `json:"schedule"`
+		IsDisable     bool   `json:"is_disable"`
+		ExecStrategy  int8   `json:"exec_strategy"`
+		RetryTimes    int8   `json:"retry_times"`
+		RetryInterval int    `json:"retry_interval"`
 	}
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
@@ -102,14 +102,14 @@ func AddTask(context *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
 	}
 	taskModel := &model.Task{
-		Name:            taskInfo.Name,
-		Command:         taskInfo.Command,
-		Schedule:        taskInfo.Schedule,
-		ExecType:        taskInfo.ExecType,
-		IsDisable:       taskInfo.IsDisable,
-		ExecuteStrategy: taskInfo.ExecuteStrategy,
-		RetryTimes:      taskInfo.RetryTimes,
-		RetryInterval:   taskInfo.RetryInterval,
+		Name:          taskInfo.Name,
+		Command:       taskInfo.Command,
+		Schedule:      taskInfo.Schedule,
+		ExecType:      taskInfo.ExecType,
+		IsDisable:     taskInfo.IsDisable,
+		ExecStrategy:  taskInfo.ExecStrategy,
+		RetryTimes:    taskInfo.RetryTimes,
+		RetryInterval: taskInfo.RetryInterval,
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
@@ -133,8 +133,8 @@ func EditTask(context *context.Context) *response.Response {
 	retryTimes, _ := strconv.ParseInt(retryTimesStr, 10, 64)
 	retryIntervalStr := context.PostForm("retry_interval")
 	retryInterval, _ := strconv.ParseInt(retryIntervalStr, 10, 64)
-	executeStrategyStr := context.PostForm("is_singleton")
-	executeStrategy, _ := strconv.ParseInt(executeStrategyStr, 10, 8)
+	execStrategyStr := context.PostForm("is_singleton")
+	execStrategy, _ := strconv.ParseInt(execStrategyStr, 10, 8)
 	isDisableStr := context.PostForm("is_disable")
 	isDisable, _ := strconv.ParseBool(isDisableStr)
 	taskModel.Name = taskName
@@ -142,7 +142,7 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel.Schedule = schedule
 	taskModel.ExecType = execType
 	taskModel.IsDisable = isDisable
-	taskModel.ExecuteStrategy = int8(executeStrategy)
+	taskModel.ExecStrategy = int8(execStrategy)
 	taskModel.RetryTimes = int8(retryTimes)
 	taskModel.RetryInterval = int(retryInterval)
 	dbRt = core.Db.Save(taskModel)

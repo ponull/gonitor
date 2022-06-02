@@ -42,5 +42,6 @@ type app struct {
 }
 
 type script struct {
-	Folder string `yaml:"Folder"`
+	Folder    string `yaml:"Folder"`
+	LogFolder string `yaml:"LogFolder"`
 }

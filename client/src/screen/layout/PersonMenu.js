@@ -8,10 +8,14 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import List from "@mui/material/List";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import {useNavigate} from "react-router-dom";
 
 export const PersonMenu = () => {
     const [anchorEl, setAnchorEl] = React.useState(null);
-
+    const navigate = useNavigate();
+    const loginOut = () => {
+        navigate('/');
+    }
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
     };
@@ -54,7 +58,7 @@ export const PersonMenu = () => {
                         </ListItemIcon>
                         <ListItemText primary="Settings"/>
                     </ListItem>
-                    <ListItem button>
+                    <ListItem button onClick={loginOut}>
                         <ListItemIcon>
                             <LogoutIcon/>
                         </ListItemIcon>

@@ -6,12 +6,8 @@ import TextField from "@mui/material/TextField";
 import {FormControl, FormLabel, InputLabel, MenuItem, Radio, RadioGroup, Select} from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
+import {ExecuteTypeEnum} from "../../enum/task";
 
-const executeTypeEnum = {
-    HTTP : 'Http',
-    CMD : 'Cmd',
-    FILE : 'File',
-}
 
 export const TaskInfoEditForm = forwardRef((props, ref) => {
     const {taskInfo} = props
@@ -26,7 +22,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             schedule,
             retry_times: parseInt(retryTimes),
             retry_interval: parseInt(retryInterval),
-            execute_strategy: parseInt(ExecuteStrategy),
+            exec_strategy: parseInt(ExecStrategy),
             is_disable: IsDisable
         }
     }
@@ -36,21 +32,9 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleExecuteTypeChange = (event) => {
         const executeType = event.target.value;
         setExecuteType(executeType);
-        switch (executeType) {
-            case executeTypeEnum.HTTP:
-                setCommandName('Http Url (only support GET method)')
-                break;
-            case executeTypeEnum.CMD:
-                setCommandName('Bash Command')
-                break;
-            case executeTypeEnum.FILE:
-                setCommandName('File Path (Fullpath)')
-                break;
-            default:
-                setCommandName('Http Url (only support GET method)')
-        }
+        setCommandLabel(ExecuteTypeEnum.getCommandLabel(executeType));
     };
-    const [commandName, setCommandName] = useState('Http Url (only support GET method)');
+    const [commandLabel, setCommandLabel] = useState('Http Url (only support GET method)');
     const [command, setCommand] = useState(taskInfo.command);
     const handleCommandChange = (event) => setCommand(event.target.value)
     const [schedule, setSchedule] = useState(taskInfo.schedule)
@@ -59,8 +43,8 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleRetryTimesChange = (event) => setRetryTimes(event.target.value)
     const [retryInterval, setRetryInterval] = useState(taskInfo.retry_interval)
     const handleRetryIntervalChange = (event) => setRetryInterval(event.target.value)
-    const [ExecuteStrategy, setExecuteStrategy] = useState(taskInfo.execute_strategy)
-    const handleExecuteStrategyChange = (event) => setExecuteStrategy(event.target.value)
+    const [ExecStrategy, setExecStrategy] = useState(taskInfo.execute_strategy)
+    const handleExecStrategyChange = (event) => setExecStrategy(event.target.value)
     const [IsDisable, setIsDisable] = useState(false)
     const handleIsDisableChange = (event) => setIsDisable(event.target.checked)
     return (
@@ -91,9 +75,15 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                             onChange={handleExecuteTypeChange}
                             label="Execute Type"
                         >
-                            <MenuItem value={executeTypeEnum.HTTP}>Http</MenuItem>
-                            <MenuItem value={executeTypeEnum.CMD}>Cmd</MenuItem>
-                            <MenuItem value={executeTypeEnum.FILE}>File</MenuItem>
+                            <MenuItem value={ExecuteTypeEnum.HTTP}>
+                                {ExecuteTypeEnum.getLanguage(ExecuteTypeEnum.HTTP)}
+                            </MenuItem>
+                            <MenuItem value={ExecuteTypeEnum.CMD}>
+                                {ExecuteTypeEnum.getLanguage(ExecuteTypeEnum.CMD)}
+                            </MenuItem>
+                            <MenuItem value={ExecuteTypeEnum.FILE}>
+                                {ExecuteTypeEnum.getLanguage(ExecuteTypeEnum.HTTP)}
+                            </MenuItem>
                         </Select>
                     </FormControl>
                 </Grid>
@@ -102,7 +92,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                         required
                         id="command"
                         name="command"
-                        label={commandName}
+                        label={commandLabel}
                         value={command}
                         onChange={handleCommandChange}
                         fullWidth
@@ -152,9 +142,9 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                         <FormLabel id="demo-radio-buttons-group-label">Execute Strategy (when last task is running)</FormLabel>
                         <RadioGroup
                             aria-labelledby="demo-radio-buttons-group-label"
-                            defaultValue={ExecuteStrategy}
+                            defaultValue={ExecStrategy}
                             name="radio-buttons-group"
-                            onChange={handleExecuteStrategyChange}
+                            onChange={handleExecStrategyChange}
                         >
                             <FormControlLabel value={0} control={<Radio />} label="Parallel" />
                             <FormControlLabel value={1} control={<Radio />} label="Skip" />

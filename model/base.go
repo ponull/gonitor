@@ -2,7 +2,7 @@ package model
 
 import (
 	"github.com/jinzhu/gorm"
-	"gonitor/web/yogo"
+	"gonitor/core"
 	"time"
 )
 
@@ -14,7 +14,7 @@ type Base struct {
 }
 
 func GetConn() *gorm.DB {
-	return yogo.Db
+	return core.Db
 }
 
 type Page struct {
