@@ -2,11 +2,23 @@ package task
 
 import (
 	"github.com/shirou/gopsutil/process"
+	"gonitor/core"
+	"gonitor/model"
+	"time"
 )
 
 type RunningInstance struct {
-	LogId   int64
-	Process *process.Process
+	LogId       int64
+	TaskLogInfo *model.TaskLog
+	Process     *process.Process
+}
+
+func (ri *RunningInstance) stop() {
+	ri.Process.Kill()
+	ri.TaskLogInfo.Output = "主动停止"
+	ri.TaskLogInfo.Status = false
+	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecutionTime
+	core.Db.Save(ri.TaskLogInfo)
 }
 
 //

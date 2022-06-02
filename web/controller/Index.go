@@ -79,14 +79,14 @@ func GetTaskInfo(context *context.Context) *response.Response {
 
 func AddTask(context *context.Context) *response.Response {
 	type taskInfoStruct struct {
-		Name          string `json:"name"`
-		ExecType      string `json:"exec_type"`
-		Command       string `json:"command"`
-		Schedule      string `json:"schedule"`
-		IsDisable     bool   `json:"is_disable"`
-		IsSingleton   bool   `json:"is_singleton"`
-		RetryTimes    int8   `json:"retry_times"`
-		RetryInterval int    `json:"retry_interval"`
+		Name            string `json:"name"`
+		ExecType        string `json:"exec_type"`
+		Command         string `json:"command"`
+		Schedule        string `json:"schedule"`
+		IsDisable       bool   `json:"is_disable"`
+		ExecuteStrategy int8   `json:"execute_strategy"`
+		RetryTimes      int8   `json:"retry_times"`
+		RetryInterval   int    `json:"retry_interval"`
 	}
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
@@ -102,14 +102,14 @@ func AddTask(context *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
 	}
 	taskModel := &model.Task{
-		Name:          taskInfo.Name,
-		Command:       taskInfo.Command,
-		Schedule:      taskInfo.Schedule,
-		ExecType:      taskInfo.ExecType,
-		IsDisable:     taskInfo.IsDisable,
-		IsSingleton:   taskInfo.IsSingleton,
-		RetryTimes:    taskInfo.RetryTimes,
-		RetryInterval: taskInfo.RetryInterval,
+		Name:            taskInfo.Name,
+		Command:         taskInfo.Command,
+		Schedule:        taskInfo.Schedule,
+		ExecType:        taskInfo.ExecType,
+		IsDisable:       taskInfo.IsDisable,
+		ExecuteStrategy: taskInfo.ExecuteStrategy,
+		RetryTimes:      taskInfo.RetryTimes,
+		RetryInterval:   taskInfo.RetryInterval,
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
@@ -133,8 +133,8 @@ func EditTask(context *context.Context) *response.Response {
 	retryTimes, _ := strconv.ParseInt(retryTimesStr, 10, 64)
 	retryIntervalStr := context.PostForm("retry_interval")
 	retryInterval, _ := strconv.ParseInt(retryIntervalStr, 10, 64)
-	isSingletonStr := context.PostForm("is_singleton")
-	isSingleton, _ := strconv.ParseBool(isSingletonStr)
+	executeStrategyStr := context.PostForm("is_singleton")
+	executeStrategy, _ := strconv.ParseInt(executeStrategyStr, 10, 8)
 	isDisableStr := context.PostForm("is_disable")
 	isDisable, _ := strconv.ParseBool(isDisableStr)
 	taskModel.Name = taskName
@@ -142,7 +142,7 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel.Schedule = schedule
 	taskModel.ExecType = execType
 	taskModel.IsDisable = isDisable
-	taskModel.IsSingleton = isSingleton
+	taskModel.ExecuteStrategy = int8(executeStrategy)
 	taskModel.RetryTimes = int8(retryTimes)
 	taskModel.RetryInterval = int(retryInterval)
 	dbRt = core.Db.Save(taskModel)

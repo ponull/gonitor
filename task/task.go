@@ -7,9 +7,6 @@ import (
 	"github.com/robfig/cron/v3"
 	"gonitor/core"
 	"gonitor/model"
-	"gonitor/web/ws/subscription"
-	"sync"
-	"time"
 )
 
 const (
@@ -19,110 +16,106 @@ const (
 )
 
 const (
-	SkipIfStillRunning     = "skip"
-	DelayIfStillRunning    = "delay"
-	ParallelIfStillRunning = "parallel"
+	ParallelIfStillRunning = 0
+	SkipIfStillRunning     = 1
+	DelayIfStillRunning    = 2
 )
 
-var Manager manager = manager{
-	cron: cron.New(),
+var Manager = manager{
+	cron:     cron.New(),
+	TaskList: map[int64]*taskInstance{},
 }
 
 type manager struct {
-	cron              *cron.Cron
-	TaskList          map[int64]*taskInstance
-	RunningProcessMap sync.Map //key是logid  value是进程id
+	cron     *cron.Cron
+	TaskList map[int64]*taskInstance
 }
 
+// AddTask 添加任务 并启动
 func (tm *manager) AddTask(taskId int64) error {
 	//先看 如果已经有了 就不需要添加了
 	if _, ok := Manager.TaskList[taskId]; ok {
 		return errors.New("this task has in cron task")
 	}
-	taskIns := &taskInstance{
-		TaskID:           taskId,
-		RunningInstances: nil,
-		RunningCount:     0,
-		EntryId:          0,
-	}
 	task := &model.Task{}
 	dbRt := core.Db.Where("id = ?", taskId).First(task)
 	if dbRt.Error != nil {
-		fmt.Println("获取任务信息失败")
+		fmt.Println("query task info fail")
 		return dbRt.Error
 	}
-	taskChain, err := wrapTask(ParallelIfStillRunning)
+	//检查任务是否可以执行
+	if task.IsDisable {
+		return nil
+	}
+	taskIns := &taskInstance{
+		TaskID:           taskId,
+		TaskInfo:         task,
+		RunningInstances: map[int64]*RunningInstance{},
+		RunningCount:     0,
+		EntryId:          0,
+	}
+	return taskIns.start()
+}
+
+// StartOnceTask 单独执行的这一次  不加入到cron任务列表中
+func (tm *manager) StartOnceTask(taskId int64) (string, error) {
+	task := &model.Task{}
+	dbRt := core.Db.Where("id = ?", taskId).First(task)
+	if dbRt.Error != nil {
+		fmt.Println("query task info fail")
+		return "", dbRt.Error
+	}
 	jobWrapper := NewExecJobWrapper(task)
-	entryID, err := Manager.cron.AddJob(task.Schedule, taskChain.Then(jobWrapper))
+	jobWrapper.Run()
+	return jobWrapper.taskLog.Output, nil
+}
+
+// UpdateTask 更新cron的任务，并启动
+func (tm *manager) UpdateTask(taskId int64) error {
+	tm.DeleteTask(taskId)
+	err := tm.AddTask(taskId)
 	if err != nil {
-		fmt.Println("cron add fun fail", err)
 		return err
 	}
-	taskIns.EntryId = entryID
-	Manager.TaskList[taskId] = taskIns
 	return nil
 }
 
-//checkTask 检查任务是否可以执行
-func checkTask(taskId int64) error {
-	taskIns := model.Task{}
-	result := core.Db.Where("id = ?", taskId).First(&taskIns)
-	if result.Error != nil {
-		return errors.New("任务不存在或已被删除")
+// DeleteTask 从cron删除任务
+func (tm *manager) DeleteTask(taskId int64) {
+	if taskIns, ok := tm.TaskList[taskId]; ok {
+		taskIns.stop()
+		delete(tm.TaskList, taskId)
 	}
-	if taskIns.IsDisable {
-		return errors.New("任务被禁用")
+}
+
+func (tm *manager) Start() error {
+	var taskList []model.Task
+	result := core.Db.Where("is_disable = ?", false).Find(&taskList)
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		panic(result.Error)
 	}
-	if taskIns.IsSingleton {
-		taskLogIns := model.TaskLog{}
-		result = core.Db.Where("task_id = ? AND status = ?", taskId, true).First(&taskLogIns)
-		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return errors.New("单例模式, 上次运行还未结束")
+	for _, taskItem := range taskList {
+		err := tm.AddTask(taskItem.ID)
+		if err != nil {
+			continue
 		}
 	}
+	tm.cron.Start()
+	//计算任务 并实时推送
+	//todo 单独创建一个cron 用于定时记录任务信息 这里不写数据库  只是记录  websocket订阅推送都直接查询内存里面的，不去数据库查， 解决并发等一系列的问题
 	return nil
 }
 
-func (tm *manager) DeleteTask(taskId int) error {
-	return nil
-}
-
-//beforeRun 运行之前 插入log
-func beforeRun(taskModel *model.Task) (*model.TaskLog, error) {
-	taskLogModel := &model.TaskLog{
-		TaskId:        taskModel.ID,
-		Command:       taskModel.Command,
-		Status:        true,
-		ExecType:      taskModel.ExecType,
-		ExecutionTime: time.Now().Unix(),
-	}
-	dbRt := core.Db.Create(taskLogModel)
-	if dbRt.Error != nil {
-		fmt.Println(dbRt.Error.Error())
-		return taskLogModel, dbRt.Error
-	}
-	subscription.SendNewTaskLogFormOrm(taskLogModel)
-	return taskLogModel, nil
-}
-
-//endRun 运行之后  更新输出信息
-func endRun(taskLog *model.TaskLog, output string) error {
-	taskLogModel := model.TaskLog{}
-	taskLog.Output = output
-	dbRt := core.Db.Save(&taskLogModel)
-	if dbRt.Error != nil {
-		return dbRt.Error
+func (tm *manager) Stop() error {
+	//首先删除所以EntryID  然后将运行实例都杀死
+	for _, taskIns := range tm.TaskList {
+		taskIns.stop()
 	}
 	return nil
 }
 
-func wrapTask(queueType string) (cron.Chain, error) {
-	switch queueType {
-	case DelayIfStillRunning:
-		return cron.NewChain(cron.DelayIfStillRunning(cron.DefaultLogger)), nil
-	case SkipIfStillRunning:
-		return cron.NewChain(cron.SkipIfStillRunning(cron.DefaultLogger)), nil
-	default:
-		return cron.NewChain(cron.Recover(cron.DefaultLogger)), nil
+func (tm *manager) recordTaskInfo() {
+	for _, taskIns := range tm.TaskList {
+		fmt.Println(taskIns)
 	}
 }

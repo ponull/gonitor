@@ -1,14 +1,10 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
+// Package cmd /*
 package cmd
 
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"gonitor/core"
-	"gonitor/web"
+	"gonitor/task"
 	"io/ioutil"
 	"log"
 	"os"
@@ -39,13 +35,22 @@ var startCmd = &cobra.Command{
 		}
 		log.Println("gonitor 启动中")
 		//core.InitTask()
-		web.StartService()
+		err := task.Manager.Start()
+		if err != nil {
+			fmt.Println("gonitor 启动失败:", err.Error())
+			return
+		}
+		//web.StartService()
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill)
 
 		s := <-c
+		fmt.Println()
+		fmt.Println("-----------------Stop---------------")
 		fmt.Println("Got signal:", s)
-		core.KillAllRunningTask()
+		fmt.Println("Killing task process")
+		task.Manager.Stop()
+		fmt.Println("The End")
 	},
 }
 

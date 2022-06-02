@@ -70,8 +70,9 @@ func (e *ExecJobWrapper) execSystemCommand() (string, error) {
 		return "", err
 	}
 	taskIns.RunningInstances[e.taskLog.ID] = &RunningInstance{
-		LogId:   e.taskLog.ID,
-		Process: pn,
+		LogId:       e.taskLog.ID,
+		TaskLogInfo: e.taskLog,
+		Process:     pn,
 	}
 	err = cmd.Wait()
 	if err != nil {
@@ -94,6 +95,7 @@ func (e *ExecJobWrapper) beforeRun() error {
 		//fmt.Println(dbRt.Error.Error())
 		return dbRt.Error
 	}
+	e.taskLog = taskLogModel
 	return nil
 }
 
@@ -104,6 +106,7 @@ func (e *ExecJobWrapper) afterRun() {
 	if dbRt.Error != nil {
 		fmt.Println("保存任务日志失败", dbRt.Error.Error())
 	}
+	delete(Manager.TaskList[e.taskInfo.ID].RunningInstances, e.taskLog.ID)
 }
 
 func NewExecJobWrapper(taskInfo *model.Task) *ExecJobWrapper {
