@@ -8,14 +8,14 @@ import (
 type TaskInfo struct {
 	ID              int64  `json:"id"`
 	Name            string `json:"name"`
-	ExecType        string `json:"execType"`         //执行类型
+	ExecType        string `json:"exec_type"`        //执行类型
 	Command         string `json:"command"`          //执行命令
 	Schedule        string `json:"schedule"`         //定时规则
-	IsDisable       bool   `json:"isDisable"`        //是否禁用
-	ExecuteStrategy int8   `json:"execute_strategy"` //是否单例执行
-	LastRunTime     string `json:"lastRunTime"`
-	NextRunTime     string `json:"nextRunTime"`
-	RunningCount    int64  `json:"runningCount"`
+	IsDisable       bool   `json:"is_disable"`       //是否禁用
+	ExecuteStrategy int8   `json:"execute_strategy"` //执行策略
+	LastRunTime     string `json:"last_run_time"`
+	NextRunTime     string `json:"next_run_time"`
+	RunningCount    int64  `json:"running_count"`
 }
 
 func SendTaskInfoFormOrm(taskModel *model.Task, runningCount int64, lastRunTime, nextRunTime string) {

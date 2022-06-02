@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/robfig/cron/v3"
 	"gonitor/model"
+	"gonitor/web/ws/subscription"
 	"time"
 )
 
@@ -45,6 +46,18 @@ func (ti *taskInstance) stop() {
 	}
 	delete(Manager.TaskList, ti.TaskInfo.ID)
 	//todo看要不要加参数来区分是否停止正在运行的实例  按理说是需要的
+}
+
+func (ti *taskInstance) pushNestTaskInfo() {
+	for _, entry := range Manager.cron.Entries() {
+		if entry.ID == ti.EntryId {
+			subscription.SendTaskInfoFormOrm(
+				ti.TaskInfo,
+				int64(len(ti.RunningInstances)),
+				entry.Prev.Format("2006-01-02 15:04:05"),
+				entry.Next.Format("2006-01-02 15:04:05"))
+		}
+	}
 }
 
 func (ti *taskInstance) getTaskChain() cron.Chain {

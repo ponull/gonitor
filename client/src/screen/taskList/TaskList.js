@@ -10,14 +10,15 @@ import Container from "@mui/material/Container";
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import RunCircleIcon from '@mui/icons-material/RunCircle';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import LoadingButton from '@mui/lab/LoadingButton';
 import {
     Button,
-    ButtonGroup,
+    ButtonGroup, ClickAwayListener,
     Collapse,
     DialogActions,
     DialogContent,
     DialogContentText,
-    DialogTitle, Skeleton
+    DialogTitle, Grow, MenuItem, MenuList, Popper, Skeleton
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
@@ -28,41 +29,63 @@ import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import {useSubscribe, SubscribeType} from "../../common/socket/Websocket";
 import httpRequest from "../../common/request/HttpRequest";
 import {useNavigate} from "react-router-dom";
+import {Refresh as RefreshIcon} from "@mui/icons-material";
+import {TaskEdit} from "./TaskEdit";
 
 
 export const TaskList = function () {
     const [taskList, setTaskList] = useState([]);
     const taskAddRef = useRef(null);
+    const taskEditRef = useRef(null);
+    const [taskEditInfo, setTaskEditInfo] = useState({
+        id: 0,
+        name: "",
+        exec_type: "",
+        command:"",
+        schedule:"",
+        retry_times: 0,
+        retry_interval: 3000,
+        execute_strategy: 0,
+        is_disable: false
+    });
     const taskDeleteConfirmDialogRef = useRef(null);
-    // const {enqueueSnackbar, closeSnackbar} = useSnackbar();
-    // enqueueSnackbar("666666", {variant: "error"});
     const [loading, setLoading] = useState(true)
+    const [refreshLoading, setRefreshLoading] = useState(false)
     const showCreateDialog = () => {
         taskAddRef.current?.handleClickOpen();
+    }
+    const showEditDialog = (taskInfo) => {
+        setTaskEditInfo(taskInfo)
+        taskEditRef.current.handleClickOpen();
     }
     const showConfirmDeleteDialog = (taskInfo) => {
         taskDeleteConfirmDialogRef.current?.handleClickOpen(taskInfo);
     }
     const firstRenderRef = useRef(true);
+    const getTaskList = async () => {
+        const res = await httpRequest.get("/getTaskList");
+        if (res.code === 0) {
+            setTaskList(res.data);
+        }
+    }
+    const refreshTaskList = () => {
+        setRefreshLoading(true);
+        getTaskList().then(() => {
+            setRefreshLoading(false);
+        })
+    }
     useEffect(() => {
         if (!firstRenderRef.current) {
             return;
         }
         firstRenderRef.current = false;
-
-        httpRequest.get(`/getTaskList`)
-            .then(res => {
-                const data = res.data;
-                setTaskList(data)
-            })
-            .catch(err => {
-            })
-            .finally(()=>{
-                setLoading(false)
-            })
+        getTaskList().then(() => {
+            setLoading(false);
+        });
     })
     const deleteTaskList = (taskId) => {
         const newTaskList = taskList.filter(taskInfo => taskInfo.id !== taskId);
@@ -71,8 +94,19 @@ export const TaskList = function () {
     return (
         <React.Fragment>
             <Container sx={{mt: 4, mb: 4}}>
-                <TaskAdd ref={taskAddRef}/>
+                <TaskAdd ref={taskAddRef} refreshTaskList={refreshTaskList}/>
+                <TaskEdit ref={taskEditRef} refreshTaskList={refreshTaskList} taskInfo={taskEditInfo}/>
                 <Box sx={{mb: 2, display: "flex", justifyContent: "flex-end",}}>
+                    <LoadingButton
+                        loading={refreshLoading}
+                        loadingPosition="start"
+                        startIcon={<RefreshIcon />}
+                        variant="contained"
+                        sx={{mr: 2}}
+                        onClick={refreshTaskList}
+                    >
+                        Refresh
+                    </LoadingButton>
                     <Button variant="contained" startIcon={<AddIcon/>} onClick={showCreateDialog}>
                         Add
                     </Button>
@@ -86,7 +120,7 @@ export const TaskList = function () {
                                 <TableCell>Name</TableCell>
                                 <TableCell align="right">Type</TableCell>
                                 <TableCell align="right">Schedule</TableCell>
-                                <TableCell align="right">Singleton</TableCell>
+                                <TableCell align="right">Strategy</TableCell>
                                 <TableCell align="right">Disabled</TableCell>
                                 <TableCell align="right">Running Count</TableCell>
                                 <TableCell align="right">Last Run Time</TableCell>
@@ -95,26 +129,21 @@ export const TaskList = function () {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {/*{taskList && taskList?.map((taskInfo, inx) => (*/}
-                            {/*    <TaskRow key={taskInfo.id} taskInfo={taskInfo} index={inx}*/}
-                            {/*             showConfirmDeleteDialog={showConfirmDeleteDialog}/>*/}
-                            {/*))}*/}
                             {loading ?
                                 new Array(5).fill(0).map((_, rowIdx) => (
                                     <TableRow key={"row" + rowIdx}>
                                         {new Array(11).fill(0).map((_, cellIdx) => (
-                                            <TableCell>
-                                                <Skeleton key={"row" + rowIdx + "cell" + cellIdx}>
-                                                    <TableCell component="th" scope="row"/>
-                                                </Skeleton>
+                                            <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
+                                                <Skeleton variant="text" />
                                             </TableCell>
                                         ))}
                                     </TableRow>
                                 ))
                                 : taskList && taskList?.map((taskInfo, inx) => (
-                                    <TaskRow key={'taskItem' + taskInfo.id} taskInfo={taskInfo} index={inx}
-                                             showConfirmDeleteDialog={showConfirmDeleteDialog}/>
-                                ))
+                                <TaskRow key={'taskItem' + taskInfo.id} taskInfo={taskInfo} index={inx}
+                                         showConfirmDeleteDialog={showConfirmDeleteDialog}
+                                         showEditDialog={showEditDialog}/>
+                            ))
                             }
                         </TableBody>
                     </Table>
@@ -125,19 +154,29 @@ export const TaskList = function () {
     )
 }
 
+const StrategyLang = {
+    0: "Parallel",
+    1: "Skip",
+    2: "Delay",
+}
+
 const TaskRow = (props) => {
-    const {taskInfo, index, showConfirmDeleteDialog} = props;
+    const {taskInfo, index, showConfirmDeleteDialog,showEditDialog} = props;
     const [open, setOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const handleMenuClose = () => {
+        setMenuOpen(false);
+    };
     const [taskUpdateInfo] = useSubscribe(SubscribeType.TASK, taskInfo.id, taskInfo)
+    const anchorRef = React.useRef(null);
     const navigate = useNavigate();
     const gotoTaskInfo = () => {
-        console.log(111)
         navigate(`/admin/taskInfo/${taskInfo.id}`)
     }
     return (
         <React.Fragment>
             <TableRow
-                key={taskUpdateInfo.name}
+                key={taskInfo.id}
                 sx={{'&:last-child td, &:last-child th': {border: 0}}}
             >
                 <TableCell>
@@ -153,23 +192,63 @@ const TaskRow = (props) => {
                     {index + 1}
                 </TableCell>
                 <TableCell>{taskUpdateInfo.name}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.execType}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.exec_type}</TableCell>
                 <TableCell align="right">{taskUpdateInfo.schedule}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.isSingleton ?
+                <TableCell align="right">{StrategyLang[taskUpdateInfo.execute_strategy]}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.is_disable ?
                     <CheckCircleOutlineIcon/> : ""}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.isDisable ?
-                    <CheckCircleOutlineIcon/> : ""}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.runningCount}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.lastRunTime}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.nextRunTime}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.running_count}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.last_run_time}</TableCell>
+                <TableCell align="right">{taskUpdateInfo.next_run_time}</TableCell>
                 <TableCell align="right">
-                    <ButtonGroup variant="outlined" aria-label="outlined button group" size="small">
+                    <ButtonGroup variant="contained" size="small" ref={anchorRef}>
                         <Button onClick={gotoTaskInfo}>Detail</Button>
-                        <Button>Edit</Button>
                         <Button onClick={() => {
-                            showConfirmDeleteDialog(taskUpdateInfo)
-                        }}>Delete</Button>
+                            setMenuOpen(true)
+                        }}>
+                            <ArrowDropDownIcon/>
+                        </Button>
+                        {/*<Button>Edit</Button>*/}
+                        {/*<Button onClick={() => {*/}
+                        {/*    showConfirmDeleteDialog(taskUpdateInfo)*/}
+                        {/*}}>Delete</Button>*/}
+                        {/*<Button>Start</Button>*/}
+                        {/*<Button>Stop</Button>*/}
+                        {/*<Button>Stop And Kill</Button>*/}
                     </ButtonGroup>
+                    <Popper
+                        open={menuOpen}
+                        anchorEl={anchorRef.current}
+                        transition
+                        disablePortal
+                        sx={{zIndex: 2}}
+                    >
+                        {({TransitionProps, placement}) => (
+                            <Grow
+                                {...TransitionProps}
+                                style={{
+                                    transformOrigin:
+                                        placement === 'bottom' ? 'center top' : 'center bottom',
+                                }}
+                            >
+                                <Paper>
+                                    <ClickAwayListener onClickAway={handleMenuClose}>
+                                        <MenuList id="split-button-menu" autoFocusItem>
+                                            <MenuItem onClick={()=>{
+                                                showEditDialog(taskUpdateInfo)
+                                            }}>EDIT</MenuItem>
+                                            <MenuItem onClick={() => {
+                                                showConfirmDeleteDialog(taskUpdateInfo)
+                                            }}>DELETE</MenuItem>
+                                            <MenuItem>START</MenuItem>
+                                            <MenuItem>STOP</MenuItem>
+                                            <MenuItem>KILL STOP</MenuItem>
+                                        </MenuList>
+                                    </ClickAwayListener>
+                                </Paper>
+                            </Grow>
+                        )}
+                    </Popper>
                 </TableCell>
             </TableRow>
             <TaskLogContainer open={open} taskId={taskUpdateInfo.id}/>
@@ -225,7 +304,8 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
                             </TableHead>
                             <TableBody>
                                 {logList && logList.map((taskLog) => (
-                                    <TaskLogRow key={"taskLog" + taskLog.id} taskLogInfo={taskLog} handleDelete={deleteEndLog}/>
+                                    <TaskLogRow key={"taskLog" + taskLog.id} taskLogInfo={taskLog}
+                                                handleDelete={deleteEndLog}/>
                                 ))}
                             </TableBody>
                         </Table>

@@ -22,18 +22,8 @@ const Transition = forwardRef(function Transition(
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export const TaskAdd = forwardRef((props, ref) => {
-    const {refreshTaskList} = props;
-    const taskInfo = {
-        name: "",
-        exec_type: "",
-        command:"",
-        schedule:"",
-        retry_times: 0,
-        retry_interval: 3000,
-        execute_strategy: 0,
-        is_disable: false
-    }
+export const TaskEdit = forwardRef((props, ref) => {
+    const {taskInfo, refreshTaskList} = props;
     useImperativeHandle(ref, () => ({
         handleClickOpen,
     }));

@@ -51,16 +51,16 @@ func killTaskRunningInstance(context *context.Context) *response.Response {
 
 func UpdateTaskInfo(context *context.Context) *response.Response {
 	taskInfo := subscription.TaskInfo{
-		ID:           1,
-		Name:         "测试名字",
-		ExecType:     "CMD",
-		Command:      "curl -H www.baidu.com",
-		Schedule:     "@every 1s",
-		IsDisable:    false,
-		IsSingleton:  false,
-		LastRunTime:  "2020-1-6",
-		NextRunTime:  "2022-6-8",
-		RunningCount: 12,
+		ID:              1,
+		Name:            "测试名字",
+		ExecType:        "CMD",
+		Command:         "curl -H www.baidu.com",
+		Schedule:        "@every 1s",
+		IsDisable:       false,
+		ExecuteStrategy: 0,
+		LastRunTime:     "2020-1-6",
+		NextRunTime:     "2022-6-8",
+		RunningCount:    12,
 	}
 	ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, 1, taskInfo)
 	return response.Resp().Json(taskInfo)
@@ -91,7 +91,7 @@ func AddTask(context *context.Context) *response.Response {
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
 	if err != nil {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail", nil)
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
 	//todo 解析schedule 是否正确
 	cronParser := cron.NewParser(

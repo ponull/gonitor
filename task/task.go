@@ -102,6 +102,7 @@ func (tm *manager) Start() error {
 	}
 	tm.cron.Start()
 	//计算任务 并实时推送
+	go startPushService()
 	//todo 单独创建一个cron 用于定时记录任务信息 这里不写数据库  只是记录  websocket订阅推送都直接查询内存里面的，不去数据库查， 解决并发等一系列的问题
 	return nil
 }

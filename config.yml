@@ -1,6 +1,6 @@
 App:
  Debug: true
- DbLog: true
+ DbLog: false
  LogFile: tmp/run.log
 
 Script:

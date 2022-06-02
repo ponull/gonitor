@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"gonitor/task"
+	"gonitor/web"
 	"io/ioutil"
 	"log"
 	"os"
@@ -40,7 +41,7 @@ var startCmd = &cobra.Command{
 			fmt.Println("gonitor 启动失败:", err.Error())
 			return
 		}
-		//web.StartService()
+		web.StartService()
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill)
 
