@@ -4,7 +4,6 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"gonitor/task"
 	"gonitor/web"
 	"io/ioutil"
 	"log"
@@ -35,23 +34,22 @@ var startCmd = &cobra.Command{
 			os.Exit(0)
 		}
 		log.Println("gonitor 启动中")
-		//core.InitTask()
-		err := task.Manager.Start()
-		if err != nil {
-			fmt.Println("gonitor 启动失败:", err.Error())
-			return
-		}
+		//err := task.Manager.Start()
+		//if err != nil {
+		//	fmt.Println("gonitor 启动失败:", err.Error())
+		//	return
+		//}
 		web.StartService()
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill)
 
-		s := <-c
-		fmt.Println()
-		fmt.Println("-----------------Stop---------------")
-		fmt.Println("Got signal:", s)
-		fmt.Println("Killing task process")
-		task.Manager.Stop()
-		fmt.Println("The End")
+		//s := <-c
+		//fmt.Println()
+		//fmt.Println("-----------------Stop---------------")
+		//fmt.Println("Got signal:", s)
+		//fmt.Println("Killing task process")
+		//task.Manager.Stop()
+		//fmt.Println("The End")
 	},
 }
 

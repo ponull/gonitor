@@ -16,6 +16,9 @@ func config(router group) {
 	router.Registered(ANY, "/editTask", controller.EditTask)
 	router.Registered(ANY, "/deleteTask", controller.DeleteTask)
 	router.Registered(GET, "/getTaskInfo", controller.GetTaskInfo)
+	router.Registered(GET, "/getSystemInfo", controller.GetSystemInfo)
+	router.Registered(GET, "/getSystemOverview", controller.GetSystemOverview)
+	router.Registered(GET, "/getSystemUserList", controller.GetSystemUserList)
 }
 
 func Load(r *gin.Engine) {

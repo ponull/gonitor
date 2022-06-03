@@ -1,49 +1,42 @@
 import {Copyright} from "@mui/icons-material";
-import Orders from "./Orders";
-import Deposits from "./Deposits";
-import Chart from "./Chart";
+import Users from "./Users";
+import {SystemInfo} from "./System";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
+import {CpuInfo} from "./CpuInfo";
+import {DiskInfo} from "./DiskInfo";
+import {MemoryInfo} from "./MemoryInfo";
+import {NetInfo} from "./NetInfo";
 
 export const Dashboard = function () {
-  return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          <Grid container spacing={3}>
-              {/* Chart */}
-              <Grid item xs={12} md={8} lg={9}>
-                  <Paper
-                      sx={{
-                          p: 2,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          height: 240,
-                      }}
-                  >
-                      <Chart />
-                  </Paper>
-              </Grid>
-              {/* Recent Deposits */}
-              <Grid item xs={12} md={4} lg={3}>
-                  <Paper
-                      sx={{
-                          p: 2,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          height: 240,
-                      }}
-                  >
-                      <Deposits />
-                  </Paper>
-              </Grid>
-              {/* Recent Orders */}
-              <Grid item xs={12}>
-                  <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                      <Orders />
-                  </Paper>
-              </Grid>
-          </Grid>
-          <Copyright sx={{ pt: 4 }} />
-      </Container>
-  );
+    return (
+        <Container maxWidth="lg" sx={{mt: 4, mb: 4}}>
+            <Grid container spacing={3} direction="row">
+                {/* System Info */}
+                <Grid item xs={12}>
+                    <SystemInfo/>
+                </Grid>
+                <Grid item xs={12}>
+                    <CpuInfo/>
+                </Grid>
+                <Grid item xs={12}>
+                    <MemoryInfo/>
+                </Grid>
+                <Grid item xs={6}>
+                    <DiskInfo/>
+                </Grid>
+                <Grid item xs={6}>
+                    <NetInfo/>
+                </Grid>
+                {/* Recent Orders */}
+                <Grid item xs={12}>
+                    <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
+                        <Users/>
+                    </Paper>
+                </Grid>
+            </Grid>
+            <Copyright sx={{pt: 4}}/>
+        </Container>
+    );
 }
