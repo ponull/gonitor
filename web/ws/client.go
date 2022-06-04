@@ -9,17 +9,26 @@ import (
 )
 
 const (
-	SubscribeTypeTask       = "TASK"
-	SubscribeTypeTaskLog    = "TASK_LOG"
-	SubscribeTypeTaskLogAdd = "TASK_LOG_ADD"
+	SubscribeTypeTask          = "TASK"
+	SubscribeTypeTaskLog       = "TASK_LOG"
+	SubscribeTypeTaskLogAdd    = "TASK_LOG_ADD"
+	SubScribeTypeSystemMonitor = "SYSTEM_MONITOR"
 )
 
 // Client 单个 websocket 信息
+type SubscribeStruct = map[string]map[int64]bool
+
 type Client struct {
 	Id         int64
 	Socket     *websocket.Conn
 	Message    chan []byte
-	subscribed map[string]map[int64]bool //['subscribeTypeTask']['taskId'] = true
+	subscribed SubscribeStruct //['subscribeTypeTask']['taskId'] = true
+}
+
+//websocket 推送的订阅结构
+type SubscribeStat struct {
+	SubscribeType string `json:"type"`
+	TaskId        int64  `json:"id"`
 }
 
 func (client *Client) StartAllService() {
@@ -48,7 +57,7 @@ func (client *Client) readService() {
 		}
 		//todo 解析消息内容  看看订阅的是什么东西
 		//todo 分发消息处理器
-		selfMessage := make(map[string]interface{})
+		selfMessage := make(map[string]string)
 		err = json.Unmarshal(message, &selfMessage)
 		//解析失败 通知前端
 		if err != nil {
@@ -59,9 +68,25 @@ func (client *Client) readService() {
 		log.Println(selfMessage)
 		switch event {
 		case "SUBSCRIBE":
-			client.subscribe(SubscribeTypeTask, 1)
+			data := selfMessage["data"]
+			subscribeState := SubscribeStat{}
+			err = json.Unmarshal([]byte(data), &subscribeState)
+			//解析失败 通知前端
+			if err != nil {
+				log.Println("cannot parse message data")
+				continue
+			}
+			client.Subscribe(subscribeState.SubscribeType, subscribeState.TaskId)
 		case "UNSUBSCRIBE":
-			client.unsubscribe(SubscribeTypeTask, 1)
+			data := selfMessage["data"]
+			subscribeState := SubscribeStat{}
+			err = json.Unmarshal([]byte(data), &subscribeState)
+			//解析失败 通知前端
+			if err != nil {
+				log.Println("cannot parse message data")
+				continue
+			}
+			client.Unsubscribe(subscribeState.SubscribeType, subscribeState.TaskId)
 		case "PING":
 			pongMsg := client.success(map[string]interface{}{
 				"event": "PONG",
@@ -101,21 +126,32 @@ func (client *Client) writeService() {
 	}
 }
 
-func (client *Client) subscribe(subscriptionType string, taskId int64) {
+func (client *Client) Subscribe(subscriptionType string, taskId int64) {
 	//已经订阅就算了
 	client.toggleSubscribe(subscriptionType, taskId, true)
 }
 
-func (client *Client) unsubscribe(subscriptionType string, taskId int64) {
+func (client *Client) Unsubscribe(subscriptionType string, taskId int64) {
 	//已经订阅就算了
 	client.toggleSubscribe(subscriptionType, taskId, false)
+}
+
+func (client *Client) IsSubscribed(subscriptionType string, taskId int64) bool {
+	subscriptionTypeMap, ok := client.subscribed[subscriptionType]
+	if !ok {
+		return false
+	}
+	if _, ok := subscriptionTypeMap[taskId]; !ok {
+		return false
+	}
+	return true
 }
 
 func (client *Client) toggleSubscribe(subscriptionType string, taskId int64, isSubscribe bool) {
 	//已经订阅就算了
 	_, ok := client.subscribed[subscriptionType]
 	if !ok {
-		client.Message <- []byte("cannot find subscriptionType")
+		client.subscribed[subscriptionType] = make(map[int64]bool)
 		return
 	}
 	client.subscribed[subscriptionType][taskId] = isSubscribe
@@ -130,12 +166,12 @@ func (client *Client) success(data map[string]interface{}) map[string]interface{
 }
 
 func (client *Client) SendSubscribedInfo(subscribeMessage *subscribeMessage) {
-	//_, ok := client.subscribed[subscribeMessage.SubscriptionType][subscribeMessage.ID]
-	////没有订阅这个类型或者这个id 就不管
-	//log.Println("test111111111", subscribeMessage, client.Id,)
-	//if !ok {
-	//	return
-	//}
+	open, ok := client.subscribed[subscribeMessage.SubscriptionType][subscribeMessage.ID]
+	//没有订阅这个类型或者这个id 就不管
+	if !ok || !open {
+		return
+	}
+
 	updateMsg := client.success(map[string]interface{}{
 		"event": "UPDATE",
 		"data": map[string]interface{}{

@@ -1,39 +1,59 @@
 import * as React from "react";
-import Typography from "@mui/material/Typography";
-import {CircularProgressWithLabel} from "./System";
+import {CircularProgressWithLabel, getOption} from "./System";
 import Paper from "@mui/material/Paper";
 import Title from "./Title";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import {InfoItem} from "./InfoItem";
 import ReactECharts from "echarts-for-react";
+import {useEffect, useRef, useState} from "react";
+import httpRequest from "../../common/request/HttpRequest";
+import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
+import {SystemMonitorTypeEnum} from "../../enum/subsciption";
+import moment from "moment";
+import {cloneDeep} from "lodash";
+import {useInterval} from "../../common/utils/hook";
 
 export const CpuInfo = () => {
-    const data = [["2000-06-05", 116], ["2000-06-06", 129], ["2000-06-07", 135], ["2000-06-08", 86], ["2000-06-09", 73], ["2000-06-10", 85], ["2000-06-11", 73], ["2000-06-12", 68], ["2000-06-13", 92], ["2000-06-14", 130], ["2000-06-15", 245], ["2000-06-16", 139], ["2000-06-17", 115], ["2000-06-18", 111], ["2000-06-19", 309], ["2000-06-20", 206], ["2000-06-21", 137], ["2000-06-22", 128], ["2000-06-23", 85], ["2000-06-24", 94], ["2000-06-25", 71], ["2000-06-26", 106], ["2000-06-27", 84], ["2000-06-28", 93], ["2000-06-29", 85], ["2000-06-30", 73], ["2000-07-01", 83], ["2000-07-02", 125], ["2000-07-03", 107], ["2000-07-04", 82], ["2000-07-05", 44], ["2000-07-06", 72], ["2000-07-07", 106], ["2000-07-08", 107], ["2000-07-09", 66], ["2000-07-10", 91], ["2000-07-11", 92], ["2000-07-12", 113], ["2000-07-13", 107], ["2000-07-14", 131], ["2000-07-15", 111], ["2000-07-16", 64], ["2000-07-17", 69], ["2000-07-18", 88], ["2000-07-19", 77], ["2000-07-20", 83], ["2000-07-21", 111], ["2000-07-22", 57], ["2000-07-23", 55], ["2000-07-24", 60]];
-    const dateList = data.map(function (item) {
-        return item[0];
-    });
-    const valueList = data.map(function (item) {
-        return item[1];
-    });
-    const option = {
-        tooltip: {
-            trigger: 'axis'
-        },
-        xAxis: {
-            data: dateList
-        },
-        yAxis: [
-            {},
-        ],
-        series: [
-            {
-                type: 'line',
-                showSymbol: false,
-                data: valueList
-            },
+    const echartsRef = useRef(null);
+    const [echartsOption, setEchartsOption] = useState(getOption);
+    const [usedList, setUsedList] = useState([]);
+    useInterval(()=>{
+        if (usedList.length > 60) {
+            usedList.shift();
+        }
+        const newSecondInfo = [
+            moment().format("HH:mm:ss"),
+            cpuUpdateInfo.total_percent.toFixed(2),
         ]
-    };
+        const newUsedList = [...usedList, newSecondInfo];
+        setUsedList(newUsedList);
+    },1000)
+    useEffect(() => {
+        let newOption = echartsOption;
+        const dateList = usedList.map(function (item) {
+            return item[0];
+        });
+        const valueList = usedList.map(function (item) {
+            return item[1];
+        });
+        newOption.xAxis.data = dateList;
+        newOption.series[0].data = valueList;
+        setEchartsOption(newOption);
+        echartsRef && echartsRef.current.getEchartsInstance().setOption(newOption);
+    }, [usedList]);
+    const [cpuInfo, setCpuInfo] = React.useState({
+        physical_cores_count: 0,
+        logical_cores_count: 0,
+        total_percent: 0,
+    });
+    const [cpuUpdateInfo] = useSubscribe(SubscribeType.SYSTEM_MONITOR, SystemMonitorTypeEnum.CPU_INFO, cpuInfo)
+    useEffect(() => {
+        httpRequest.get("/getCpuInfo")
+            .then(res => {
+                setCpuInfo(res.data);
+            })
+    }, [])
     return (
         <React.Fragment>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
@@ -41,19 +61,17 @@ export const CpuInfo = () => {
                 <Divider/>
                 <Grid container mt={2} spacing={3}>
                     <Grid item xs={2}>
-                        <CircularProgressWithLabel  value={53} size={150}/>
+                        <CircularProgressWithLabel value={cpuUpdateInfo.total_percent} size={150}/>
                     </Grid>
                     <Grid item xs={4}>
                         <Grid container spacing={1}>
-                            <InfoItem title="Cpu Count" value="2"/>
-                            {/*<InfoItem title="Cpu Name" value="Microsoft Windows 11 Home China"/>*/}
-                            <InfoItem title="Physical Count" value="8"/>
-                            <InfoItem title="Logical Count" value="16"/>
-                            {/*<InfoItem title="Cpu Percent" value="60%"/>*/}
+                            <InfoItem title="Physical Count" value={cpuInfo.physical_cores_count}/>
+                            <InfoItem title="Logical Count" value={cpuInfo.logical_cores_count}/>
+                            <InfoItem title="Cpu Percent" value={`${cpuUpdateInfo.total_percent.toFixed(2)}%`}/>
                         </Grid>
                     </Grid>
                     <Grid item xs={6}>
-                        <ReactECharts option={option}/>
+                        <ReactECharts  ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
                     </Grid>
                 </Grid>
             </Paper>

@@ -48,7 +48,7 @@ func (ti *taskInstance) stop() {
 	//todo看要不要加参数来区分是否停止正在运行的实例  按理说是需要的
 }
 
-func (ti *taskInstance) pushNestTaskInfo() {
+func (ti *taskInstance) pushNewestTaskInfo() {
 	for _, entry := range Manager.cron.Entries() {
 		if entry.ID == ti.EntryId {
 			subscription.SendTaskInfoFormOrm(

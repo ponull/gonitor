@@ -44,7 +44,7 @@ func GetTaskLogList(context *context.Context) *response.Response {
 	core.Db.Raw(`
 SELECT * FROM task_log WHERE task_id = ? and status = 1
 `, taskId).Scan(&taskLogList)
-	return response.Resp().Json(taskLogList)
+	return response.Resp().Success("success", taskLogList)
 }
 
 //已经开始的任务不关闭

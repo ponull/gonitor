@@ -16,9 +16,11 @@ func config(router group) {
 	router.Registered(ANY, "/editTask", controller.EditTask)
 	router.Registered(ANY, "/deleteTask", controller.DeleteTask)
 	router.Registered(GET, "/getTaskInfo", controller.GetTaskInfo)
-	router.Registered(GET, "/getSystemInfo", controller.GetSystemInfo)
 	router.Registered(GET, "/getSystemOverview", controller.GetSystemOverview)
-	router.Registered(GET, "/getSystemUserList", controller.GetSystemUserList)
+	router.Registered(GET, "/getCpuInfo", controller.GetCpuInfo)
+	router.Registered(GET, "/getMemoryInfo", controller.GetMemoryInfo)
+	router.Registered(GET, "/getDiskInfo", controller.GetDiskInfo)
+	router.Registered(GET, "/getNetInfo", controller.GetNetInfo)
 }
 
 func Load(r *gin.Engine) {

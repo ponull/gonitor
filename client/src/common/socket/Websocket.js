@@ -7,6 +7,7 @@ export const SubscribeType = {
     TASK: "TASK",
     TASK_lOG: "TASK_LOG",
     TASK_LOG_ADD: "TASK_LOG_ADD",
+    SYSTEM_MONITOR: "SYSTEM_MONITOR",
 }
 
 const EventType = {
@@ -67,10 +68,10 @@ export function useSubscribe(subscribeType, targetId, originData) {
     useEffect(() => {
         wbSocket.send({
             event: EventType.SUBSCRIBE,
-            data: {
+            data: JSON.stringify({
                 type: subscribeType,
                 id: targetId,
-            },
+            }),
         });
         if (!subscribed.hasOwnProperty(subscribeType)) {
             subscribed[subscribeType] = {};
@@ -81,10 +82,10 @@ export function useSubscribe(subscribeType, targetId, originData) {
         return () => {
             wbSocket.send({
                 event: EventType.UNSUBSCRIBE,
-                data: {
+                data: JSON.stringify({
                     type: subscribeType,
                     id: targetId,
-                },
+                }),
             });
             const subscribeTypeMap = subscribed[subscribeType];
             delete subscribeTypeMap[targetId];
