@@ -17,7 +17,7 @@ import (
 
 type RunningInstance struct {
 	LogId       int64
-	taskInfo    model.Task
+	taskInfo    *model.Task
 	TaskLogInfo *model.TaskLog
 	Process     *process.Process
 	output      string
@@ -34,7 +34,7 @@ func (ri *RunningInstance) stop() {
 	ioutil.WriteFile(filePath, []byte("主动停止"), 0666)
 }
 
-func NewTaskInstance(taskInfo model.Task) *RunningInstance {
+func NewTaskRunningInstance(taskInfo *model.Task) *RunningInstance {
 	return &RunningInstance{
 		taskInfo: taskInfo,
 	}
@@ -103,7 +103,9 @@ func (ri *RunningInstance) afterRun() {
 	fmt.Printf("任务结束\n")
 	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, "任务结束")
 	ri.writeLogOutput()
-	delete(Manager.TaskList[ri.taskInfo.ID].RunningInstances, ri.TaskLogInfo.ID)
+	if _, ok := Manager.TaskList[ri.taskInfo.ID].RunningInstances[ri.TaskLogInfo.ID]; ok {
+		delete(Manager.TaskList[ri.taskInfo.ID].RunningInstances, ri.TaskLogInfo.ID)
+	}
 }
 
 func (ri *RunningInstance) writeLogOutput() {
