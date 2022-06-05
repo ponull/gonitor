@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"fmt"
 	"gonitor/model"
 	"gonitor/web/ws"
 )
@@ -23,13 +24,17 @@ func SendTaskLogInfoFormOrm(taskLogModel *model.TaskLog, output string) {
 		ProcessID:     taskLogModel.ProcessId,
 		ExecutionTime: taskLogModel.ExecTime.Format("2006-01-02 15:04:05"),
 		Status:        taskLogModel.Status,
-		ExecOutput:    "",
+		ExecOutput:    output,
 	})
 }
 
 func SendNewTaskLogFormOrm(taskLogModel *model.TaskLog) {
 	//自动帮用户订阅  这里需要查询所有订阅了这个task id 新加log事件的用户
 	for _, client := range ws.WebsocketManager.ClientList {
+		fmt.Println("帮用户订阅这个log id")
+		fmt.Println(client.GetSubscribed())
+		fmt.Println(taskLogModel.TaskId)
+		fmt.Println(client.IsSubscribed(ws.SubscribeTypeTaskLogAdd, taskLogModel.TaskId))
 		if client.IsSubscribed(ws.SubscribeTypeTaskLogAdd, taskLogModel.TaskId) {
 			client.Subscribe(ws.SubscribeTypeTaskLog, taskLogModel.ID)
 		}

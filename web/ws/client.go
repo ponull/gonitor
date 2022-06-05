@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"strconv"
@@ -36,8 +37,9 @@ func (client *Client) StartAllService() {
 	go client.writeService()
 	//所有的订阅类型都先加进去，防止读取的时候出问题
 	client.subscribed = map[string]map[int64]bool{
-		SubscribeTypeTask:    make(map[int64]bool),
-		SubscribeTypeTaskLog: make(map[int64]bool),
+		SubscribeTypeTask:       make(map[int64]bool),
+		SubscribeTypeTaskLog:    make(map[int64]bool),
+		SubscribeTypeTaskLogAdd: make(map[int64]bool),
 	}
 }
 
@@ -73,10 +75,12 @@ func (client *Client) readService() {
 			err = json.Unmarshal([]byte(data), &subscribeState)
 			//解析失败 通知前端
 			if err != nil {
-				log.Println("cannot parse message data")
+				log.Println("cannot parse message data", err)
 				continue
 			}
+			fmt.Printf("用户%d订阅了%s类型id%d\n", client.Id, subscribeState.SubscribeType, subscribeState.TaskId)
 			client.Subscribe(subscribeState.SubscribeType, subscribeState.TaskId)
+			fmt.Println("订阅之后的结果", client.subscribed)
 		case "UNSUBSCRIBE":
 			data := selfMessage["data"]
 			subscribeState := SubscribeStat{}
@@ -127,13 +131,17 @@ func (client *Client) writeService() {
 }
 
 func (client *Client) Subscribe(subscriptionType string, taskId int64) {
+	fmt.Println("subscribe", subscriptionType, taskId)
 	//已经订阅就算了
 	client.toggleSubscribe(subscriptionType, taskId, true)
+	fmt.Println("subscribe end", client.subscribed[subscriptionType])
 }
 
 func (client *Client) Unsubscribe(subscriptionType string, taskId int64) {
+	//fmt.Println("unsubscribe", subscriptionType, taskId)
 	//已经订阅就算了
 	client.toggleSubscribe(subscriptionType, taskId, false)
+	//fmt.Println("unsubscribe end", client.subscribed[subscriptionType])
 }
 
 func (client *Client) IsSubscribed(subscriptionType string, taskId int64) bool {
@@ -147,6 +155,10 @@ func (client *Client) IsSubscribed(subscriptionType string, taskId int64) bool {
 	return true
 }
 
+func (client *Client) GetSubscribed() map[string]map[int64]bool {
+	return client.subscribed
+}
+
 func (client *Client) toggleSubscribe(subscriptionType string, taskId int64, isSubscribe bool) {
 	//已经订阅就算了
 	_, ok := client.subscribed[subscriptionType]
@@ -154,7 +166,13 @@ func (client *Client) toggleSubscribe(subscriptionType string, taskId int64, isS
 		client.subscribed[subscriptionType] = make(map[int64]bool)
 		return
 	}
-	client.subscribed[subscriptionType][taskId] = isSubscribe
+	//不用之前那个赋值true和false  否则这个结构会越来也大，不会清理
+	if !isSubscribe {
+		delete(client.subscribed[subscriptionType], taskId)
+		return
+	} else {
+		client.subscribed[subscriptionType][taskId] = isSubscribe
+	}
 }
 
 func (client *Client) success(data map[string]interface{}) map[string]interface{} {

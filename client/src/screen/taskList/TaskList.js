@@ -163,21 +163,27 @@ export const TaskList = function () {
 
 const TaskRow = (props) => {
     const {taskInfo, index, showConfirmDeleteDialog, showEditDialog} = props;
+    const [selfTaskInfo, setSelfTaskInfo] = useState(taskInfo);
     const [open, setOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const handleMenuClose = () => {
         setMenuOpen(false);
     };
-    const [taskUpdateInfo] = useSubscribe(SubscribeType.TASK, taskInfo.id, taskInfo)
+    useSubscribe(SubscribeType.TASK, taskInfo.id, (data) => {
+        setSelfTaskInfo({
+            ...selfTaskInfo,
+            ...data
+        })
+    })
     const anchorRef = React.useRef(null);
     const navigate = useNavigate();
     const gotoTaskInfo = () => {
-        navigate(`/admin/taskInfo/${taskInfo.id}`)
+        navigate(`/admin/taskInfo/${selfTaskInfo.id}`)
     }
     return (
         <React.Fragment>
             <TableRow
-                key={taskInfo.id}
+                key={selfTaskInfo.id}
                 sx={{'&:last-child td, &:last-child th': {border: 0}}}
             >
                 <TableCell>
@@ -192,15 +198,15 @@ const TaskRow = (props) => {
                 <TableCell component="th" scope="row">
                     {index + 1}
                 </TableCell>
-                <TableCell>{taskUpdateInfo.name}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.exec_type}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.schedule}</TableCell>
-                <TableCell align="right">{StrategyEnum.getLanguage(taskUpdateInfo.exec_strategy)}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.is_disable ?
+                <TableCell>{selfTaskInfo.name}</TableCell>
+                <TableCell align="right">{selfTaskInfo.exec_type}</TableCell>
+                <TableCell align="right">{selfTaskInfo.schedule}</TableCell>
+                <TableCell align="right">{StrategyEnum.getLanguage(selfTaskInfo.exec_strategy)}</TableCell>
+                <TableCell align="right">{selfTaskInfo.is_disable ?
                     <CheckCircleOutlineIcon/> : ""}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.running_count}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.last_run_time}</TableCell>
-                <TableCell align="right">{taskUpdateInfo.next_run_time}</TableCell>
+                <TableCell align="right">{selfTaskInfo.running_count}</TableCell>
+                <TableCell align="right">{selfTaskInfo.last_run_time}</TableCell>
+                <TableCell align="right">{selfTaskInfo.next_run_time}</TableCell>
                 <TableCell align="right">
                     <ButtonGroup variant="contained" size="small" ref={anchorRef}>
                         <Button onClick={gotoTaskInfo}>Detail</Button>
@@ -211,7 +217,7 @@ const TaskRow = (props) => {
                         </Button>
                         {/*<Button>Edit</Button>*/}
                         {/*<Button onClick={() => {*/}
-                        {/*    showConfirmDeleteDialog(taskUpdateInfo)*/}
+                        {/*    showConfirmDeleteDialog(selfTaskInfo)*/}
                         {/*}}>Delete</Button>*/}
                         {/*<Button>Start</Button>*/}
                         {/*<Button>Stop</Button>*/}
@@ -236,10 +242,10 @@ const TaskRow = (props) => {
                                     <ClickAwayListener onClickAway={handleMenuClose}>
                                         <MenuList id="split-button-menu" autoFocusItem>
                                             <MenuItem onClick={() => {
-                                                showEditDialog(taskUpdateInfo)
+                                                showEditDialog(selfTaskInfo)
                                             }}>EDIT</MenuItem>
                                             <MenuItem onClick={() => {
-                                                showConfirmDeleteDialog(taskUpdateInfo)
+                                                showConfirmDeleteDialog(selfTaskInfo)
                                             }}>DELETE</MenuItem>
                                             <MenuItem>START</MenuItem>
                                             <MenuItem>STOP</MenuItem>
@@ -252,7 +258,7 @@ const TaskRow = (props) => {
                     </Popper>
                 </TableCell>
             </TableRow>
-            <TaskLogContainer open={open} taskId={taskUpdateInfo.id}/>
+            <TaskLogContainer open={open} taskId={selfTaskInfo.id}/>
         </React.Fragment>
     )
 }
@@ -265,7 +271,12 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
         const newLogList = logList.filter(log => log.id !== logId);
         setLogList(newLogList);
     }
-    const [taskLogNew] = useSubscribe(SubscribeType.TASK_LOG_ADD, taskId, {})
+    useSubscribe(SubscribeType.TASK_LOG_ADD, taskId, (data) => {
+        setLogList([
+            data,
+            ...logList
+        ])
+    })
     const firstRenderRef = useRef(true)
     useEffect(() => {
         if (firstRenderRef.current) {
@@ -280,14 +291,9 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
             //     const data = res.data as TaskLog[];
             //     setLogList(data)
             // })
-        } else {
-            if (taskLogNew.id !== 0) {
-                console.log(taskLogNew)
-                setLogList([taskLogNew, ...logList])
-            }
         }
         //eslint-disable-next-line
-    }, [taskLogNew])
+    },[])
     return (
         <TableRow>
             <TableCell style={{paddingBottom: 0, paddingTop: 0}} colSpan={11}>
@@ -318,33 +324,38 @@ const TaskLogContainer = (props: { open: boolean; taskId: number; }) => {
 }
 const TaskLogRow = (props) => {
     const {taskLogInfo, handleDelete} = props
-
-    const [taskLogUpdateInfo] = useSubscribe(SubscribeType.TASK_lOG, taskLogInfo.id, taskLogInfo)
+    const [selfTaskLogInfo, setSelfTaskLogInfo] = useState(taskLogInfo)
+    useSubscribe(SubscribeType.TASK_lOG, taskLogInfo.id, (data)=>{
+        setSelfTaskLogInfo({
+            ...selfTaskLogInfo,
+            ...data
+        })
+    })
     useEffect(() => {
-        if (!taskLogUpdateInfo.status) {
+        if (!selfTaskLogInfo.status) {
             setTimeout(() => {
-                handleDelete(taskLogUpdateInfo.id)
+                handleDelete(selfTaskLogInfo.id)
             }, 3000)
         }
         //eslint-disable-next-line
-    }, [taskLogUpdateInfo])
+    }, [selfTaskLogInfo])
     return (
         <React.Fragment>
-            <TableRow key={taskLogUpdateInfo.id}>
+            <TableRow key={selfTaskLogInfo.id}>
                 <TableCell component="th" scope="row">
-                    {taskLogUpdateInfo.execution_time}
+                    {selfTaskLogInfo.execution_time}
                 </TableCell>
-                <TableCell>{taskLogUpdateInfo.command}</TableCell>
-                <TableCell align="right">{taskLogUpdateInfo.process_id}</TableCell>
+                <TableCell>{selfTaskLogInfo.command}</TableCell>
+                <TableCell align="right">{selfTaskLogInfo.process_id}</TableCell>
                 <TableCell align="right">{
-                    taskLogUpdateInfo.status ? taskLogUpdateInfo.process_id > 0 ? <RunCircleIcon color="success"/> :
+                    selfTaskLogInfo.status ? selfTaskLogInfo.process_id > 0 ? <RunCircleIcon color="success"/> :
                         <HourglassEmptyIcon/> : <StopCircleIcon color="disabled"/>
                 }</TableCell>
                 <TableCell align="right">
                     <IconButton
                         size="small"
                         color="error"
-                        disabled={!taskLogUpdateInfo.status}
+                        disabled={!selfTaskLogInfo.status}
                     >
                         <StopCircleIcon/>
                     </IconButton>

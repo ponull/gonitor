@@ -24,7 +24,7 @@ export const MemoryInfo = () => {
         }
         const newSecondInfo = [
             moment().format("HH:mm:ss"),
-            memoryUpdateInfo.used_percent.toFixed(2),
+            memoryInfo.used_percent.toFixed(2),
         ]
         const newUsedList = [...usedList, newSecondInfo];
         setUsedList(newUsedList);
@@ -53,7 +53,12 @@ export const MemoryInfo = () => {
         swap_used_percent: 0,
     });
 
-    const [memoryUpdateInfo] = useSubscribe(SubscribeType.SYSTEM_MONITOR,SystemMonitorTypeEnum.MEMORY_INFO,memoryInfo)
+    useSubscribe(SubscribeType.SYSTEM_MONITOR,SystemMonitorTypeEnum.MEMORY_INFO,(data)=>{
+        setMemoryInfo({
+            ...memoryInfo,
+            ...data,
+        });
+    })
     useEffect(() => {
         httpRequest.get("/getMemoryInfo")
             .then(res => {
@@ -67,14 +72,14 @@ export const MemoryInfo = () => {
                 <Divider/>
                 <Grid container mt={2}>
                     <Grid item xs={2}>
-                        <CircularProgressWithLabel value={memoryUpdateInfo.used_percent}/>
+                        <CircularProgressWithLabel value={memoryInfo.used_percent}/>
                     </Grid>
                     <Grid item xs={4}>
                         <Grid container spacing={1}>
                             <InfoItem title="Total" value={bytesToSize(memoryInfo.total)}/>
-                            <InfoItem title="Used" value={bytesToSize(memoryUpdateInfo.used)}/>
-                            <InfoItem title="Available" value={bytesToSize(memoryUpdateInfo.free)}/>
-                            <InfoItem title="Used Percent" value={`${memoryUpdateInfo.used_percent.toFixed(2)}%`}/>
+                            <InfoItem title="Used" value={bytesToSize(memoryInfo.used)}/>
+                            <InfoItem title="Available" value={bytesToSize(memoryInfo.free)}/>
+                            <InfoItem title="Used Percent" value={`${memoryInfo.used_percent.toFixed(2)}%`}/>
                         </Grid>
                     </Grid>
                     <Grid item xs={6}>

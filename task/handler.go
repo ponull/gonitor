@@ -26,6 +26,8 @@ func (e *ExecJobWrapper) Run() {
 	if err != nil {
 		return
 	}
+
+	fmt.Printf("任务开始\n")
 	subscription.SendNewTaskLogFormOrm(e.taskLog)
 	defer func() {
 		e.afterRun()
@@ -37,10 +39,10 @@ func (e *ExecJobWrapper) Run() {
 	var i int8 = 0
 	for i < execTimes {
 		e.output += fmt.Sprintf("第%d次执行\n", i+1)
-		//subscription.SendTaskLogInfoFormOrm(e.taskLog, e.output)
+		subscription.SendTaskLogInfoFormOrm(e.taskLog, fmt.Sprintf("第%d次执行\n", i+1))
 		output, err := e.execSystemCommand()
 		e.output += fmt.Sprintf("%s\n", output)
-		//subscription.SendTaskLogInfoFormOrm(e.taskLog, e.output)
+		//subscription.SendTaskLogInfoFormOrm(e.taskLog, fmt.Sprintf("执行结果： %s\n", output))
 		if err == nil {
 			return
 		}
@@ -67,7 +69,7 @@ func (e *ExecJobWrapper) execSystemCommand() (string, error) {
 		return out.String(), err
 	}
 	e.taskLog.Status = true
-	subscription.SendTaskLogInfoFormOrm(e.taskLog, e.output)
+	subscription.SendTaskLogInfoFormOrm(e.taskLog, "启动命令成功")
 	e.taskLog.ProcessId = cmd.Process.Pid
 	pn, err := process.NewProcess(int32(cmd.Process.Pid))
 	if err != nil {
@@ -84,7 +86,9 @@ func (e *ExecJobWrapper) execSystemCommand() (string, error) {
 		TaskLogInfo: e.taskLog,
 		Process:     pn,
 	}
+	subscription.SendTaskLogInfoFormOrm(e.taskLog, "开始等待")
 	err = cmd.Wait()
+	subscription.SendTaskLogInfoFormOrm(e.taskLog, "等待结束")
 	if err != nil {
 		return "", err
 	}
@@ -117,7 +121,8 @@ func (e *ExecJobWrapper) afterRun() {
 	if dbRt.Error != nil {
 		fmt.Println("保存任务日志失败", dbRt.Error.Error())
 	}
-	subscription.SendTaskLogInfoFormOrm(e.taskLog, e.output)
+	fmt.Printf("任务结束\n")
+	subscription.SendTaskLogInfoFormOrm(e.taskLog, "任务结束")
 	e.writeLogOutput()
 	delete(Manager.TaskList[e.taskInfo.ID].RunningInstances, e.taskLog.ID)
 }

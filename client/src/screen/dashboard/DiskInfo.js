@@ -6,7 +6,6 @@ import Title from "./Title";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import {InfoItem} from "./InfoItem";
-import ReactECharts from "echarts-for-react";
 import {useEffect, useState} from "react";
 import httpRequest from "../../common/request/HttpRequest";
 

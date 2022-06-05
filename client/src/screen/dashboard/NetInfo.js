@@ -1,6 +1,4 @@
 import * as React from "react";
-import Typography from "@mui/material/Typography";
-import {CircularProgressWithLabel} from "./System";
 import Paper from "@mui/material/Paper";
 import Title from "./Title";
 import Divider from "@mui/material/Divider";

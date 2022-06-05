@@ -2,12 +2,10 @@ import * as React from "react";
 import {useParams} from "react-router-dom";
 import {useEffect, useRef, useState} from "react";
 import httpRequest from "../../common/request/HttpRequest";
-import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 
 import Paper from '@mui/material/Paper';
 
-import {styled} from '@mui/material/styles';
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
 import Container from "@mui/material/Container";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
@@ -43,7 +41,12 @@ export const TaskInfo = () => {
         schedule: "",
         update_time: "",
     })
-    const [taskUpdateInfo] = useSubscribe(SubscribeType.TASK, taskInfo.id, taskInfo)
+    useSubscribe(SubscribeType.TASK, taskId, (data) => {
+        setTaskInfo({
+            ...taskInfo,
+            ...data
+        })
+    })
     useEffect(() => {
         httpRequest.get("/getTaskInfo?task_id=" + taskId).then(res => {
             if (res.code === 0) {
@@ -59,7 +62,7 @@ export const TaskInfo = () => {
     return (
         <React.Fragment>
             <Container>
-                <TaskInfoContent taskInfo={taskUpdateInfo}/>
+                <TaskInfoContent taskInfo={taskInfo}/>
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -71,7 +74,7 @@ export const TaskInfo = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        <TaskLogList taskId={taskUpdateInfo.id}></TaskLogList>
+                        <TaskLogList taskId={taskId}></TaskLogList>
                     </TableBody>
                 </Table>
             </Container>
@@ -81,7 +84,6 @@ export const TaskInfo = () => {
 
 const TaskInfoContent = (props) => {
     const {taskInfo} = props
-
     const echartsRef = useRef(null);
     const [echartsOption, setEchartsOption] = useState(getOption);
     const [usedList, setUsedList] = useState([]);
@@ -165,7 +167,6 @@ const TaskLogList = (props) => {
             httpRequest.get(`getTaskLogList?task_id=${taskId}`)
                 .then(res => {
                     const data = res.data;
-                    console.log(data)
                     setLogList(data)
                 })
     }, [taskId])
@@ -174,7 +175,8 @@ const TaskLogList = (props) => {
         const newLogList = logList.filter(log => log.id !== logId);
         setLogList(newLogList);
     }
-    const [taskLogNew] = useSubscribe(SubscribeType.TASK_LOG_ADD, taskId, {
+    /*
+    {
         "id": 0,
         "task_id": 0,
         "command": "",
@@ -182,12 +184,14 @@ const TaskLogList = (props) => {
         "execution_time": "",
         "status": true,
         "exec_output": ""
+    }
+     */
+    useSubscribe(SubscribeType.TASK_LOG_ADD, taskId, (data)=>{
+        setLogList([
+            data,
+            ...logList
+        ]);
     })
-    useEffect(()=>{
-        if(taskLogNew.id !== 0){
-            setLogList([taskLogNew, ...logList])
-        }
-    },[taskLogNew])
     return (
         <React.Fragment>
             {logList && logList.map((logInfo, index) => (
@@ -199,31 +203,37 @@ const TaskLogList = (props) => {
 
 const TaskLogRow = (props) => {
     const {logInfo, deleteLog} = props
-    const [logUpdateInfo] = useSubscribe(SubscribeType.TASK_lOG, logInfo.id,logInfo)
+    const [selfLogInfo, setSelfLogInfo] = useState(logInfo);
+    useSubscribe(SubscribeType.TASK_lOG, logInfo.id,(data) => {
+        setSelfLogInfo({
+            ...selfLogInfo,
+            ...data
+        })
+    })
     useEffect(()=>{
-        if(!logUpdateInfo.status){
+        if(!selfLogInfo.status){
             setTimeout(()=>{
                 deleteLog(logInfo.id)
             },3000)
         }
-    }, [logUpdateInfo])
+    }, [selfLogInfo])
     return (
         <React.Fragment>
                 <TableRow key={logInfo.id}>
                     <TableCell component="th" scope="row">
-                        {logUpdateInfo.execution_time}
+                        {selfLogInfo.execution_time}
                     </TableCell>
                     <TableCell>{logInfo.command}</TableCell>
-                    <TableCell align="right">{logUpdateInfo.process_id}</TableCell>
+                    <TableCell align="right">{selfLogInfo.process_id}</TableCell>
                     <TableCell align="right">{
-                        logUpdateInfo.status ? logUpdateInfo.process_id > 0 ? <RunCircleIcon color="success"/> :
+                        selfLogInfo.status ? selfLogInfo.process_id > 0 ? <RunCircleIcon color="success"/> :
                             <HourglassEmptyIcon/> : <StopCircleIcon color="disabled"/>
                     }</TableCell>
                     <TableCell align="right">
                         <IconButton
                             size="small"
                             color="error"
-                            disabled={!logUpdateInfo.status}
+                            disabled={!selfLogInfo.status}
                         >
                             <StopCircleIcon/>
                         </IconButton>

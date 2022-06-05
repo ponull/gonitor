@@ -11,7 +11,6 @@ import httpRequest from "../../common/request/HttpRequest";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
 import {SystemMonitorTypeEnum} from "../../enum/subsciption";
 import moment from "moment";
-import {cloneDeep} from "lodash";
 import {useInterval} from "../../common/utils/hook";
 
 export const CpuInfo = () => {
@@ -24,7 +23,7 @@ export const CpuInfo = () => {
         }
         const newSecondInfo = [
             moment().format("HH:mm:ss"),
-            cpuUpdateInfo.total_percent.toFixed(2),
+            cpuInfo.total_percent.toFixed(2),
         ]
         const newUsedList = [...usedList, newSecondInfo];
         setUsedList(newUsedList);
@@ -47,7 +46,12 @@ export const CpuInfo = () => {
         logical_cores_count: 0,
         total_percent: 0,
     });
-    const [cpuUpdateInfo] = useSubscribe(SubscribeType.SYSTEM_MONITOR, SystemMonitorTypeEnum.CPU_INFO, cpuInfo)
+    useSubscribe(SubscribeType.SYSTEM_MONITOR, SystemMonitorTypeEnum.CPU_INFO, (data) => {
+        setCpuInfo({
+            ...cpuInfo,
+            ...data
+        })
+    })
     useEffect(() => {
         httpRequest.get("/getCpuInfo")
             .then(res => {
@@ -61,13 +65,13 @@ export const CpuInfo = () => {
                 <Divider/>
                 <Grid container mt={2} spacing={3}>
                     <Grid item xs={2}>
-                        <CircularProgressWithLabel value={cpuUpdateInfo.total_percent} size={150}/>
+                        <CircularProgressWithLabel value={cpuInfo.total_percent} size={150}/>
                     </Grid>
                     <Grid item xs={4}>
                         <Grid container spacing={1}>
                             <InfoItem title="Physical Count" value={cpuInfo.physical_cores_count}/>
                             <InfoItem title="Logical Count" value={cpuInfo.logical_cores_count}/>
-                            <InfoItem title="Cpu Percent" value={`${cpuUpdateInfo.total_percent.toFixed(2)}%`}/>
+                            <InfoItem title="Cpu Percent" value={`${cpuInfo.total_percent.toFixed(2)}%`}/>
                         </Grid>
                     </Grid>
                     <Grid item xs={6}>

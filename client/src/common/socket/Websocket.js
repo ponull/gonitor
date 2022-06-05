@@ -1,5 +1,5 @@
 import Socket from "./Socket";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 const url = `ws://127.0.0.1:8899/ws/${generateClientId()}`;
 
@@ -57,34 +57,38 @@ function generateClientId(min = 111111, max = 999999) {
 }
 
 //订阅
-export function useSubscribe(subscribeType, targetId, originData) {
-    const [subscribeInfo, setSubscribeInfo] = useState(originData);
-    const setSubscribeInfoAction = (data) => {
-        setSubscribeInfo({
-            ...originData,
-            ...data,
-        });
+export function useSubscribe(subscribeType, targetId, receiveCb) {
+
+    const latestReceiveCb = useRef((data) => { });
+    const callReceive = (data)=>{
+        latestReceiveCb.current(data);
     }
     useEffect(() => {
+        latestReceiveCb.current = receiveCb;
+    },[receiveCb]);
+    useEffect(() => {
+        // console.log("useSubscribe", subscribeType, targetId, originData);
+        //这个提前主动合并的原因是，如果没有收到推送，那么外面传进来的值变化了，就不会收到更新
+        // setSubscribeInfoAction(originData);
         wbSocket.send({
             event: EventType.SUBSCRIBE,
             data: JSON.stringify({
                 type: subscribeType,
-                id: targetId,
+                id: parseInt(targetId),
             }),
         });
         if (!subscribed.hasOwnProperty(subscribeType)) {
             subscribed[subscribeType] = {};
         }
         const subscribeTypeMap = subscribed[subscribeType];
-        subscribeTypeMap[targetId] = setSubscribeInfoAction;
+        subscribeTypeMap[targetId] = callReceive;
         subscribed[subscribeType] = subscribeTypeMap;
         return () => {
             wbSocket.send({
                 event: EventType.UNSUBSCRIBE,
                 data: JSON.stringify({
                     type: subscribeType,
-                    id: targetId,
+                    id: parseInt(targetId),
                 }),
             });
             const subscribeTypeMap = subscribed[subscribeType];
@@ -92,10 +96,7 @@ export function useSubscribe(subscribeType, targetId, originData) {
             subscribed[subscribeType] = subscribeTypeMap;
         }
         //eslint-disable-next-line
-    }, [subscribeType, targetId])
-    return [
-        subscribeInfo,
-    ]
+    }, [subscribeType, targetId]);
 }
 
 export default wbSocket;
