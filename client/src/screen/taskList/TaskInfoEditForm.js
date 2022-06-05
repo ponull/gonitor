@@ -8,9 +8,20 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import {ExecuteTypeEnum} from "../../enum/task";
 
+import { oneDark } from '@codemirror/theme-one-dark';
+import CodeMirror from '@uiw/react-codemirror';
+import {javascript} from "@codemirror/lang-javascript";
+
+const goLang = `package main
+import "fmt"
+
+func main() {
+  fmt.Println("Hello, 世界")
+}`;
 
 export const TaskInfoEditForm = forwardRef((props, ref) => {
     const {taskInfo} = props
+
     console.log(taskInfo)
     useImperativeHandle(ref, () => ({
         getFormValues: getFormValues,
@@ -48,6 +59,8 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleExecStrategyChange = (event) => setExecStrategy(event.target.value)
     const [IsDisable, setIsDisable] = useState(taskInfo.is_disable)
     const handleIsDisableChange = (event) => setIsDisable(event.target.checked)
+    const [assert, setAssert] = useState("")
+    const handleAssertChange = (event) => setAssert(event.target.value)
     return (
         <React.Fragment>
             <Typography variant="h6" gutterBottom>
@@ -157,6 +170,17 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                     <FormControlLabel
                         control={<Checkbox name="saveAddress" checked={IsDisable} onChange={handleIsDisableChange}/>}
                         label="Disable"
+                    />
+                </Grid>
+                <Grid item xs={12}>
+                    <CodeMirror
+                        value="console.log('hello world!');"
+                        height="100%"
+                        theme={oneDark}
+                        extensions={[javascript({ jsx: true })]}
+                        onChange={(value, viewUpdate) => {
+                            console.log('value:', value);
+                        }}
                     />
                 </Grid>
             </Grid>

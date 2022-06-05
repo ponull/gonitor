@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@codemirror/lang-javascript": "^0.20.1",
+    "@codemirror/theme-one-dark": "^0.20.0",
     "@emotion/react": "^11.9.0",
     "@emotion/styled": "^11.8.1",
     "@mui/icons-material": "^5.8.2",
@@ -11,6 +13,7 @@
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "@uiw/react-codemirror": "^4.7.0",
     "axios": "^0.27.2",
     "echarts-for-react": "^3.0.2",
     "lodash": "^4.17.21",
