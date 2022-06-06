@@ -131,7 +131,7 @@ func (tm *manager) recordTaskInfo() {
 }
 
 func (tm *manager) addTaskRunningIns(taskId int64, instance *RunningInstance) {
-	taskIns, ok := Manager.TaskList[taskId]
+	taskIns, ok := tm.TaskList[taskId]
 	if !ok {
 		return
 	}

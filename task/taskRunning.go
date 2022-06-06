@@ -66,7 +66,7 @@ func (ri *RunningInstance) run() error {
 	//记录进程实例，后面kill可能会用到
 	ri.Process = pn
 	//这个推送看怎么改一下
-	Manager.addTaskRunningIns(ri.TaskLogInfo.ID, ri)
+	Manager.addTaskRunningIns(ri.taskInfo.ID, ri)
 	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.execLog)
 	err = cmd.Wait()
 	//subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, "等待结束")

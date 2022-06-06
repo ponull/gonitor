@@ -212,9 +212,9 @@ const TaskLogRow = (props) => {
     })
     useEffect(()=>{
         if(!selfLogInfo.status){
-            setTimeout(()=>{
+            // setTimeout(()=>{
                 deleteLog(logInfo.id)
-            },3000)
+            // },3000)
         }
     }, [selfLogInfo])
     return (
