@@ -45,7 +45,7 @@ func (e *ExecJobWrapper) Run() {
 		if err == nil {
 			return
 		}
-		taskRunIns.execLog = "\n\n\n"
+		taskRunIns.execLog += "\n\n\n"
 		i++
 		if i < execTimes {
 			fmt.Println("任务执行失败")

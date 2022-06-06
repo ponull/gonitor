@@ -14,6 +14,14 @@ import {Button, ButtonGroup, ClickAwayListener, Grow, ListItemButton, MenuItem, 
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Paper from "@mui/material/Paper";
 import {TaskLogContainer} from "./TaskLog";
+import {useSnackbar} from "notistack";
+import LoadingButton from "@mui/lab/LoadingButton";
+import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
+import StopCircleIcon from '@mui/icons-material/StopCircle';
+import DangerousIcon from '@mui/icons-material/Dangerous';
+import EditLocationIcon from '@mui/icons-material/EditLocation';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import BugReportIcon from '@mui/icons-material/BugReport';
 
 
 export const TaskRow = (props) => {
@@ -95,21 +103,37 @@ export const TaskRow = (props) => {
                             >
                                 <Paper>
                                     <ClickAwayListener onClickAway={handleMenuClose}>
-                                        <MenuList id="split-button-menu" autoFocusItem>
-                                            <MenuItem onClick={() => {
-                                                showEditDialog(selfTaskInfo)
-                                            }}>EDIT</MenuItem>
-                                            <MenuItem onClick={() => {
-                                                showConfirmDeleteDialog(selfTaskInfo)
-                                            }}>DELETE</MenuItem>
-                                            <TestMenuItem taskId={selfTaskInfo.id}/>
-                                            {selfTaskInfo.is_disable ? <StartMenuItem taskId={selfTaskInfo.id}/> :
-                                                <React.Fragment>
-                                                    <StopMenuItem taskId={selfTaskInfo.id}/>
-                                                    <MenuItem>KILL STOP</MenuItem>
-                                                </React.Fragment>
-                                            }
-                                        </MenuList>
+                                            <ButtonGroup
+                                                orientation="vertical"
+                                                aria-label="vertical contained button group"
+                                                variant="text"
+                                            >
+                                                <Button startIcon={<EditLocationIcon />} onClick={()=>{showEditDialog(selfTaskInfo)}}>Edit</Button>
+                                                <Button startIcon={<StopCircleIcon />} onClick={()=>{showConfirmDeleteDialog(selfTaskInfo)}}>Delete</Button>
+
+                                                {selfTaskInfo.is_disable ? <StartButtonItem taskId={selfTaskInfo.id}/> :
+                                                    <React.Fragment>
+                                                        <StopButtonItem taskId={selfTaskInfo.id}/>
+                                                        <Button key="two">Kill Stop</Button>
+                                                    </React.Fragment>
+                                                }
+                                                <TestButtonItem taskId={selfTaskInfo.id}/>
+                                            </ButtonGroup>
+                                            {/*<MenuList id="split-button-menu" autoFocusItem>*/}
+                                            {/*    <MenuItem onClick={() => {*/}
+                                            {/*        showEditDialog(selfTaskInfo)*/}
+                                            {/*    }}>EDIT</MenuItem>*/}
+                                            {/*    <MenuItem onClick={() => {*/}
+                                            {/*        showConfirmDeleteDialog(selfTaskInfo)*/}
+                                            {/*    }}>DELETE</MenuItem>*/}
+                                            {/*    <TestMenuItem taskId={selfTaskInfo.id}/>*/}
+                                            {/*    {selfTaskInfo.is_disable ? <StartMenuItem taskId={selfTaskInfo.id}/> :*/}
+                                            {/*        <React.Fragment>*/}
+                                            {/*            <StopMenuItem taskId={selfTaskInfo.id}/>*/}
+                                            {/*            <MenuItem>KILL STOP</MenuItem>*/}
+                                            {/*        </React.Fragment>*/}
+                                            {/*    }*/}
+                                            {/*</MenuList>*/}
                                     </ClickAwayListener>
                                 </Paper>
                             </Grow>
@@ -122,52 +146,89 @@ export const TaskRow = (props) => {
     )
 }
 
-const StartMenuItem = (props) => {
+const StartButtonItem = (props) => {
     const {taskId} = props
+    const [loading, setLoading] = useState(false)
+    const { enqueueSnackbar } = useSnackbar();
     const startTask = () => {
+        setLoading(true)
         httpRequest.get(`/task/start/${taskId}`)
             .then(res => {
-                console.log(res)
+                if (res.code !== 0){
+                    enqueueSnackbar(res.message)
+                }
+            })
+            .finally(()=>{
+                setLoading(false)
             })
     }
     return (
-        <MenuItem onClick={startTask}>
-            {/*<PlayCircleFilledIcon fontSize="small" />*/}
+        <LoadingButton
+            loading={loading}
+            loadingPosition="start"
+            startIcon={<PlayCircleFilledWhiteIcon/>}
+            onClick={startTask}
+            variant="text"
+        >
             Start
-        </MenuItem>
+        </LoadingButton>
     )
 }
 
-const TestMenuItem = (props) => {
+const TestButtonItem = (props) => {
     const {taskId} = props
-
+    const [loading, setLoading] = useState(false)
+    const { enqueueSnackbar } = useSnackbar();
     const testTask = () => {
-        // fetch(`http://127.0.0.1:8899/task/test/${taskId}`)
+        setLoading(true)
         httpRequest.get(`/task/test/${taskId}`)
             .then(res => {
-                console.log(res)
+                if (res.code !== 0){
+                    enqueueSnackbar(res.message)
+                }
             })
-            .catch(err => {
-                console.log(err)
+            .finally(()=>{
+                setLoading(false)
             })
     }
     return (
-        <MenuItem onClick={testTask}>
-            {/*<BugReportIcon fontSize="small" />*/}
+        <LoadingButton
+            loading={loading}
+            loadingPosition="start"
+            startIcon={<BugReportIcon />}
+            onClick={testTask}
+            variant="text"
+        >
             Test
-        </MenuItem>
+        </LoadingButton>
     )
 }
 
-const StopMenuItem = (props) => {
+const StopButtonItem = (props) => {
     const {taskId} = props
+    const [loading, setLoading] = useState(false)
+    const { enqueueSnackbar } = useSnackbar();
     const stopTask = () => {
+        setLoading(true)
         httpRequest.get(`/task/stop/${taskId}`)
             .then(res => {
-                console.log(res)
+                if (res.code !== 0){
+                    enqueueSnackbar(res.message)
+                }
+            })
+            .finally(()=>{
+                setLoading(false)
             })
     }
     return (
-        <MenuItem onClick={stopTask}>STOP</MenuItem>
+        <LoadingButton
+            loading={loading}
+            loadingPosition="start"
+            startIcon={<StopCircleIcon/>}
+            onClick={stopTask}
+            variant="text"
+        >
+            Stop
+        </LoadingButton>
     )
 }
