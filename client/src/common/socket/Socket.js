@@ -40,6 +40,7 @@ export default class Socket extends Heart {
     ws = null
     reconnectTimer = null// 重连计时器
     reconnectCount = 10// 变量保存，防止丢失
+    messageQueue = []
     options = {
         url: null, // 链接的通道的地址
         heartTime: 5000, // 心跳时间间隔
@@ -172,6 +173,7 @@ export default class Socket extends Heart {
      * @param {String} data 发送的文本
      */
     send(data) {
+        //这里只是push 进来  然后通过队列模式  等连接上了就去推送
         if (this.ws.readyState !== this.ws.OPEN) {
             throw new Error('Not connected to server, cannot push')
         }

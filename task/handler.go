@@ -26,6 +26,9 @@ func (e *ExecJobWrapper) Run() {
 	defer func() {
 		e.output = taskRunIns.output
 		taskRunIns.afterRun()
+		if _, ok := Manager.TaskList[taskRunIns.taskInfo.ID].RunningInstances[taskRunIns.TaskLogInfo.ID]; ok {
+			delete(Manager.TaskList[taskRunIns.taskInfo.ID].RunningInstances, taskRunIns.TaskLogInfo.ID)
+		}
 	}()
 	var execTimes int8 = 1
 	if e.taskInfo.RetryTimes > 0 {
@@ -33,14 +36,16 @@ func (e *ExecJobWrapper) Run() {
 	}
 	var i int8 = 0
 	for i < execTimes {
-		taskRunIns.output += fmt.Sprintf("第%d次执行\n", i+1)
-		subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, fmt.Sprintf("第%d次执行\n", i+1))
-		output, err := taskRunIns.run()
-		taskRunIns.output += fmt.Sprintf("%s\n", output)
-		subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, fmt.Sprintf("执行结果： %s\n", output))
+		taskRunIns.execLog += fmt.Sprintf("第%d次执行\n", i+1)
+		//subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, fmt.Sprintf("第%d次执行\n", i+1))
+		err := taskRunIns.run()
+		taskRunIns.writeLogOutput()
+		//taskRunIns.output += fmt.Sprintf("%s\n", output)
+		//subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, fmt.Sprintf("执行结果： %s\n", output))
 		if err == nil {
 			return
 		}
+		taskRunIns.execLog = "\n\n\n"
 		i++
 		if i < execTimes {
 			fmt.Println("任务执行失败")

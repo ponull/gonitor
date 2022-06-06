@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"gonitor/core"
 	"gonitor/model"
+	"gonitor/web/ws/subscription"
 )
 
 const (
@@ -65,9 +66,17 @@ func (tm *manager) StartOnceTask(taskId int64) (string, error) {
 		fmt.Println("query task info fail")
 		return "", dbRt.Error
 	}
-	jobWrapper := NewExecJobWrapper(task)
-	jobWrapper.Run()
-	return jobWrapper.output, nil
+	taskRunIns := NewTaskRunningInstance(task)
+	err := taskRunIns.beforeRun()
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		taskRunIns.afterRun()
+	}()
+	subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, "开始调用")
+	err = taskRunIns.run()
+	return taskRunIns.output, err
 }
 
 // UpdateTask 更新cron的任务，并启动
@@ -119,4 +128,12 @@ func (tm *manager) recordTaskInfo() {
 	for _, taskIns := range tm.TaskList {
 		fmt.Println(taskIns)
 	}
+}
+
+func (tm *manager) addTaskRunningIns(taskId int64, instance *RunningInstance) {
+	taskIns, ok := Manager.TaskList[taskId]
+	if !ok {
+		return
+	}
+	taskIns.RunningInstances[instance.TaskLogInfo.ID] = instance
 }

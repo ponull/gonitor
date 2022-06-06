@@ -12,17 +12,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import CodeMirror from '@uiw/react-codemirror';
 import {javascript} from "@codemirror/lang-javascript";
 
-const goLang = `package main
-import "fmt"
-
-func main() {
-  fmt.Println("Hello, 世界")
-}`;
-
 export const TaskInfoEditForm = forwardRef((props, ref) => {
     const {taskInfo} = props
-
-    console.log(taskInfo)
     useImperativeHandle(ref, () => ({
         getFormValues: getFormValues,
     }));
@@ -35,7 +26,8 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             retry_times: parseInt(retryTimes),
             retry_interval: parseInt(retryInterval),
             exec_strategy: parseInt(ExecStrategy),
-            is_disable: IsDisable
+            is_disable: IsDisable,
+            assert,
         }
     }
     const [taskName, setTaskName] = useState(taskInfo.name)
@@ -59,8 +51,8 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleExecStrategyChange = (event) => setExecStrategy(event.target.value)
     const [IsDisable, setIsDisable] = useState(taskInfo.is_disable)
     const handleIsDisableChange = (event) => setIsDisable(event.target.checked)
-    const [assert, setAssert] = useState("")
-    const handleAssertChange = (event) => setAssert(event.target.value)
+    const [assert, setAssert] = useState(taskInfo.assert)
+    const handleAssertChange = (code) => setAssert(code)
     return (
         <React.Fragment>
             <Typography variant="h6" gutterBottom>
@@ -174,12 +166,13 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                 </Grid>
                 <Grid item xs={12}>
                     <CodeMirror
-                        value="console.log('hello world!');"
-                        height="100%"
+                        value={assert}
+                        height="300px"
                         theme={oneDark}
-                        extensions={[javascript({ jsx: true })]}
+                        extensions={[javascript({ jsx: false, typescript: false })]}
                         onChange={(value, viewUpdate) => {
-                            console.log('value:', value);
+                            handleAssertChange(value)
+                            // console.log('value:', value);
                         }}
                     />
                 </Grid>

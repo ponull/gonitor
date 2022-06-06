@@ -41,6 +41,7 @@ func (ti *taskInstance) start() error {
 
 func (ti *taskInstance) stop() {
 	Manager.cron.Remove(ti.EntryId)
+	//更新数据库 disable字段为true
 	for _, runningIns := range ti.RunningInstances {
 		runningIns.stop()
 	}

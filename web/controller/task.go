@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/robfig/cron/v3"
+	"fmt"
 	"gonitor/core"
 	"gonitor/model"
 	"gonitor/task"
@@ -9,6 +9,7 @@ import (
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
 	"gonitor/web/ws/subscription"
+	"strconv"
 )
 
 type taskInfo struct {
@@ -21,6 +22,7 @@ type taskInfo struct {
 	RetryTimes    int8   `json:"retry_times"`    //重试次数
 	RetryInterval int    `json:"retry_interval"` //重试间隔
 	UpdateTime    string `json:"update_time"`    //更新时间
+	Assert        string `json:"assert"`
 }
 
 func GetTaskList(context *context.Context) *response.Response {
@@ -48,8 +50,54 @@ SELECT * FROM task_log WHERE task_id = ? and status = 1
 }
 
 //已经开始的任务不关闭
-func stopTask(context *context.Context) *response.Response {
-	return response.Resp().String("pending")
+func StopTask(context *context.Context) *response.Response {
+	taskIdStr := context.Param("task_id")
+	taskId, _ := strconv.ParseInt(taskIdStr, 10, 64)
+	taskModel := &model.Task{}
+	dbRt := core.Db.Where("id = ?", taskId).First(taskModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "not found task", nil)
+	}
+	task.Manager.DeleteTask(taskId)
+	taskModel.IsDisable = true
+	dbRt = core.Db.Save(taskModel)
+	if dbRt.Error != nil {
+		fmt.Println("停止任务的时候更新数据库失败")
+	}
+	subscription.SendTaskInfoFormOrm(taskModel, 0, "", "")
+	return response.Resp().Success("success", nil)
+}
+
+func StartTask(context *context.Context) *response.Response {
+	taskIdStr := context.Param("task_id")
+	taskId, _ := strconv.ParseInt(taskIdStr, 10, 64)
+	taskModel := &model.Task{}
+	dbRt := core.Db.Where("id = ?", taskId).First(taskModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "not found task", nil)
+	}
+	err := task.Manager.AddTask(taskId)
+	if err != nil {
+		return response.Resp().Error(10002, "add task fail", nil)
+	}
+	return response.Resp().Success("start success", nil)
+}
+
+func StartOnceTask(context *context.Context) *response.Response {
+	taskIdStr := context.Param("task_id")
+	taskId, _ := strconv.ParseInt(taskIdStr, 10, 64)
+	taskModel := &model.Task{}
+	dbRt := core.Db.Where("id = ?", taskId).First(taskModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "not found task", nil)
+	}
+	output, err := task.Manager.StartOnceTask(taskId)
+	if err != nil {
+		return response.Resp().Error(215456, "exec fail "+err.Error(), nil)
+	}
+	return response.Resp().Success("success", map[string]string{
+		"output": output,
+	})
 }
 
 //修改状态并且杀死所有正在运行的实例
@@ -59,24 +107,6 @@ func killTask(context *context.Context) *response.Response {
 
 //杀死指定实例
 func killTaskRunningInstance(context *context.Context) *response.Response {
-	return response.Resp().String("pending")
-}
-
-func UpdateTaskInfo(context *context.Context) *response.Response {
-	//taskInfo := subscription.TaskInfo{
-	//	ID:              1,
-	//	Name:            "测试名字",
-	//	ExecType:        "CMD",
-	//	Command:         "curl -H www.baidu.com",
-	//	Schedule:        "@every 1s",
-	//	IsDisable:       false,
-	//	ExecuteStrategy: 0,
-	//	LastRunTime:     "2020-1-6",
-	//	NextRunTime:     "2022-6-8",
-	//	RunningCount:    12,
-	//}
-	//ws.WebsocketManager.SendSubscribed(ws.SubscribeTypeTask, 1, taskInfo)
-	//return response.Resp().Json(taskInfo)
 	return response.Resp().String("pending")
 }
 
@@ -101,6 +131,7 @@ func AddTask(context *context.Context) *response.Response {
 		ExecStrategy  int8   `json:"exec_strategy"`
 		RetryTimes    int8   `json:"retry_times"`
 		RetryInterval int    `json:"retry_interval"`
+		Assert        string `json:"assert"`
 	}
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
@@ -108,12 +139,17 @@ func AddTask(context *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
 	//todo 解析schedule 是否正确
-	cronParser := cron.NewParser(
-		cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
-	)
-	_, err = cronParser.Parse(taskInfo.Schedule)
+	err = task.CheckTaskSchedule(taskInfo.Schedule)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
+	}
+
+	//解析 assert脚本是否正确
+	if len(taskInfo.Assert) > 0 {
+		err := task.CheckTaskAssertJavascriptCode(taskInfo.Assert)
+		if err != nil {
+			return response.Resp().Error(2154646, "JS断言代码有错误", nil)
+		}
 	}
 	taskModel := &model.Task{
 		Name:          taskInfo.Name,
@@ -124,6 +160,7 @@ func AddTask(context *context.Context) *response.Response {
 		ExecStrategy:  taskInfo.ExecStrategy,
 		RetryTimes:    taskInfo.RetryTimes,
 		RetryInterval: taskInfo.RetryInterval,
+		Assert:        taskInfo.Assert,
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
@@ -143,6 +180,7 @@ func EditTask(context *context.Context) *response.Response {
 		ExecStrategy  int8   `json:"exec_strategy"`
 		RetryTimes    int8   `json:"retry_times"`
 		RetryInterval int    `json:"retry_interval"`
+		Assert        string `json:"assert"`
 	}
 	taskInfo := taskInfoStruct{}
 	err := context.ShouldBindJSON(&taskInfo)
@@ -154,13 +192,18 @@ func EditTask(context *context.Context) *response.Response {
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
-	//todo 解析schedule 是否正确
-	cronParser := cron.NewParser(
-		cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
-	)
-	_, err = cronParser.Parse(taskInfo.Schedule)
+
+	err = task.CheckTaskSchedule(taskInfo.Schedule)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
+	}
+
+	//解析 assert脚本是否正确
+	if len(taskInfo.Assert) > 0 {
+		err := task.CheckTaskAssertJavascriptCode(taskInfo.Assert)
+		if err != nil {
+			return response.Resp().Error(2154646, "JS断言代码有错误", nil)
+		}
 	}
 	taskModel.Name = taskInfo.Name
 	taskModel.Command = taskInfo.Command
@@ -170,6 +213,7 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel.ExecStrategy = taskInfo.ExecStrategy
 	taskModel.RetryTimes = taskInfo.RetryTimes
 	taskModel.RetryInterval = taskInfo.RetryInterval
+	taskModel.Assert = taskInfo.Assert
 	dbRt = core.Db.Save(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "update fail", nil)
