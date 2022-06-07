@@ -57,7 +57,7 @@ export const TaskList = function () {
     }
     const firstRenderRef = useRef(true);
     const getTaskList = async () => {
-        const res = await httpRequest.get("/getTaskList");
+        const res = await httpRequest.get("/task/list");
         if (res.code === 0) {
             const newTaskList = res.data.map(taskInfo => {
                 return {
@@ -112,7 +112,6 @@ export const TaskList = function () {
                     <Table sx={{minWidth: 650}} aria-label="simple table">
                         <TableHead>
                             <TableRow>
-                                <TableCell/>
                                 <TableCell>No.</TableCell>
                                 <TableCell>Name</TableCell>
                                 <TableCell align="right">Type</TableCell>
@@ -129,7 +128,7 @@ export const TaskList = function () {
                             {loading ?
                                 new Array(5).fill(0).map((_, rowIdx) => (
                                     <TableRow key={"row" + rowIdx}>
-                                        {new Array(11).fill(0).map((_, cellIdx) => (
+                                        {new Array(10).fill(0).map((_, cellIdx) => (
                                             <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
                                                 <Skeleton variant="text"/>
                                             </TableCell>

@@ -3,6 +3,9 @@ package model
 import (
 	"github.com/jinzhu/gorm"
 	"gonitor/core"
+	"gonitor/web/context"
+	"math"
+	"strconv"
 	"time"
 )
 
@@ -13,18 +16,63 @@ type Base struct {
 	DeletedAt *time.Time `gorm:"column:delete_time" sql:"index" json:"delete_time"`
 }
 
+type OrmWhereMap = map[string]interface{}
+
 func GetConn() *gorm.DB {
 	return core.Db
 }
 
-type Page struct {
-	CurrentPage int64       `json:"currentPage"`
-	PageSize    int64       `json:"pageSize"`
-	Total       int64       `json:"total"` // 总记录数
-	Pages       int64       `json:"pages"` // 总页数
-	Data        interface{} `json:"data"`  // 实际的list数据
-} // 分页response返回给前端
+type Pagination struct {
+	Limit      int         `json:"limit,omitempty;query:limit"`
+	Page       int         `json:"page,omitempty;query:page"`
+	Sort       string      `json:"sort,omitempty;query:sort"`
+	TotalRows  int64       `json:"total_rows"`
+	TotalPages int         `json:"total_pages"`
+	Rows       interface{} `json:"list"`
+}
 
-//func Paginate(db *gorm.DB) *gorm.DB {
-//	return db.Offset()
-//}
+func InitPagination(context *context.Context) *Pagination {
+	p := &Pagination{}
+	pageNumber, err := strconv.ParseInt(context.Param("page_number"), 10, 64)
+	if err == nil {
+		p.Page = int(pageNumber)
+	}
+	pageSize, err := strconv.ParseInt(context.Param("page_size"), 10, 64)
+	if err == nil {
+		p.Limit = int(pageSize)
+	}
+	return p
+}
+
+func (p *Pagination) GetOffset() int {
+	return (p.GetPage() - 1) * p.GetLimit()
+}
+func (p *Pagination) GetLimit() int {
+	if p.Limit == 0 {
+		p.Limit = 10
+	}
+	return p.Limit
+}
+func (p *Pagination) GetPage() int {
+	if p.Page == 0 {
+		p.Page = 1
+	}
+	return p.Page
+}
+func (p *Pagination) GetSort() string {
+	if p.Sort == "" {
+		p.Sort = "id asc"
+	}
+	return p.Sort
+}
+
+func Paginate(value interface{}, pagination *Pagination) func(db *gorm.DB) *gorm.DB {
+	var totalRows int64
+	GetConn().Model(value).Count(&totalRows)
+	pagination.TotalRows = totalRows
+	totalPages := int(math.Ceil(float64(totalRows) / float64(pagination.Limit)))
+	pagination.TotalPages = totalPages
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Offset(pagination.GetOffset()).Limit(pagination.GetLimit()).Order(pagination.GetSort())
+	}
+}

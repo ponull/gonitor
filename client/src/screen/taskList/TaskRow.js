@@ -10,24 +10,17 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {StrategyEnum} from "../../enum/task";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import {Button, ButtonGroup, ClickAwayListener, Grow, ListItemButton, MenuItem, MenuList, Popper} from "@mui/material";
+import {Button, ButtonGroup, ClickAwayListener, Grow, Popper} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Paper from "@mui/material/Paper";
 import {TaskLogContainer} from "./TaskLog";
 import {useSnackbar} from "notistack";
 import LoadingButton from "@mui/lab/LoadingButton";
-import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
-import StopCircleIcon from '@mui/icons-material/StopCircle';
-import DangerousIcon from '@mui/icons-material/Dangerous';
-import EditLocationIcon from '@mui/icons-material/EditLocation';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import BugReportIcon from '@mui/icons-material/BugReport';
 
 
 export const TaskRow = (props) => {
     const {taskInfo, index, showConfirmDeleteDialog, showEditDialog} = props;
     const [selfTaskInfo, setSelfTaskInfo] = useState(taskInfo);
-    const [open, setOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const handleMenuClose = () => {
         setMenuOpen(false);
@@ -50,15 +43,6 @@ export const TaskRow = (props) => {
                 key={selfTaskInfo.id}
                 sx={{'&:last-child td, &:last-child th': {border: 0}}}
             >
-                <TableCell>
-                    <IconButton
-                        aria-label="expand row"
-                        size="small"
-                        onClick={() => setOpen(!open)}
-                    >
-                        {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon/>}
-                    </IconButton>
-                </TableCell>
                 <TableCell component="th" scope="row">
                     {index + 1}
                 </TableCell>
@@ -73,18 +57,13 @@ export const TaskRow = (props) => {
                 <TableCell align="right">{selfTaskInfo.next_run_time}</TableCell>
                 <TableCell align="right">
                     <ButtonGroup variant="contained" size="small" ref={anchorRef}>
-                        <Button onClick={gotoTaskInfo}>Detail</Button>
+
+                        {selfTaskInfo.is_disable ? <StartButtonItem taskId={selfTaskInfo.id}/> : <StopButtonItem taskId={selfTaskInfo.id}/>}
                         <Button onClick={() => {
                             setMenuOpen(true)
                         }}>
                             <ArrowDropDownIcon/>
                         </Button>
-                        {/*<Button>Edit</Button>*/}
-                        {/*<Button onClick={() => {*/}
-                        {/*    showConfirmDeleteDialog(selfTaskInfo)*/}
-                        {/*}}>Delete</Button>*/}
-                        {/*<Button>Start</Button>*/}
-                        {/*<Button>Stop And Kill</Button>*/}
                     </ButtonGroup>
                     <Popper
                         open={menuOpen}
@@ -108,32 +87,12 @@ export const TaskRow = (props) => {
                                                 aria-label="vertical contained button group"
                                                 variant="text"
                                             >
-                                                <Button startIcon={<EditLocationIcon />} onClick={()=>{showEditDialog(selfTaskInfo)}}>Edit</Button>
-                                                <Button startIcon={<StopCircleIcon />} onClick={()=>{showConfirmDeleteDialog(selfTaskInfo)}}>Delete</Button>
-
-                                                {selfTaskInfo.is_disable ? <StartButtonItem taskId={selfTaskInfo.id}/> :
-                                                    <React.Fragment>
-                                                        <StopButtonItem taskId={selfTaskInfo.id}/>
-                                                        <Button key="two">Kill Stop</Button>
-                                                    </React.Fragment>
-                                                }
+                                                <Button onClick={gotoTaskInfo}>Detail</Button>
+                                                <Button onClick={()=>{showEditDialog(selfTaskInfo)}}>Edit</Button>
+                                                <Button onClick={()=>{showConfirmDeleteDialog(selfTaskInfo)}}>Delete</Button>
+                                                {selfTaskInfo.is_disable ? "" : <Button key="two">Kill Stop</Button>}
                                                 <TestButtonItem taskId={selfTaskInfo.id}/>
                                             </ButtonGroup>
-                                            {/*<MenuList id="split-button-menu" autoFocusItem>*/}
-                                            {/*    <MenuItem onClick={() => {*/}
-                                            {/*        showEditDialog(selfTaskInfo)*/}
-                                            {/*    }}>EDIT</MenuItem>*/}
-                                            {/*    <MenuItem onClick={() => {*/}
-                                            {/*        showConfirmDeleteDialog(selfTaskInfo)*/}
-                                            {/*    }}>DELETE</MenuItem>*/}
-                                            {/*    <TestMenuItem taskId={selfTaskInfo.id}/>*/}
-                                            {/*    {selfTaskInfo.is_disable ? <StartMenuItem taskId={selfTaskInfo.id}/> :*/}
-                                            {/*        <React.Fragment>*/}
-                                            {/*            <StopMenuItem taskId={selfTaskInfo.id}/>*/}
-                                            {/*            <MenuItem>KILL STOP</MenuItem>*/}
-                                            {/*        </React.Fragment>*/}
-                                            {/*    }*/}
-                                            {/*</MenuList>*/}
                                     </ClickAwayListener>
                                 </Paper>
                             </Grow>
@@ -141,7 +100,7 @@ export const TaskRow = (props) => {
                     </Popper>
                 </TableCell>
             </TableRow>
-            <TaskLogContainer open={open} taskId={selfTaskInfo.id}/>
+            {/*<TaskLogContainer open={open} taskId={selfTaskInfo.id}/>*/}
         </React.Fragment>
     )
 }
@@ -165,10 +124,8 @@ const StartButtonItem = (props) => {
     return (
         <LoadingButton
             loading={loading}
-            loadingPosition="start"
-            startIcon={<PlayCircleFilledWhiteIcon/>}
             onClick={startTask}
-            variant="text"
+            variant="contained"
         >
             Start
         </LoadingButton>
@@ -194,8 +151,6 @@ const TestButtonItem = (props) => {
     return (
         <LoadingButton
             loading={loading}
-            loadingPosition="start"
-            startIcon={<BugReportIcon />}
             onClick={testTask}
             variant="text"
         >
@@ -223,10 +178,8 @@ const StopButtonItem = (props) => {
     return (
         <LoadingButton
             loading={loading}
-            loadingPosition="start"
-            startIcon={<StopCircleIcon/>}
             onClick={stopTask}
-            variant="text"
+            variant="contained"
         >
             Stop
         </LoadingButton>

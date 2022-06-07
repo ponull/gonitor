@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type TaskLog struct {
 	Base
@@ -17,4 +19,11 @@ type TaskLog struct {
 
 func (TaskLog) TableName() string {
 	return "task_log"
+}
+
+func (tl *TaskLog) List(pagination *Pagination, where OrmWhereMap) (*Pagination, error) {
+	var logList []*TaskLog
+	GetConn().Scopes(Paginate(logList, pagination)).Where(where).Find(&logList)
+	pagination.Rows = logList
+	return pagination, nil
 }

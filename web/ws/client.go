@@ -78,16 +78,18 @@ func (client *Client) readService() {
 				log.Println("cannot parse message data", err)
 				continue
 			}
-			fmt.Printf("用户%d订阅了%s类型id%d\n", client.Id, subscribeState.SubscribeType, subscribeState.TaskId)
+			//todo 下面这两个打印是临时去掉 方便观察日志，这个取消订阅好像有问题  一直订阅的内容都比较多 特别是log
+			//fmt.Printf("用户%d订阅了%s类型id%d\n", client.Id, subscribeState.SubscribeType, subscribeState.TaskId)
 			client.Subscribe(subscribeState.SubscribeType, subscribeState.TaskId)
-			fmt.Println("订阅之后的结果", client.subscribed)
+			//fmt.Println("订阅之后的结果", client.subscribed)
 		case "UNSUBSCRIBE":
 			data := selfMessage["data"]
 			subscribeState := SubscribeStat{}
 			err = json.Unmarshal([]byte(data), &subscribeState)
 			//解析失败 通知前端
 			if err != nil {
-				log.Println("cannot parse message data")
+				log.Println(data)
+				//log.Println("cannot parse message data")
 				continue
 			}
 			client.Unsubscribe(subscribeState.SubscribeType, subscribeState.TaskId)

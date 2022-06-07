@@ -1,5 +1,5 @@
 App:
- Debug: true
+ Debug: false
  DbLog: false
  LogFile: tmp/run.log
 

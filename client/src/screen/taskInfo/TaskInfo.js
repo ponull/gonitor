@@ -3,25 +3,20 @@ import {useParams} from "react-router-dom";
 import {useEffect, useRef, useState} from "react";
 import httpRequest from "../../common/request/HttpRequest";
 import Grid from "@mui/material/Grid";
-
 import Paper from '@mui/material/Paper';
-
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
 import Container from "@mui/material/Container";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
-import TableRow from "@mui/material/TableRow";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
 import RunCircleIcon from "@mui/icons-material/RunCircle";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import StopCircleIcon from "@mui/icons-material/StopCircle";
-import IconButton from "@mui/material/IconButton";
 import {InfoItem} from "./InfoItem";
 import {useInterval} from "../../common/utils/hook";
 import moment from "moment";
 import ReactECharts from "echarts-for-react";
+import {TaskLogTable} from "./TaskRunningLog";
+import {TabContext, TabList, TabPanel} from "@mui/lab";
+import Box from "@mui/material/Box";
+import {Tab} from "@mui/material";
+import {TaskEndedLog} from "./TaskEndedLog";
 
 export const TaskInfo = () => {
     const params = useParams()
@@ -58,25 +53,30 @@ export const TaskInfo = () => {
             })
     }, [taskId])
 
+    const [currentTab, setCurrentTab] = React.useState('running');
+
+    const handleTabChange = (event, newValue) => {
+        setCurrentTab(newValue);
+    };
 
     return (
         <React.Fragment>
             <Container>
                 <TaskInfoContent taskInfo={taskInfo}/>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Time</TableCell>
-                            <TableCell>Command</TableCell>
-                            <TableCell align="right">Process Id</TableCell>
-                            <TableCell align="right">Status</TableCell>
-                            <TableCell align="right">Function</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        <TaskLogList taskId={taskId}></TaskLogList>
-                    </TableBody>
-                </Table>
+                <TabContext value={currentTab}>
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                        <TabList onChange={handleTabChange} aria-label="lab API tabs example">
+                            <Tab label="Running" value="running" />
+                            <Tab label="Ended" value="ended" />
+                        </TabList>
+                    </Box>
+                    <TabPanel value="running">
+                        <TaskLogTable taskId={taskId}/>
+                    </TabPanel>
+                    <TabPanel value="ended">
+                        <TaskEndedLog taskId={taskId}/>
+                    </TabPanel>
+                </TabContext>
             </Container>
         </React.Fragment>
     )
@@ -119,7 +119,8 @@ const TaskInfoContent = (props) => {
                         <InfoItem title="Name" value={taskInfo.name}/>
                         <InfoItem title="Schedule" value={taskInfo.schedule}/>
                         <InfoItem title="Execute Type" value={taskInfo.exec_type}/>
-                        <InfoItem title="Disable" value={taskInfo.is_disable ? <DoDisturbOnIcon color="danger"/> : <RunCircleIcon color="success"/> }/>
+                        <InfoItem title="Disable" value={taskInfo.is_disable ? <DoDisturbOnIcon color="danger"/> :
+                            <RunCircleIcon color="success"/>}/>
                         <InfoItem title="Last run time" value={taskInfo.last_run_time}/>
                         <InfoItem title="Next run time" value={taskInfo.next_run_time}/>
                         <InfoItem title="Running Count" value={taskInfo.running_count}/>
@@ -160,85 +161,3 @@ export const getOption = () => {
     };
 }
 
-const TaskLogList = (props) => {
-    const {taskId} = props
-    const [logList, setLogList] = useState([]);
-    useEffect(() => {
-            httpRequest.get(`getTaskLogList?task_id=${taskId}`)
-                .then(res => {
-                    const data = res.data;
-                    setLogList(data)
-                })
-    }, [taskId])
-    //给taskLogRow使用 那里面有订阅 检测到结束了  就调用删除
-    const deleteLog = (logId) => {
-        const newLogList = logList.filter(log => log.id !== logId);
-        setLogList(newLogList);
-    }
-    /*
-    {
-        "id": 0,
-        "task_id": 0,
-        "command": "",
-        "process_id": 0,
-        "execution_time": "",
-        "status": true,
-        "exec_output": ""
-    }
-     */
-    useSubscribe(SubscribeType.TASK_LOG_ADD, taskId, (data)=>{
-        setLogList([
-            data,
-            ...logList
-        ]);
-    })
-    return (
-        <React.Fragment>
-            {logList && logList.map((logInfo, index) => (
-                <TaskLogRow key={logInfo.id} deleteLog={deleteLog} logInfo={logInfo}/>
-            ))}
-        </React.Fragment>
-    )
-}
-
-const TaskLogRow = (props) => {
-    const {logInfo, deleteLog} = props
-    const [selfLogInfo, setSelfLogInfo] = useState(logInfo);
-    useSubscribe(SubscribeType.TASK_lOG, logInfo.id,(data) => {
-        setSelfLogInfo({
-            ...selfLogInfo,
-            ...data
-        })
-    })
-    useEffect(()=>{
-        if(!selfLogInfo.status){
-            // setTimeout(()=>{
-                deleteLog(logInfo.id)
-            // },3000)
-        }
-    }, [selfLogInfo])
-    return (
-        <React.Fragment>
-                <TableRow key={logInfo.id}>
-                    <TableCell component="th" scope="row">
-                        {selfLogInfo.execution_time}
-                    </TableCell>
-                    <TableCell>{logInfo.command}</TableCell>
-                    <TableCell align="right">{selfLogInfo.process_id}</TableCell>
-                    <TableCell align="right">{
-                        selfLogInfo.status ? selfLogInfo.process_id > 0 ? <RunCircleIcon color="success"/> :
-                            <HourglassEmptyIcon/> : <StopCircleIcon color="disabled"/>
-                    }</TableCell>
-                    <TableCell align="right">
-                        <IconButton
-                            size="small"
-                            color="error"
-                            disabled={!selfLogInfo.status}
-                        >
-                            <StopCircleIcon/>
-                        </IconButton>
-                    </TableCell>
-                </TableRow>
-        </React.Fragment>
-    )
-}

@@ -9,6 +9,8 @@ import (
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
 	"gonitor/web/ws/subscription"
+	"io/ioutil"
+	"path"
 	"strconv"
 )
 
@@ -17,7 +19,6 @@ type taskInfo struct {
 	ExecType      string `json:"exec_type"`      //执行类型
 	Command       string `json:"command"`        //执行命令
 	Schedule      string `json:"schedule"`       //定时规则
-	IsDisable     bool   `json:"is_disable"`     //是否禁用
 	ExecStrategy  int8   `json:"exec_strategy"`  //执行策略
 	RetryTimes    int8   `json:"retry_times"`    //重试次数
 	RetryInterval int    `json:"retry_interval"` //重试间隔
@@ -41,12 +42,32 @@ SELECT * FROM task WHERE delete_time IS NULL
 }
 
 func GetTaskLogList(context *context.Context) *response.Response {
-	taskId := context.Query("task_id")
-	var taskLogList []subscription.TaskLogInfo
-	core.Db.Raw(`
-SELECT * FROM task_log WHERE task_id = ? and status = 1
-`, taskId).Scan(&taskLogList)
-	return response.Resp().Success("success", taskLogList)
+	taskId := context.Param("task_id")
+	var ormWhereMap = make(model.OrmWhereMap)
+	ormWhereMap["task_id"] = taskId
+	pagination := model.InitPagination(context)
+
+	taskModel := &model.TaskLog{}
+	pagination, err := taskModel.List(pagination, ormWhereMap)
+	if err != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, err.Error(), nil)
+	}
+	return response.Resp().Success("success", pagination)
+}
+
+func GetTaskRunningList(context *context.Context) *response.Response {
+	taskIdStr := context.Param("task_id")
+	taskId, _ := strconv.ParseInt(taskIdStr, 10, 64)
+	taskIns, ok := task.Manager.TaskList[taskId]
+	var runningLogList = make([]subscription.TaskLogInfo, 0)
+	if !ok {
+		return response.Resp().Success("success", runningLogList)
+	}
+	taskRunInsList := taskIns.RunningInstances
+	for _, taskRunIns := range taskRunInsList {
+		runningLogList = append(runningLogList, subscription.GetTaskLogInfoStatByLogModel(taskRunIns.TaskLogInfo))
+	}
+	return response.Resp().Success("success", runningLogList)
 }
 
 //已经开始的任务不关闭
@@ -76,10 +97,16 @@ func StartTask(context *context.Context) *response.Response {
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "not found task", nil)
 	}
+	taskModel.IsDisable = false
+	dbRt = core.Db.Save(taskModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "change task state fail", nil)
+	}
 	err := task.Manager.AddTask(taskId)
 	if err != nil {
 		return response.Resp().Error(10002, "add task fail", nil)
 	}
+	subscription.SendTaskInfoFormOrm(taskModel, 0, "", "")
 	return response.Resp().Success("start success", nil)
 }
 
@@ -254,4 +281,19 @@ func GetEndedTaskLogList(context *context.Context) *response.Response {
 SELECT * FROM task_log WHERE task_id = ? and status = 0
 `, taskId).Scan(&taskLogList)
 	return response.Resp().Json(taskLogList)
+}
+
+func GetTaskLogExecOutput(context *context.Context) *response.Response {
+	logId := context.Param("log_id")
+	logInfo := &model.TaskLog{}
+	dbRt := core.Db.Where("id = ?", logId).First(logInfo)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "not found log", nil)
+	}
+	filePath := path.Join(core.Config.Script.LogFolder, logInfo.OutputFile)
+	output, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return response.Resp().Success("success", "can not read output file")
+	}
+	return response.Resp().Success("success", string(output))
 }
