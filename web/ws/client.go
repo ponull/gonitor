@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"strconv"
@@ -133,10 +132,10 @@ func (client *Client) writeService() {
 }
 
 func (client *Client) Subscribe(subscriptionType string, taskId int64) {
-	fmt.Println("subscribe", subscriptionType, taskId)
+	//fmt.Println("subscribe", subscriptionType, taskId)
 	//已经订阅就算了
 	client.toggleSubscribe(subscriptionType, taskId, true)
-	fmt.Println("subscribe end", client.subscribed[subscriptionType])
+	//fmt.Println("subscribe end", client.subscribed[subscriptionType])
 }
 
 func (client *Client) Unsubscribe(subscriptionType string, taskId int64) {
