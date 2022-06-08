@@ -18,12 +18,35 @@ import (
 )
 
 type RunningInstance struct {
-	LogId       int64
-	taskInfo    *model.Task
-	TaskLogInfo *model.TaskLog
-	Process     *process.Process
-	output      string
-	execLog     string
+	LogId          int64
+	taskInfo       *model.Task
+	TaskLogInfo    *model.TaskLog
+	Process        *process.Process
+	execResultList []*taskExecStat
+}
+
+type taskExecStat struct {
+	Command              string `json:"command"`                //需要执行的命令
+	CommandStartStatus   bool   `json:"command_start_status"`   //启动命令状态 已经启动或者未启动
+	CommandStartError    error  `json:"command_start_error"`    //启动错误
+	CommandExecStatus    bool   `json:"command_exec_status"`    //执行命令结果 已经启动或者未启动
+	CommandExecError     error  `json:"command_exec_error"`     //执行错误
+	CommandOutputContent string `json:"command_output_content"` //命令输出内容
+	AssertResult         bool   `json:"assert_result"`          //断言结果
+	TaskResult           bool   `json:"task_result"`            //任务结果 前面三个都成功才成功
+}
+
+func newTaskExecStat() *taskExecStat {
+	return &taskExecStat{
+		Command:              "",
+		CommandStartStatus:   false,
+		CommandStartError:    nil,
+		CommandExecStatus:    false,
+		CommandExecError:     nil,
+		CommandOutputContent: "",
+		AssertResult:         false,
+		TaskResult:           false,
+	}
 }
 
 func (ri *RunningInstance) stop() {
@@ -44,56 +67,47 @@ func NewTaskRunningInstance(taskInfo *model.Task) *RunningInstance {
 }
 
 func (ri *RunningInstance) run() error {
-	systemCommand := parseTask(ri.taskInfo.Command, ri.taskInfo.ExecType)
-	cmd := exec.Command("cmd", "/C", systemCommand)
+	execStat := newTaskExecStat()
+	ri.execResultList = append(ri.execResultList, execStat)
+	execStat.Command = parseTask(ri.taskInfo.Command, ri.taskInfo.ExecType)
+	cmd := exec.Command("cmd", "/C", execStat.Command)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
-	ri.execLog += fmt.Sprintf("任务开始\n命令:\n%s\n", systemCommand)
-	if err := cmd.Start(); err != nil {
-		ri.execLog += fmt.Sprintf("执行失败\n错误:\n%s\n", err.Error())
-		ri.TaskLogInfo.ExecResult = false
-		return err
-	}
-	ri.execLog += fmt.Sprintf("执行成功\n")
-	ri.TaskLogInfo.Status = true
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.execLog)
-	ri.TaskLogInfo.ProcessId = cmd.Process.Pid
-	pn, err := process.NewProcess(int32(cmd.Process.Pid))
+	err := cmd.Start()
+	execStat.CommandStartStatus = true
 	if err != nil {
-		ri.execLog += fmt.Sprintf("获取任务执行实例失败\n错误:\n%s\n", err.Error())
-		ri.TaskLogInfo.ExecResult = false
+		execStat.CommandStartError = err
 		return err
 	}
-	ri.execLog += fmt.Sprintf("获取任务进程实例成功\n")
+	//ri.execLog += fmt.Sprintf("执行成功\n")
+	ri.TaskLogInfo.Status = true
+	ri.TaskLogInfo.ProcessId = cmd.Process.Pid
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	pn, _ := process.NewProcess(int32(cmd.Process.Pid))
+	//ri.execLog += fmt.Sprintf("获取任务进程实例成功\n")
 	//记录进程实例，后面kill可能会用到
 	ri.Process = pn
 	//这个推送看怎么改一下
 	Manager.addTaskRunningIns(ri.taskInfo.ID, ri)
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.execLog)
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
 	err = cmd.Wait()
-	//subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, "等待结束")
+	execStat.CommandExecStatus = true
 	if err != nil {
-		ri.execLog += fmt.Sprintf("等待失败\n错误:\n%s\n", err.Error())
-		ri.TaskLogInfo.ExecResult = false
+		execStat.CommandExecError = err
 		return err
 	}
-
-	ri.output = out.String()
-	ri.execLog += fmt.Sprintf("执行结束\n")
-	ri.execLog += fmt.Sprintf("输出为:\n%s\n", out.String())
+	execStat.CommandOutputContent = out.String()
+	//这个只是记录来备用的 现在外面有两个地方需要输出结果 其实没啥用
 	//使用断言
 	if len(ri.taskInfo.Assert) > 0 {
-		assertRt := GetTaskAssertResult(out.String(), ri.taskInfo.Assert)
+		assertRt := GetTaskAssertResult(execStat.CommandOutputContent, ri.taskInfo.Assert)
 		if !assertRt {
-			ri.execLog += fmt.Sprintf("断言失败\n")
-			ri.TaskLogInfo.ExecResult = false
 			return errors.New("断言认为返回结果失败")
 		}
 	}
-	ri.execLog += fmt.Sprintf("断言成功\n")
-	ri.execLog += fmt.Sprintf("任务结束\n")
-	ri.TaskLogInfo.ExecResult = true
+	execStat.AssertResult = true
+	execStat.TaskResult = true
 	return nil
 }
 
@@ -104,7 +118,7 @@ func (ri *RunningInstance) beforeRun() error {
 		Status:     true,
 		ExecType:   ri.taskInfo.ExecType,
 		ExecTime:   time.Now(),
-		OutputFile: fmt.Sprintf("%d/%s_%s.out", ri.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
+		OutputFile: fmt.Sprintf("%d/%s_%s.txt", ri.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
 	}
 	dbRt := core.Db.Create(taskLogModel)
 	if dbRt.Error != nil {
@@ -123,7 +137,7 @@ func (ri *RunningInstance) afterRun() {
 		log.Println("保存任务日志失败", dbRt.Error.Error())
 	}
 	log.Printf("任务结束\n")
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.execLog)
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
 	ri.writeLogOutput()
 	//执行结果判断推送等
 	if len(ri.taskInfo.ResultHandler) > 0 {
@@ -134,8 +148,52 @@ func (ri *RunningInstance) afterRun() {
 func (ri *RunningInstance) writeLogOutput() {
 	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
 	err := os.MkdirAll(path.Dir(filePath), 0666)
-	err = ioutil.WriteFile(filePath, []byte(ri.execLog), 0666)
+	err = ioutil.WriteFile(filePath, []byte(ri.generateExecLog()), 0666)
 	if err != nil {
 		log.Println("写执行日志失败")
 	}
+}
+
+func (ri *RunningInstance) getLastExecOutput() string {
+	resultLen := len(ri.execResultList)
+	if resultLen > 0 {
+		lastResult := ri.execResultList[resultLen-1]
+		return lastResult.CommandOutputContent
+	}
+	return ""
+}
+
+//生成执行日志
+func (ri *RunningInstance) generateExecLog() string {
+	execLog := fmt.Sprintf("******************目标任务: %s******************\n", ri.taskInfo.Name)
+	for i, resultItem := range ri.execResultList {
+		execLog += fmt.Sprintf("第%d次执行\n", i+1)
+		execLog += fmt.Sprintf("准备执行\n命令:\n%s\n", resultItem.Command)
+		if !resultItem.CommandStartStatus {
+			continue
+		}
+		if resultItem.CommandStartError != nil {
+			execLog += fmt.Sprintf("启动失败\n错误:\n%s\n", resultItem.CommandStartError)
+			continue
+		}
+		execLog += fmt.Sprintf("启动成功, 等待任务执行完毕\n")
+		if !resultItem.CommandExecStatus {
+			continue
+		}
+		if resultItem.CommandExecError != nil {
+			execLog += fmt.Sprintf("任务执行失败, 错误:\n%s\n", resultItem.CommandStartError)
+			continue
+		}
+		execLog += fmt.Sprintf("任务执行成功\n")
+		execLog += fmt.Sprintf("输出为:\n%s\n", resultItem.CommandOutputContent)
+		execLog += fmt.Sprintf("开始断言\n")
+		if !resultItem.AssertResult {
+			execLog += fmt.Sprintf("断言未通过\n")
+			continue
+		}
+		execLog += fmt.Sprintf("断言通过\n")
+		execLog += fmt.Sprintf("任务成功结束\n")
+		execLog += "\n\n\n"
+	}
+	return execLog
 }

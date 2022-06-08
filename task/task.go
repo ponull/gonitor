@@ -76,7 +76,7 @@ func (tm *manager) StartOnceTask(taskId int64) (string, error) {
 	}()
 	subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, "开始调用")
 	err = taskRunIns.run()
-	return taskRunIns.output, err
+	return taskRunIns.getLastExecOutput(), err
 }
 
 // UpdateTask 更新cron的任务，并启动

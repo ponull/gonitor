@@ -12,6 +12,7 @@ import Container from "@mui/material/Container";
 import httpRequest from "../../common/request/HttpRequest";
 import {TaskInfoEditForm} from "./TaskInfoEditForm";
 import {ExecuteTypeEnum} from "../../enum/task";
+import {useSnackbar} from "notistack";
 
 const Transition = forwardRef(function Transition(props, ref,) {
     return <Slide direction="up" ref={ref} {...props} />;
@@ -48,14 +49,20 @@ export const TaskAdd = forwardRef((props, ref) => {
         const formValue = formRef.current?.getFormValues()
         httpRequest.post("addTask", formValue)
             .then(res => {
+                if (res.code !== 0){
+                    enqueueSnackbar(res.message, {variant: "error"});
+                    return;
+                }
+                enqueueSnackbar("修改成功", {variant: "success"});
                 refreshTaskList();
                 setOpen(false);
             })
             .catch(err => {
-                console.log(err)
+                enqueueSnackbar("操作失败", {variant: "error"});
             })
     }
 
+    const {enqueueSnackbar} = useSnackbar();
     return (
         <Dialog
             fullScreen

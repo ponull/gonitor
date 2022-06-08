@@ -11,6 +11,7 @@ import {forwardRef, useImperativeHandle, useRef} from "react";
 import Container from "@mui/material/Container";
 import httpRequest from "../../common/request/HttpRequest";
 import {TaskInfoEditForm} from "./TaskInfoEditForm";
+import {useSnackbar} from "notistack";
 
 const Transition = forwardRef(function Transition(props, ref,) {
     return <Slide direction="up" ref={ref} {...props} />;
@@ -29,18 +30,23 @@ export const TaskEdit = forwardRef((props, ref) => {
 
     const handleClose = () => {
         setOpen(false);
-    };
-
+    }
+    const {enqueueSnackbar} = useSnackbar();
     const handleSubmit = () => {
         const formValue = formRef.current?.getFormValues()
         formValue.task_id = taskInfo.id;
         httpRequest.post("editTask", formValue)
             .then(res => {
+                if (res.code !== 0){
+                    enqueueSnackbar(res.message, {variant: "error"});
+                    return;
+                }
                 refreshTaskList();
+                enqueueSnackbar("修改成功", {variant: "success"});
                 setOpen(false);
             })
             .catch(err => {
-                console.log(err)
+                enqueueSnackbar("操作失败", {variant: "error"});
             })
     }
 

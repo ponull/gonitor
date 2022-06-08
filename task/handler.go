@@ -1,17 +1,17 @@
 package task
 
 import (
-	"fmt"
 	"gonitor/core"
 	"gonitor/model"
 	"gonitor/web/ws/subscription"
+	"log"
 	"path"
 	"time"
 )
 
 type ExecJobWrapper struct {
 	taskInfo *model.Task
-	output   string //临时放这里  外面需要 但是Run这个接口又不允许
+	//output   string //临时放这里  外面需要 但是Run这个接口又不允许
 }
 
 func (e *ExecJobWrapper) Run() {
@@ -21,11 +21,12 @@ func (e *ExecJobWrapper) Run() {
 		return
 	}
 
-	fmt.Printf("任务开始\n")
+	//fmt.Printf("任务开始\n")
 	subscription.SendNewTaskLogFormOrm(taskRunIns.TaskLogInfo)
 	defer func() {
-		e.output = taskRunIns.output
+		//e.output = taskRunIns.output
 		taskRunIns.afterRun()
+		//todo 这里可能有之前的没有执行完，停止了 所以task列表没有了 这里删除就会报空指针错误
 		if _, ok := Manager.TaskList[taskRunIns.taskInfo.ID].RunningInstances[taskRunIns.TaskLogInfo.ID]; ok {
 			delete(Manager.TaskList[taskRunIns.taskInfo.ID].RunningInstances, taskRunIns.TaskLogInfo.ID)
 		}
@@ -36,19 +37,13 @@ func (e *ExecJobWrapper) Run() {
 	}
 	var i int8 = 0
 	for i < execTimes {
-		taskRunIns.execLog += fmt.Sprintf("第%d次执行\n", i+1)
-		//subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, fmt.Sprintf("第%d次执行\n", i+1))
 		err := taskRunIns.run()
-		taskRunIns.writeLogOutput()
-		//taskRunIns.output += fmt.Sprintf("%s\n", output)
-		//subscription.SendTaskLogInfoFormOrm(taskRunIns.TaskLogInfo, fmt.Sprintf("执行结果： %s\n", output))
 		if err == nil {
 			return
 		}
-		taskRunIns.execLog += "\n\n\n"
 		i++
 		if i < execTimes {
-			fmt.Println("任务执行失败")
+			log.Printf("任务执行失败%d次\n", i+1)
 		}
 		if e.taskInfo.RetryInterval > 0 {
 			time.Sleep(time.Duration(e.taskInfo.RetryInterval) * time.Second)
@@ -56,53 +51,7 @@ func (e *ExecJobWrapper) Run() {
 			time.Sleep(time.Duration(i) * time.Minute)
 		}
 	}
-	//return taskRunIns.output, nil
-	//e.output += fmt.Sprintf("所有执行次数都失败\n")
 }
-
-//func (e *ExecJobWrapper) execSystemCommand() (string, error) {
-//	systemCommand := parseTask(e.taskInfo.Command, e.taskInfo.ExecType)
-//	cmd := exec.Command("cmd", "/C", systemCommand)
-//	var out bytes.Buffer
-//	cmd.Stdout = &out
-//	cmd.Stderr = os.Stderr
-//	if err := cmd.Start(); err != nil {
-//		return out.String(), err
-//	}
-//	e.taskLog.Status = true
-//	subscription.SendTaskLogInfoFormOrm(e.taskLog, "启动命令成功")
-//	e.taskLog.ProcessId = cmd.Process.Pid
-//	pn, err := process.NewProcess(int32(cmd.Process.Pid))
-//	if err != nil {
-//		fmt.Println("获取任务执行实例失败:" + err.Error())
-//		return "", err
-//	}
-//	//pn.Kill()
-//	taskIns, ok := Manager.TaskList[e.taskInfo.ID]
-//	if !ok {
-//		return "", err
-//	}
-//	taskIns.RunningInstances[e.taskLog.ID] = &RunningInstance{
-//		LogId:       e.taskLog.ID,
-//		TaskLogInfo: e.taskLog,
-//		Process:     pn,
-//	}
-//	subscription.SendTaskLogInfoFormOrm(e.taskLog, "开始等待")
-//	err = cmd.Wait()
-//	subscription.SendTaskLogInfoFormOrm(e.taskLog, "等待结束")
-//	if err != nil {
-//		return "", err
-//	}
-//	return out.String(), nil
-//}
-
-//func (e *ExecJobWrapper) writeLogOutput() {
-//	filePath := path.Join(core.Config.Script.LogFolder, e.taskLog.OutputFile)
-//	err := os.MkdirAll(path.Dir(filePath), 0666)
-//	err = ioutil.WriteFile(filePath, []byte(e.output), 0666)
-//	if err != nil {
-//	}
-//}
 
 func NewExecJobWrapper(taskInfo *model.Task) *ExecJobWrapper {
 	return &ExecJobWrapper{
