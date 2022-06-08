@@ -34,8 +34,7 @@ export const TaskEdit = forwardRef((props, ref) => {
     const {enqueueSnackbar} = useSnackbar();
     const handleSubmit = () => {
         const formValue = formRef.current?.getFormValues()
-        formValue.task_id = taskInfo.id;
-        httpRequest.post("editTask", formValue)
+        httpRequest.put(`/task/${taskInfo.id}`, formValue)
             .then(res => {
                 if (res.code !== 0){
                     enqueueSnackbar(res.message, {variant: "error"});

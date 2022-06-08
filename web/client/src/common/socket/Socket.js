@@ -147,9 +147,9 @@ export default class Socket extends Heart {
      * @param {Function} callback 回调函数
      */
     onMessage(callback) {
-        this.ws.onmessage = (messageEvent: MessageEvent<string>) => {
+        this.ws.onmessage = (messageEvent) => {
             const strMessage = messageEvent.data
-            const {code, data, msg}: SocketResponseResult<RT> = JSON.parse(strMessage)
+            const {code, data, msg} = JSON.parse(strMessage)
 
             if (code === 200) {
                 // 收到任何消息，重新开始倒计时心跳检测

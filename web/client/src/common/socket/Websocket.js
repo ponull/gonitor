@@ -3,7 +3,7 @@ import {useEffect, useRef, useState} from "react";
 
 let baseUrl = window.location.host
 if (process.env.NODE_ENV == "development") {
-    baseUrl = 'http://127.0.0.1:8899'
+ baseUrl = '127.0.0.1:8899'
 }
 const url = `ws://${baseUrl}/ws/${generateClientId()}`;
 

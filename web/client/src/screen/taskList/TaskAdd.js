@@ -47,7 +47,7 @@ export const TaskAdd = forwardRef((props, ref) => {
 
     const handleSubmit = () => {
         const formValue = formRef.current?.getFormValues()
-        httpRequest.post("addTask", formValue)
+        httpRequest.post("/task", formValue)
             .then(res => {
                 if (res.code !== 0){
                     enqueueSnackbar(res.message, {variant: "error"});

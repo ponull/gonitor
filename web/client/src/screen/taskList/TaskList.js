@@ -168,9 +168,7 @@ const DeleteConfirmDialog = forwardRef((props, ref) => {
         setOpen(false);
     };
     const deleteTask = () => {
-        httpRequest.post("deleteTask", {
-            task_id: taskInfo.id
-        })
+        httpRequest.delete(`/task/${taskInfo.id}`)
             .then(res => {
                 const data = res.data
                 if (data.code === 0) {

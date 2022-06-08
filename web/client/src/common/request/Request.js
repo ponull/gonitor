@@ -22,7 +22,31 @@ class Request {
         })
     }
 
-    get(url, config){
+    delete(url,config = {}){
+        return new Promise((resolve, reject) => {
+            this.instance.delete(url, config)
+            .then((res) => {
+                return resolve(res.data)
+            })
+            .catch((err) => {
+                return reject(err)
+            })
+    })
+    }
+
+    put(url,config = {}){
+        return new Promise((resolve, reject) => {
+            this.instance.put(url, config)
+            .then((res) => {
+                return resolve(res.data)
+            })
+            .catch((err) => {
+                return reject(err)
+            })
+    })
+    }
+
+    get(url, config = {}){
         return new Promise((resolve, reject) => {
             this.instance.get(url, config)
                 .then((res) => {

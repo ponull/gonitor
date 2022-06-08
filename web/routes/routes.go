@@ -9,9 +9,6 @@ import (
 
 func config(router group) {
 	//router.Registered(GET, "/", controller.Index)
-	router.Registered(ANY, "/addTask", controller.AddTask)
-	router.Registered(ANY, "/editTask", controller.EditTask)
-	router.Registered(ANY, "/deleteTask", controller.DeleteTask)
 	//router.Registered(GET, "/getTaskInfo", controller.GetTaskInfo)
 	router.Group("/system", func(systemGroup group) {
 		systemGroup.Registered(GET, "/overview", controller.GetSystemOverview)
@@ -21,6 +18,9 @@ func config(router group) {
 		systemGroup.Registered(GET, "/net", controller.GetDiskInfo)
 	})
 	router.Group("/task", func(taskGroup group) {
+		taskGroup.Registered(POST, "", controller.AddTask)
+		taskGroup.Registered(PUT, "/:task_id", controller.EditTask)
+		taskGroup.Registered(DELETE, "/:task_id", controller.DeleteTask)
 		taskGroup.Registered(GET, "/info/:task_id", controller.GetTaskInfo)
 		taskGroup.Registered(GET, "/list", controller.GetTaskList)
 		taskGroup.Registered(GET, "/stop/:task_id", controller.StopTask)

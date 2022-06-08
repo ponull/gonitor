@@ -208,7 +208,6 @@ func AddTask(context *context.Context) *response.Response {
 
 func EditTask(context *context.Context) *response.Response {
 	type taskEditFormTpl struct {
-		ID            int64  `json:"task_id"`
 		Name          string `json:"name"`
 		ExecType      string `json:"exec_type"`
 		Command       string `json:"command"`
@@ -225,8 +224,9 @@ func EditTask(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
+	taskId := context.Param("task_id")
 	taskModel := &model.Task{}
-	dbRt := core.Db.Where("id = ?", editInfo.ID).First(taskModel)
+	dbRt := core.Db.Where("id = ?", taskId).First(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
@@ -264,7 +264,7 @@ func EditTask(context *context.Context) *response.Response {
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "update fail", nil)
 	}
-	err = task.Manager.UpdateTask(editInfo.ID)
+	err = task.Manager.UpdateTask(taskModel.ID)
 	if err != nil {
 		return response.Resp().Success("update success, but task update fail", editInfo)
 	}
@@ -272,16 +272,17 @@ func EditTask(context *context.Context) *response.Response {
 }
 
 func DeleteTask(context *context.Context) *response.Response {
-	type taskInfoStruct struct {
-		ID int64 `json:"task_id"`
-	}
-	taskInfo := taskInfoStruct{}
-	err := context.ShouldBindJSON(&taskInfo)
-	if err != nil {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail", nil)
-	}
+	//type taskInfoStruct struct {
+	//	ID int64 `json:"task_id"`
+	//}
+	//taskInfo := taskInfoStruct{}
+	//err := context.ShouldBindJSON(&taskInfo)
+	//if err != nil {
+	//	return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail", nil)
+	//}
+	taskId := context.Param("task_id")
 	taskModel := model.Task{}
-	dbRt := core.Db.Where("id = ?", taskInfo.ID).First(&taskModel)
+	dbRt := core.Db.Where("id = ?", taskId).First(&taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
