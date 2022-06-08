@@ -115,7 +115,7 @@ func parseTask(command string, taskType string) string {
 	case CmdTask:
 		return command
 	case HttpTask:
-		return "curl -L '" + command + "'"
+		return "curl -L " + command
 	case FileTask:
 		return parseFileTask(command)
 	}

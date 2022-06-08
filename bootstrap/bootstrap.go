@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"gonitor/core"
@@ -33,6 +34,13 @@ func initLog() {
 }
 
 func initDb() {
+	if _, err := os.Stat(core.Config.Sqlite.DbPath); err != nil {
+		fmt.Printf("database does not exist\n")
+		_, err := os.Create(core.Config.Sqlite.DbPath)
+		if err != nil {
+			log.Panic("Unable to create database")
+		}
+	}
 	//db, err := gorm.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/jd_promotion?charset=utf8mb4&parseTime=True&loc=Local")
 	db, err := gorm.Open("sqlite3", core.Config.Sqlite.DbPath)
 	if err != nil {

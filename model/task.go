@@ -10,7 +10,8 @@ type Task struct {
 	ExecStrategy  int8   `gorm:"column:exec_strategy" json:"exec_strategy"`   //执行策略  单例模式不需要了  由这里来控制
 	RetryTimes    int8   `gorm:"column:retry_times" json:"retry_times"`       //重试次数
 	RetryInterval int    `gorm:"column:retry_interval" json:"retry_interval"` //重试间隔
-	Assert        string `gorm:"column:assert" json:"assert"`
+	Assert        string `gorm:"column:assert" json:"assert"`                 //断言
+	ResultHandler string `gorm:"column:result_handler" json:"result_handler"` //结果处理
 }
 
 func (Task) TableName() string {

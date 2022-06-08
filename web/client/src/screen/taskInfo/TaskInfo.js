@@ -43,7 +43,7 @@ export const TaskInfo = () => {
         })
     })
     useEffect(() => {
-        httpRequest.get("/getTaskInfo?task_id=" + taskId).then(res => {
+        httpRequest.get(`/task/info/${taskId}`).then(res => {
             if (res.code === 0) {
                 setTaskInfo(res.data)
             }

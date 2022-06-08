@@ -6,9 +6,36 @@ import ReactECharts from 'echarts-for-react';
 import Grid from "@mui/material/Grid";
 import {InfoItem} from "./InfoItem";
 import {useEffect} from "react";
+import httpRequest from "../../common/request/HttpRequest";
+import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
+import {SystemMonitorTypeEnum} from "../../enum/subsciption";
 
 
 export const SystemInfo = () => {
+    const [systemInfo, setSystemInfo] = React.useState({
+        boot_time: "",
+        os: "",
+        platform: "",
+        kernel_version: 0,
+        kernel_arch: 0,
+        avg_stat: 0
+    });
+    useEffect(()=>{
+        httpRequest.get("/system/overview").then(res=>{
+            setSystemInfo(res.data);
+        })
+    },[])
+    const [taskOverviewInfo, setTaskOverviewInfo] = React.useState({
+        task_count: 0,
+        task_enable_count: 0,
+        task_occupied_process_count: 0,
+    });
+    useSubscribe(SubscribeType.SYSTEM_MONITOR, SystemMonitorTypeEnum.TASK_OVERVIEW_INFO, (data) => {
+        setTaskOverviewInfo({
+            ...taskOverviewInfo,
+            ...data
+        })
+    })
     return (
         <React.Fragment>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
@@ -17,17 +44,18 @@ export const SystemInfo = () => {
                 <Grid container sx={{mt: 2}} spacing={3}>
                     <Grid item xs={7}>
                         <Grid container spacing={1}>
-                            <InfoItem title="OS" value="Windows"/>
-                            <InfoItem title="Platform" value="Microsoft Windows 11 Home China"/>
-                            <InfoItem title="Kernel" value="10.0.22000 Build 22000"/>
-                            <InfoItem title="Kernel Arch" value="x86_64"/>
-                            <InfoItem title="Boot Time" value="2022-06-03 09:11:56"/>
+                            <InfoItem title="OS" value={systemInfo.os}/>
+                            <InfoItem title="Platform" value={systemInfo.platform}/>
+                            <InfoItem title="Kernel" value={systemInfo.kernel_version}/>
+                            <InfoItem title="Kernel Arch" value={systemInfo.kernel_arch}/>
+                            <InfoItem title="Boot Time" value={systemInfo.boot_time}/>
                         </Grid>
                     </Grid>
                     <Grid item xs={5}>
                         <Grid container spacing={1}>
-                            <InfoItem title="Task" value="6"/>
-                            <InfoItem title="Task Process Count" value="6"/>
+                            <InfoItem title="Task Count" value={taskOverviewInfo.task_count}/>
+                            <InfoItem title="Task Enable Count" value={taskOverviewInfo.task_enable_count}/>
+                            <InfoItem title="Task Process Count" value={taskOverviewInfo.task_occupied_process_count}/>
                         </Grid>
                     </Grid>
                 </Grid>

@@ -27,7 +27,9 @@ export const TaskAdd = forwardRef((props, ref) => {
         retry_times: 0,
         retry_interval: 3000,
         execute_strategy: 0,
-        is_disable: false
+        is_disable: false,
+        assert:"",
+        result_handler:"",
     }
     useImperativeHandle(ref, () => ({
         handleClickOpen,

@@ -41,6 +41,7 @@ export const TaskList = function () {
         exec_strategy: StrategyEnum.PARALLEL,
         is_disable: false,
         assert: "",
+        result_handler: "",
     });
     const taskDeleteConfirmDialogRef = useRef(null);
     const [loading, setLoading] = useState(true)

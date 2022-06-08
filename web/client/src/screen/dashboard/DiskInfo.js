@@ -19,7 +19,7 @@ export const DiskInfo = () => {
         log_used: 0,
     })
     useEffect(() => {
-        httpRequest.get("/getDiskInfo")
+        httpRequest.get("/system/disk")
             .then(res => {
                 setDiskInfo(res.data);
             })

@@ -24,6 +24,7 @@ type yoConfig struct {
 	Sqlite     sqlite     `yaml:"Sqlite"`
 	HttpServer httpServer `yaml:"HttpServer"`
 	Script     script     `yaml:"Script"`
+	WeCom      weCom      `yaml:"WeCom"`
 }
 
 type sqlite struct {
@@ -44,4 +45,10 @@ type app struct {
 type script struct {
 	Folder    string `yaml:"Folder"`
 	LogFolder string `yaml:"LogFolder"`
+}
+
+type weCom struct {
+	CorpId     string `yaml:"CorpId"`
+	CorpSecret string `yaml:"CorpSecret"`
+	AgentId    string `yaml:"AgentId"`
 }

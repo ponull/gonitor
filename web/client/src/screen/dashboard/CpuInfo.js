@@ -53,7 +53,7 @@ export const CpuInfo = () => {
         })
     })
     useEffect(() => {
-        httpRequest.get("/getCpuInfo")
+        httpRequest.get("/system/cpu")
             .then(res => {
                 setCpuInfo(res.data);
             })

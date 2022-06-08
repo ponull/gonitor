@@ -10,6 +10,7 @@ import (
 	"gonitor/utils"
 	"gonitor/web/ws/subscription"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -51,6 +52,7 @@ func (ri *RunningInstance) run() error {
 	ri.execLog += fmt.Sprintf("任务开始\n命令:\n%s\n", systemCommand)
 	if err := cmd.Start(); err != nil {
 		ri.execLog += fmt.Sprintf("执行失败\n错误:\n%s\n", err.Error())
+		ri.TaskLogInfo.ExecResult = false
 		return err
 	}
 	ri.execLog += fmt.Sprintf("执行成功\n")
@@ -60,6 +62,7 @@ func (ri *RunningInstance) run() error {
 	pn, err := process.NewProcess(int32(cmd.Process.Pid))
 	if err != nil {
 		ri.execLog += fmt.Sprintf("获取任务执行实例失败\n错误:\n%s\n", err.Error())
+		ri.TaskLogInfo.ExecResult = false
 		return err
 	}
 	ri.execLog += fmt.Sprintf("获取任务进程实例成功\n")
@@ -72,6 +75,7 @@ func (ri *RunningInstance) run() error {
 	//subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, "等待结束")
 	if err != nil {
 		ri.execLog += fmt.Sprintf("等待失败\n错误:\n%s\n", err.Error())
+		ri.TaskLogInfo.ExecResult = false
 		return err
 	}
 
@@ -83,11 +87,13 @@ func (ri *RunningInstance) run() error {
 		assertRt := GetTaskAssertResult(out.String(), ri.taskInfo.Assert)
 		if !assertRt {
 			ri.execLog += fmt.Sprintf("断言失败\n")
+			ri.TaskLogInfo.ExecResult = false
 			return errors.New("断言认为返回结果失败")
 		}
 	}
 	ri.execLog += fmt.Sprintf("断言成功\n")
 	ri.execLog += fmt.Sprintf("任务结束\n")
+	ri.TaskLogInfo.ExecResult = true
 	return nil
 }
 
@@ -114,11 +120,15 @@ func (ri *RunningInstance) afterRun() {
 	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecTime.Unix()
 	dbRt := core.Db.Save(ri.TaskLogInfo)
 	if dbRt.Error != nil {
-		fmt.Println("保存任务日志失败", dbRt.Error.Error())
+		log.Println("保存任务日志失败", dbRt.Error.Error())
 	}
-	fmt.Printf("任务结束\n")
+	log.Printf("任务结束\n")
 	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.execLog)
 	ri.writeLogOutput()
+	//执行结果判断推送等
+	if len(ri.taskInfo.ResultHandler) > 0 {
+		ExecResultHandler(ri.taskInfo, ri.TaskLogInfo, ri.taskInfo.ResultHandler)
+	}
 }
 
 func (ri *RunningInstance) writeLogOutput() {
@@ -126,5 +136,6 @@ func (ri *RunningInstance) writeLogOutput() {
 	err := os.MkdirAll(path.Dir(filePath), 0666)
 	err = ioutil.WriteFile(filePath, []byte(ri.execLog), 0666)
 	if err != nil {
+		log.Println("写执行日志失败")
 	}
 }

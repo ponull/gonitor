@@ -12,13 +12,16 @@ func config(router group) {
 	router.Registered(ANY, "/addTask", controller.AddTask)
 	router.Registered(ANY, "/editTask", controller.EditTask)
 	router.Registered(ANY, "/deleteTask", controller.DeleteTask)
-	router.Registered(GET, "/getTaskInfo", controller.GetTaskInfo)
-	router.Registered(GET, "/getSystemOverview", controller.GetSystemOverview)
-	router.Registered(GET, "/getCpuInfo", controller.GetCpuInfo)
-	router.Registered(GET, "/getMemoryInfo", controller.GetMemoryInfo)
-	router.Registered(GET, "/getDiskInfo", controller.GetDiskInfo)
-	router.Registered(GET, "/getNetInfo", controller.GetNetInfo)
+	//router.Registered(GET, "/getTaskInfo", controller.GetTaskInfo)
+	router.Group("/system", func(systemGroup group) {
+		systemGroup.Registered(GET, "/overview", controller.GetSystemOverview)
+		systemGroup.Registered(GET, "/cpu", controller.GetCpuInfo)
+		systemGroup.Registered(GET, "/memory", controller.GetMemoryInfo)
+		systemGroup.Registered(GET, "/disk", controller.GetDiskInfo)
+		systemGroup.Registered(GET, "/net", controller.GetDiskInfo)
+	})
 	router.Group("/task", func(taskGroup group) {
+		taskGroup.Registered(GET, "/info/:task_id", controller.GetTaskInfo)
 		taskGroup.Registered(GET, "/list", controller.GetTaskList)
 		taskGroup.Registered(GET, "/stop/:task_id", controller.StopTask)
 		taskGroup.Registered(GET, "/start/:task_id", controller.StartTask)
@@ -29,6 +32,9 @@ func config(router group) {
 			logGroup.Registered(GET, "/output/:log_id", controller.GetTaskLogExecOutput)
 		})
 		//taskGroup.Registered(GET, "/stop/kill", controller.StopTask)
+	})
+	router.Group("/push", func(pushGroup group) {
+		pushGroup.Registered(GET, "/test", controller.TestPush)
 	})
 }
 

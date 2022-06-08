@@ -60,7 +60,7 @@ export const MemoryInfo = () => {
         });
     })
     useEffect(() => {
-        httpRequest.get("/getMemoryInfo")
+        httpRequest.get("/system/memory")
             .then(res => {
                 setMemoryInfo(res.data);
             })

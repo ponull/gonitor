@@ -13,3 +13,8 @@ Sqlite:
 HttpServer:
  Host: 127.0.0.1
  Post: 8899
+
+WeCom:
+ CorpId: wwe369416f1c4fc21b
+ CorpSecret: XCg9b27jgd07960Ym7j9DcdhgehUKnQIfozFnBYTDko
+ AgentId: 1000002

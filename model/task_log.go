@@ -15,6 +15,7 @@ type TaskLog struct {
 	ExecTime    time.Time `gorm:"column:exec_time" json:"exec_time"`       //执行时间
 	RunningTime int64     `gorm:"column:running_time" json:"running_time"` //运行时间
 	RetryTimes  int8      `gorm:"column:retry_times" json:"retry_times"`   //重试次数
+	ExecResult  bool      `gorm:"column:exec_result" json:"exec_result"`   //执行结果 成功或失败
 }
 
 func (TaskLog) TableName() string {

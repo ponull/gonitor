@@ -24,6 +24,7 @@ type taskInfo struct {
 	RetryInterval int    `json:"retry_interval"` //重试间隔
 	UpdateTime    string `json:"update_time"`    //更新时间
 	Assert        string `json:"assert"`
+	ResultHandler string `json:"result_handler"`
 }
 
 func GetTaskList(context *context.Context) *response.Response {
@@ -138,7 +139,7 @@ func killTaskRunningInstance(context *context.Context) *response.Response {
 }
 
 func GetTaskInfo(context *context.Context) *response.Response {
-	taskId := context.Query("task_id")
+	taskId := context.Param("task_id")
 	taskModel := model.Task{}
 	taskInfo := taskInfo{}
 	dbRt := core.Db.Where("id = ?", taskId).First(&taskModel).Scan(&taskInfo)
@@ -149,7 +150,7 @@ func GetTaskInfo(context *context.Context) *response.Response {
 }
 
 func AddTask(context *context.Context) *response.Response {
-	type taskInfoStruct struct {
+	type taskAddFormTpl struct {
 		Name          string `json:"name"`
 		ExecType      string `json:"exec_type"`
 		Command       string `json:"command"`
@@ -159,45 +160,54 @@ func AddTask(context *context.Context) *response.Response {
 		RetryTimes    int8   `json:"retry_times"`
 		RetryInterval int    `json:"retry_interval"`
 		Assert        string `json:"assert"`
+		ResultHandler string `json:"result_handler"`
 	}
-	taskInfo := taskInfoStruct{}
-	err := context.ShouldBindJSON(&taskInfo)
+	addInfo := taskAddFormTpl{}
+	err := context.ShouldBindJSON(&addInfo)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
 	//todo 解析schedule 是否正确
-	err = task.CheckTaskSchedule(taskInfo.Schedule)
+	err = task.CheckTaskSchedule(addInfo.Schedule)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
 	}
 
 	//解析 assert脚本是否正确
-	if len(taskInfo.Assert) > 0 {
-		err := task.CheckTaskAssertJavascriptCode(taskInfo.Assert)
+	if len(addInfo.Assert) > 0 {
+		err := task.CheckTaskAssertJavascriptCode(addInfo.Assert)
 		if err != nil {
 			return response.Resp().Error(2154646, "JS断言代码有错误", nil)
 		}
 	}
+
+	if len(addInfo.ResultHandler) > 0 {
+		err := task.CheckTaskAssertJavascriptCode(addInfo.ResultHandler)
+		if err != nil {
+			return response.Resp().Error(2154646, "结果handler JS代码有错误", nil)
+		}
+	}
 	taskModel := &model.Task{
-		Name:          taskInfo.Name,
-		Command:       taskInfo.Command,
-		Schedule:      taskInfo.Schedule,
-		ExecType:      taskInfo.ExecType,
-		IsDisable:     taskInfo.IsDisable,
-		ExecStrategy:  taskInfo.ExecStrategy,
-		RetryTimes:    taskInfo.RetryTimes,
-		RetryInterval: taskInfo.RetryInterval,
-		Assert:        taskInfo.Assert,
+		Name:          addInfo.Name,
+		Command:       addInfo.Command,
+		Schedule:      addInfo.Schedule,
+		ExecType:      addInfo.ExecType,
+		IsDisable:     addInfo.IsDisable,
+		ExecStrategy:  addInfo.ExecStrategy,
+		RetryTimes:    addInfo.RetryTimes,
+		RetryInterval: addInfo.RetryInterval,
+		Assert:        addInfo.Assert,
+		ResultHandler: addInfo.ResultHandler,
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "insert fail", nil)
 	}
-	return response.Resp().Success("add success", taskInfo)
+	return response.Resp().Success("add success", addInfo)
 }
 
 func EditTask(context *context.Context) *response.Response {
-	type taskInfoStruct struct {
+	type taskEditFormTpl struct {
 		ID            int64  `json:"task_id"`
 		Name          string `json:"name"`
 		ExecType      string `json:"exec_type"`
@@ -208,48 +218,57 @@ func EditTask(context *context.Context) *response.Response {
 		RetryTimes    int8   `json:"retry_times"`
 		RetryInterval int    `json:"retry_interval"`
 		Assert        string `json:"assert"`
+		ResultHandler string `json:"result_handler"`
 	}
-	taskInfo := taskInfoStruct{}
-	err := context.ShouldBindJSON(&taskInfo)
+	editInfo := taskEditFormTpl{}
+	err := context.ShouldBindJSON(&editInfo)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
 	taskModel := &model.Task{}
-	dbRt := core.Db.Where("id = ?", taskInfo.ID).First(taskModel)
+	dbRt := core.Db.Where("id = ?", editInfo.ID).First(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
 
-	err = task.CheckTaskSchedule(taskInfo.Schedule)
+	err = task.CheckTaskSchedule(editInfo.Schedule)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
 	}
 
 	//解析 assert脚本是否正确
-	if len(taskInfo.Assert) > 0 {
-		err := task.CheckTaskAssertJavascriptCode(taskInfo.Assert)
+	if len(editInfo.Assert) > 0 {
+		err := task.CheckTaskAssertJavascriptCode(editInfo.Assert)
 		if err != nil {
 			return response.Resp().Error(2154646, "JS断言代码有错误", nil)
 		}
 	}
-	taskModel.Name = taskInfo.Name
-	taskModel.Command = taskInfo.Command
-	taskModel.Schedule = taskInfo.Schedule
-	taskModel.ExecType = taskInfo.ExecType
-	taskModel.IsDisable = taskInfo.IsDisable
-	taskModel.ExecStrategy = taskInfo.ExecStrategy
-	taskModel.RetryTimes = taskInfo.RetryTimes
-	taskModel.RetryInterval = taskInfo.RetryInterval
-	taskModel.Assert = taskInfo.Assert
+	if len(editInfo.ResultHandler) > 0 {
+		err := task.CheckTaskAssertJavascriptCode(editInfo.ResultHandler)
+		if err != nil {
+			return response.Resp().Error(2154646, "结果handler JS代码有错误", nil)
+		}
+	}
+
+	taskModel.Name = editInfo.Name
+	taskModel.Command = editInfo.Command
+	taskModel.Schedule = editInfo.Schedule
+	taskModel.ExecType = editInfo.ExecType
+	taskModel.IsDisable = editInfo.IsDisable
+	taskModel.ExecStrategy = editInfo.ExecStrategy
+	taskModel.RetryTimes = editInfo.RetryTimes
+	taskModel.RetryInterval = editInfo.RetryInterval
+	taskModel.Assert = editInfo.Assert
+	taskModel.ResultHandler = editInfo.ResultHandler
 	dbRt = core.Db.Save(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "update fail", nil)
 	}
-	err = task.Manager.UpdateTask(taskInfo.ID)
+	err = task.Manager.UpdateTask(editInfo.ID)
 	if err != nil {
-		return response.Resp().Success("update success, but task update fail", taskInfo)
+		return response.Resp().Success("update success, but task update fail", editInfo)
 	}
-	return response.Resp().Success("update success", taskInfo)
+	return response.Resp().Success("update success", editInfo)
 }
 
 func DeleteTask(context *context.Context) *response.Response {
