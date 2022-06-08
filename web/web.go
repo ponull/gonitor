@@ -86,7 +86,7 @@ func StartService() {
 	}
 	r.GET("/manifest.json", html.Manifest)
 	r.GET("/logo192.png", html.Logo)
-
+	r.NoRoute(html.Index)
 	kernel.Load()
 	routes.Load(r)
 	r.Run(core.Config.HttpServer.Host + ":" + core.Config.HttpServer.Post)
