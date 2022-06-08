@@ -35,11 +35,13 @@ func initLog() {
 
 func initDb() {
 	if _, err := os.Stat(core.Config.Sqlite.DbPath); err != nil {
-		fmt.Printf("database does not exist\n")
+		fmt.Printf("未找到数据库\n")
+		fmt.Printf("新建空数据库\n")
 		_, err := os.Create(core.Config.Sqlite.DbPath)
 		if err != nil {
-			log.Panic("Unable to create database")
+			fmt.Printf("创建数据库失败\n%s\n", err)
 		}
+		fmt.Printf("创建数据库成功\n")
 	}
 	//db, err := gorm.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/jd_promotion?charset=utf8mb4&parseTime=True&loc=Local")
 	db, err := gorm.Open("sqlite3", core.Config.Sqlite.DbPath)

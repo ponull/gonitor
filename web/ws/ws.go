@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"log"
@@ -71,11 +70,9 @@ func (manager *Manager) startKeepAliveService() {
 
 func (manager *Manager) RegisterClient(client *Client) {
 	manager.Register <- client
-	fmt.Println(manager.Register)
 }
 func (manager *Manager) UnregisterClient(client *Client) {
 	manager.Unregister <- client
-	fmt.Println(manager.Unregister)
 }
 
 //WsClient gin 处理 websocket handler
