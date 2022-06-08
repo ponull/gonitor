@@ -7,6 +7,7 @@ import (
 	"gonitor/web/routes"
 	"gonitor/web/ws"
 	"gonitor/web/yogo"
+	"net/http"
 )
 
 //func init() {
@@ -41,10 +42,51 @@ import (
 //	}
 //}
 
+type HtmlHandler struct{}
+
+func NewHtmlHandler() *HtmlHandler {
+	return &HtmlHandler{}
+}
+
+// RedirectIndex 重定向
+func (h *HtmlHandler) RedirectIndex(c *gin.Context) {
+	c.Redirect(http.StatusFound, "/ui")
+	return
+}
+
+func (h *HtmlHandler) Index(c *gin.Context) {
+	c.Header("content-type", "text/html;charset=utf-8")
+	c.String(200, string(Html))
+	return
+}
+
+func (h *HtmlHandler) Manifest(c *gin.Context) {
+	c.Header("content-type", "text/html;charset=utf-8")
+	c.String(200, string(Manifest))
+	return
+}
+
+func (h *HtmlHandler) Logo(c *gin.Context) {
+	c.Header("content-type", "text/html;charset=utf-8")
+	c.String(200, string(Logo))
+	return
+}
+
 func StartService() {
 	defer yogo.Db.Close()
 	ws.StartAllService()
 	r := gin.Default()
+	//静态资源
+	r.StaticFS("/static", http.FS(NewResource()))
+	//ui路由
+	html := NewHtmlHandler()
+	group := r.Group("/")
+	{
+		group.GET("", html.Index)
+	}
+	r.GET("/manifest.json", html.Manifest)
+	r.GET("/logo192.png", html.Logo)
+
 	kernel.Load()
 	routes.Load(r)
 	r.Run(core.Config.HttpServer.Host + ":" + core.Config.HttpServer.Post)

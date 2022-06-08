@@ -8,7 +8,7 @@ import (
 )
 
 func config(router group) {
-	router.Registered(GET, "/", controller.Index)
+	//router.Registered(GET, "/", controller.Index)
 	router.Registered(ANY, "/addTask", controller.AddTask)
 	router.Registered(ANY, "/editTask", controller.EditTask)
 	router.Registered(ANY, "/deleteTask", controller.DeleteTask)
