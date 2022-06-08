@@ -24,6 +24,7 @@ func (TaskLog) TableName() string {
 
 func (tl *TaskLog) List(pagination *Pagination, where OrmWhereMap) (*Pagination, error) {
 	var logList []*TaskLog
+	pagination.ormWhere = where
 	GetConn().Scopes(Paginate(logList, pagination)).Where(where).Find(&logList)
 	pagination.Rows = logList
 	return pagination, nil

@@ -25,7 +25,7 @@ export const TaskLogTable = (props) => {
     const {taskId} = props
     const [logList, setLogList] = useState([]);
     useEffect(() => {
-        httpRequest.get(`task/log/list/running/${taskId}`)
+        httpRequest.get(`/task/log/list/running/${taskId}`)
             .then(res => {
                 const data = res.data;
                 setLogList(data)

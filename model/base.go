@@ -29,6 +29,7 @@ type Pagination struct {
 	TotalRows  int64       `json:"total_rows"`
 	TotalPages int         `json:"total_pages"`
 	Rows       interface{} `json:"list"`
+	ormWhere   interface{}
 }
 
 func InitPagination(context *context.Context) *Pagination {
@@ -68,7 +69,7 @@ func (p *Pagination) GetSort() string {
 
 func Paginate(value interface{}, pagination *Pagination) func(db *gorm.DB) *gorm.DB {
 	var totalRows int64
-	GetConn().Model(value).Count(&totalRows)
+	GetConn().Model(value).Where(pagination.ormWhere).Count(&totalRows)
 	pagination.TotalRows = totalRows
 	totalPages := int(math.Ceil(float64(totalRows) / float64(pagination.Limit)))
 	pagination.TotalPages = totalPages
