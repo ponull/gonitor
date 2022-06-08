@@ -1,7 +1,12 @@
 import Request from './Request'
 
+let baseUrl = ""
+if (process.env.NODE_ENV == "development") {
+    baseUrl = 'http://127.0.0.1:8899'
+}
+
 const httpRequest = new Request({
-    baseURL: "http://127.0.0.1:8899",
+    baseURL: baseUrl,
     timeout: 30 * 1000,
     // maxContentLength: 100000000,
     // maxBodyLength: 1000000000,
