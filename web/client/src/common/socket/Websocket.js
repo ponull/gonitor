@@ -1,7 +1,11 @@
 import Socket from "./Socket";
 import {useEffect, useRef, useState} from "react";
 
-const url = `ws://127.0.0.1:8899/ws/${generateClientId()}`;
+let baseUrl = window.location.host
+if (process.env.NODE_ENV == "development") {
+    baseUrl = 'http://127.0.0.1:8899'
+}
+const url = `ws://${baseUrl}/ws/${generateClientId()}`;
 
 export const SubscribeType = {
     TASK: "TASK",
