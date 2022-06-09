@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gonitor/web/controller"
 	"gonitor/web/kernel"
+	"gonitor/web/middleware"
 	"gonitor/web/ws"
 )
 
@@ -16,7 +17,7 @@ func config(router group) {
 		systemGroup.Registered(GET, "/memory", controller.GetMemoryInfo)
 		systemGroup.Registered(GET, "/disk", controller.GetDiskInfo)
 		systemGroup.Registered(GET, "/net", controller.GetDiskInfo)
-	})
+	}, middleware.CheckToken)
 	router.Group("/task", func(taskGroup group) {
 		taskGroup.Registered(POST, "", controller.AddTask)
 		taskGroup.Registered(PUT, "/:task_id", controller.EditTask)
@@ -32,6 +33,9 @@ func config(router group) {
 			logGroup.Registered(GET, "/output/:log_id", controller.GetTaskLogExecOutput)
 		})
 		//taskGroup.Registered(GET, "/stop/kill", controller.StopTask)
+	}, middleware.CheckToken)
+	router.Group("/user", func(userGroup group) {
+		userGroup.Registered(POST, "/login", controller.UserLogin)
 	})
 	router.Group("/push", func(pushGroup group) {
 		pushGroup.Registered(GET, "/test", controller.TestPush)

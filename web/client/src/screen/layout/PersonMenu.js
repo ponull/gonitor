@@ -46,13 +46,13 @@ export const PersonMenu = () => {
                 }}
             >
                 <List>
-                    <ListItem button>
+                    <ListItem button disabled>
                         <ListItemIcon>
                             <AccountCircleIcon/>
                         </ListItemIcon>
                         <ListItemText primary="Profile"/>
                     </ListItem>
-                    <ListItem button>
+                    <ListItem button disabled>
                         <ListItemIcon>
                             <SettingsIcon/>
                         </ListItemIcon>

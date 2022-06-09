@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/dop251/goja"
 	"github.com/robfig/cron/v3"
-	"gonitor/model"
 	"gonitor/service/wecom"
 	"log"
 )
@@ -42,19 +41,7 @@ func GetTaskAssertResult(output string, jsCode string) bool {
 	return assertFn(output)
 }
 
-func ExecResultHandler(taskInfo *model.Task, logInfo *model.TaskLog, resultHandlerCode string) {
-	var resultInfo = map[string]interface{}{
-		"exec_time":    logInfo.ExecTime.Format("2006-01-02 15:04:05"),
-		"running_time": logInfo.RunningTime,
-		"retry_times":  logInfo.RetryTimes,
-		"task_info": map[string]interface{}{
-			"id":            taskInfo.ID,
-			"name":          taskInfo.Name,
-			"exec_type":     taskInfo.ExecType,
-			"command":       taskInfo.Command,
-			"exec_strategy": taskInfo.ExecStrategy,
-		},
-	}
+func ExecResultHandler(resultHandlerCode string, execResult bool, resultHandlerData map[string]interface{}) {
 	vm := goja.New()
 	_, err := vm.RunString(resultHandlerCode)
 	if err != nil {
@@ -66,7 +53,7 @@ func ExecResultHandler(taskInfo *model.Task, logInfo *model.TaskLog, resultHandl
 		log.Println("JS handler代码main方法格式不正确")
 		return
 	}
-	handlerRt := handlerFn(logInfo.ExecResult, resultInfo)
+	handlerRt := handlerFn(execResult, resultHandlerData)
 	fmt.Println(handlerRt)
 	if handlerRt["push"].(bool) {
 		wecom.SendTextMessage(handlerRt["content"].(string))

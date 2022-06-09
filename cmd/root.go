@@ -13,7 +13,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gonitor",
-	Short: "A brief description of your application",
+	Short: "Script Dashboard",
 	Long:  CmdLogo,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
@@ -38,5 +38,5 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	//rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

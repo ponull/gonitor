@@ -42,7 +42,7 @@ export default function Users() {
     // ])
     return (
         <React.Fragment>
-            <Title>Real Time Users</Title>
+            <Title>Real Time Users(coming soon)</Title>
             <Table size="small">
                 <TableHead>
                     <TableRow>

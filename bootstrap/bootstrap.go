@@ -1,11 +1,13 @@
 package bootstrap
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"gonitor/core"
 	"gonitor/model"
+	"gonitor/utils"
 	"log"
 	"os"
 	"path"
@@ -57,4 +59,22 @@ func initDb() {
 	db.AutoMigrate(&model.User{})
 	db.AutoMigrate(&model.UserToken{})
 	core.Db = db
+	//检查是否有admin这个用户 没有就加入
+	adminUser := &model.User{}
+	dbRt := db.Where("login_account = ?", "admin").First(adminUser)
+	if dbRt.Error != nil && errors.Is(dbRt.Error, gorm.ErrRecordNotFound) {
+		fmt.Println("未找到admin用户，准备初始化")
+		adminUser.LoginAccount = "admin"
+		adminUser.Password = utils.Md5("123456")
+		adminUser.Avatar = "https://mui.com/static/images/avatar/1.jpg"
+		dbRt = db.Create(adminUser)
+		if dbRt.Error != nil {
+			fmt.Println("创建admin用户失败")
+		} else {
+			fmt.Println("创建admin用户成功")
+			fmt.Println("用户名: admin")
+			fmt.Println("密码: 123456")
+		}
+		//没有就主动插入admin用户
+	}
 }

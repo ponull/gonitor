@@ -3,7 +3,7 @@ package model
 import (
 	"errors"
 	"github.com/jinzhu/gorm"
-	"gonitor/web/yogo"
+	"gonitor/core"
 )
 
 type User struct {
@@ -23,7 +23,7 @@ func (u *User) RegisterNewUser() error {
 	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return errors.New("已存在的用户名")
 	}
-	result = yogo.Db.Create(u)
+	result = core.Db.Create(u)
 	if result.Error != nil { //找到了
 		return errors.New("注册失败, 新建用户失败")
 	}

@@ -6,7 +6,6 @@ import (
 	"gonitor/web/kernel"
 	"gonitor/web/routes"
 	"gonitor/web/ws"
-	"gonitor/web/yogo"
 	"net/http"
 )
 
@@ -73,7 +72,7 @@ func (h *HtmlHandler) Logo(c *gin.Context) {
 }
 
 func StartService() {
-	defer yogo.Db.Close()
+	defer core.Db.Close()
 	ws.StartAllService()
 	r := gin.Default()
 	//静态资源

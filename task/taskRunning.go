@@ -52,12 +52,12 @@ func newTaskExecStat() *taskExecStat {
 func (ri *RunningInstance) stop() {
 	ri.Process.Kill()
 	//ri.TaskLogInfo.Output = "主动停止"
-	ri.TaskLogInfo.Status = false
-	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecTime.Unix()
-	core.Db.Save(ri.TaskLogInfo)
-
-	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
-	ioutil.WriteFile(filePath, []byte("主动停止"), 0666)
+	//ri.TaskLogInfo.Status = false
+	//ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecTime.Unix()
+	//core.Db.Save(ri.TaskLogInfo)
+	//
+	//filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
+	//ioutil.WriteFile(filePath, []byte("主动停止"), 0666)
 }
 
 func NewTaskRunningInstance(taskInfo *model.Task) *RunningInstance {
@@ -69,8 +69,9 @@ func NewTaskRunningInstance(taskInfo *model.Task) *RunningInstance {
 func (ri *RunningInstance) run() error {
 	execStat := newTaskExecStat()
 	ri.execResultList = append(ri.execResultList, execStat)
-	execStat.Command = parseTask(ri.taskInfo.Command, ri.taskInfo.ExecType)
-	cmd := exec.Command("cmd", "/C", execStat.Command)
+	command, args := parseTask(ri.taskInfo.Command, ri.taskInfo.ExecType)
+	cmd := exec.Command(command, args...)
+	execStat.Command = cmd.String()
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
@@ -119,6 +120,7 @@ func (ri *RunningInstance) beforeRun() error {
 		ExecType:   ri.taskInfo.ExecType,
 		ExecTime:   time.Now(),
 		OutputFile: fmt.Sprintf("%d/%s_%s.txt", ri.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
+		RetryTimes: 0,
 	}
 	dbRt := core.Db.Create(taskLogModel)
 	if dbRt.Error != nil {
@@ -141,7 +143,8 @@ func (ri *RunningInstance) afterRun() {
 	ri.writeLogOutput()
 	//执行结果判断推送等
 	if len(ri.taskInfo.ResultHandler) > 0 {
-		ExecResultHandler(ri.taskInfo, ri.TaskLogInfo, ri.taskInfo.ResultHandler)
+		//组装结果信息  不交到外面获取了 外面太乱了
+		ExecResultHandler(ri.taskInfo.ResultHandler, ri.TaskLogInfo.ExecResult, ri.GetResultHandlerData())
 	}
 }
 
@@ -196,4 +199,41 @@ func (ri *RunningInstance) generateExecLog() string {
 		execLog += "\n\n\n"
 	}
 	return execLog
+}
+
+func (ri *RunningInstance) GetResultHandlerData() map[string]interface{} {
+	resultList := make([]map[string]interface{}, 0)
+	for _, resultItem := range ri.execResultList {
+		result := map[string]interface{}{
+			"command":              resultItem.Command,
+			"command_start_status": resultItem.CommandStartStatus,
+			"command_start_error":  resultItem.CommandStartError,
+			"command_exec_status":  resultItem.CommandExecStatus,
+			"command_exec_error":   resultItem.CommandExecError,
+			"assert_result":        resultItem.AssertResult,
+			"task_result":          resultItem.TaskResult,
+		}
+		resultList = append(resultList, result)
+	}
+	fmt.Println(resultList)
+	//resultList, err := json.Marshal(ri.execResultList)
+	//fmt.Println(err)
+	//var resultListMap map[string]interface{}
+	//json.Unmarshal(resultList, &resultListMap)
+	//fmt.Println(resultListMap)
+	//传入的数据
+	return map[string]interface{}{
+		"id":           ri.TaskLogInfo.ID,
+		"exec_time":    ri.TaskLogInfo.ExecTime.Format("2006-01-02 15:04:05"),
+		"running_time": ri.TaskLogInfo.RunningTime,
+		"retry_times":  ri.TaskLogInfo.RetryTimes,
+		"result_list":  resultList,
+		"task_info": map[string]interface{}{
+			"id":            ri.taskInfo.ID,
+			"name":          ri.taskInfo.Name,
+			"exec_type":     ri.taskInfo.ExecType,
+			"command":       ri.taskInfo.Command,
+			"exec_strategy": ri.taskInfo.ExecStrategy,
+		},
+	}
 }
