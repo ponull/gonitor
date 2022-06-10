@@ -12,6 +12,8 @@ const httpRequest = new Request({
     // maxBodyLength: 1000000000,
     interceptors: {
         requestInterceptors: (config) => {
+            let token = window.localStorage.getItem('token')
+            config.headers.Token = token
             // console.log('触发myRequest1的请求成功拦截器')
             return config
         },
@@ -21,6 +23,9 @@ const httpRequest = new Request({
         },
         responseInterceptors: (res) => {
             // console.log('触发myRequest1的响应成功拦截器')
+            if(res.data.code === 100001){
+                window.location.href = '/'
+            }
             return res
         },
         responseInterceptorsCatch: (err) => {
@@ -29,5 +34,4 @@ const httpRequest = new Request({
         }
     }
 })
-
 export default httpRequest

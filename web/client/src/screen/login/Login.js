@@ -3,23 +3,22 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 import Link from '@mui/material/Link';
-import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {useNavigate} from "react-router-dom";
+import httpRequest from "../../common/request/HttpRequest";
+import {useSnackbar} from "notistack";
 
 function Copyright(props) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
             {'Copyright © '}
-            <Link color="inherit" href="https://mui.com/">
-                Your Website
+            <Link color="inherit" href="http://www.honghea.com/">
+                Honghea
             </Link>{' '}
             {new Date().getFullYear()}
             {'.'}
@@ -30,19 +29,32 @@ function Copyright(props) {
 const theme = createTheme();
 
 export const Login = () => {
+    const {enqueueSnackbar} = useSnackbar();
     const handleSubmit = (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
-        });
+        httpRequest.post("/user/login", data)
+            .then(res => {
+                if (res.code !== 0){
+                    enqueueSnackbar(res.message, {variant: "error"});
+                    return
+                }
+                window.localStorage.setItem("token", res.data);
+                navigate('/admin');
+            })
+            .catch(err => {
+                enqueueSnackbar("网络错误", {variant: "error"});
+            })
+        // console.log({
+        //     email: data.get('email'),
+        //     password: data.get('password'),
+        // });
     };
-
     const navigate = useNavigate();
-    const doLogin = () => {
-        navigate('/admin');
-    }
+    // const [loginAccount, setLoginAccount] = React.useState("");
+    // const handleLoginAccountChange = (event) => {setLoginAccount(event.target.value)}
+    // const [password, setPassword] = React.useState("");
+    // const handlePasswordChange = (event) => {setPassword(event.target.value)}
 
     return (
         <ThemeProvider theme={theme}>
@@ -50,7 +62,7 @@ export const Login = () => {
                 <CssBaseline />
                 <Box
                     sx={{
-                        marginTop: 8,
+                        marginTop: 12,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -67,47 +79,30 @@ export const Login = () => {
                             margin="normal"
                             required
                             fullWidth
-                            id="email"
-                            label="Email Address"
-                            name="email"
-                            autoComplete="email"
+                            // value={loginAccount}
+                            // onChange={handleLoginAccountChange}
+                            label="Login Account"
+                            name="login_account"
                             autoFocus
                         />
                         <TextField
                             margin="normal"
                             required
                             fullWidth
+                            // value={password}
+                            // onChange={handlePasswordChange}
                             name="password"
                             label="Password"
                             type="password"
-                            id="password"
-                            autoComplete="current-password"
-                        />
-                        <FormControlLabel
-                            control={<Checkbox value="remember" color="primary" />}
-                            label="Remember me"
                         />
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
                             sx={{ mt: 3, mb: 2 }}
-                            onClick={doLogin}
                         >
                             Sign In
                         </Button>
-                        <Grid container>
-                            <Grid item xs>
-                                <Link href="#" variant="body2">
-                                    Forgot password?
-                                </Link>
-                            </Grid>
-                            <Grid item>
-                                <Link href="#" variant="body2">
-                                    {"Don't have an account? Sign Up"}
-                                </Link>
-                            </Grid>
-                        </Grid>
                     </Box>
                 </Box>
                 <Copyright sx={{ mt: 8, mb: 4 }} />

@@ -3,7 +3,7 @@ package model
 import (
 	"errors"
 	"github.com/jinzhu/gorm"
-	"gonitor/web/yogo"
+	"gonitor/core"
 )
 
 type User struct {
@@ -19,13 +19,23 @@ func (User) TableName() string {
 }
 
 func (u *User) RegisterNewUser() error {
+	if len(u.LoginAccount) < 6 {
+		return errors.New("登录账号需要大于6个字符")
+	}
 	result := GetConn().Where("login_account = ?", u.LoginAccount).First(u)
 	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return errors.New("已存在的用户名")
 	}
-	result = yogo.Db.Create(u)
+	result = core.Db.Create(u)
 	if result.Error != nil { //找到了
 		return errors.New("注册失败, 新建用户失败")
 	}
+	return nil
+}
+
+func (u *User) List(pagination *Pagination, where OrmWhereMap) error {
+	var logList []*User
+	GetConn().Scopes(Paginate(logList, pagination, where)).Where(where).Find(&logList)
+	pagination.Rows = logList
 	return nil
 }

@@ -9,7 +9,7 @@ import Container from "@mui/material/Container";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
 import RunCircleIcon from "@mui/icons-material/RunCircle";
 import {InfoItem} from "./InfoItem";
-import {useInterval} from "../../common/utils/hook";
+import {useInterval, useScreenSize} from "../../common/utils/hook";
 import moment from "moment";
 import ReactECharts from "echarts-for-react";
 import {TaskLogTable} from "./TaskRunningLog";
@@ -17,6 +17,7 @@ import {TabContext, TabList, TabPanel} from "@mui/lab";
 import Box from "@mui/material/Box";
 import {Tab} from "@mui/material";
 import {TaskEndedLog} from "./TaskEndedLog";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const TaskInfo = () => {
     const params = useParams()
@@ -70,10 +71,10 @@ export const TaskInfo = () => {
                             <Tab label="Ended" value="ended" />
                         </TabList>
                     </Box>
-                    <TabPanel value="running">
+                    <TabPanel value="running" sx={{p:1}}>
                         <TaskLogTable taskId={taskId}/>
                     </TabPanel>
-                    <TabPanel value="ended">
+                    <TabPanel value="ended" sx={{p:1}}>
                         <TaskEndedLog taskId={taskId}/>
                     </TabPanel>
                 </TabContext>
@@ -111,11 +112,13 @@ const TaskInfoContent = (props) => {
         setEchartsOption(newOption);
         echartsRef && echartsRef.current.getEchartsInstance().setOption(newOption);
     }, [usedList]);
+
+    const {isDesktop} = useScreenSize();
     return (
         <React.Fragment>
             <Paper>
                 <Grid container sx={{p: 2, mt: 2}}>
-                    <Grid item xs={6}>
+                    <Grid item xs={12} md={6}>
                         <InfoItem title="Name" value={taskInfo.name}/>
                         <InfoItem title="Schedule" value={taskInfo.schedule}/>
                         <InfoItem title="Execute Type" value={taskInfo.exec_type}/>
@@ -125,8 +128,8 @@ const TaskInfoContent = (props) => {
                         <InfoItem title="Next run time" value={taskInfo.next_run_time}/>
                         <InfoItem title="Running Count" value={taskInfo.running_count}/>
                     </Grid>
-                    <Grid item xs={6}>
-                        <ReactECharts ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
+                    <Grid item xs={12} md={6}>
+                        <ReactECharts style={{height:isDesktop?300:200}} ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
                     </Grid>
                 </Grid>
             </Paper>

@@ -17,6 +17,7 @@ import {PersonMenu} from "./PersonMenu";
 import {LanguageMenu} from "./LanguageMenu";
 import {NotificationDrawer} from "./NotificationDrawer";
 import {Outlet} from 'react-router-dom'
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 function Copyright(props) {
     return (
@@ -80,7 +81,9 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
 const mdTheme = createTheme();
 
 function DashboardContent() {
-    const [open, setOpen] = React.useState(true);
+    //媒体查询  小于600px 就默认不打开侧边栏了 占位置
+    const isDesktop = useMediaQuery('(min-width:600px)');
+    const [open, setOpen] = React.useState(isDesktop);
     const toggleDrawer = () => {
         setOpen(!open);
     };

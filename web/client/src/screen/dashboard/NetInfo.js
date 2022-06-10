@@ -35,7 +35,7 @@ export const NetInfo = () => {
     return (
         <React.Fragment>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
-                <Title>Network</Title>
+                <Title>Network(coming soon)</Title>
                 <Divider/>
                 <Grid container mt={2}>
                     <Grid item xs={12}>

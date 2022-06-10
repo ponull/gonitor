@@ -11,8 +11,9 @@ import httpRequest from "../../common/request/HttpRequest";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
 import {SystemMonitorTypeEnum} from "../../enum/subsciption";
 import {useState} from "react";
-import {useInterval} from "../../common/utils/hook";
+import {useInterval, useScreenSize} from "../../common/utils/hook";
 import moment from "moment";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const MemoryInfo = () => {
     const echartsRef = useRef(null);
@@ -65,16 +66,18 @@ export const MemoryInfo = () => {
                 setMemoryInfo(res.data);
             })
     }, [])
+    const {isDesktop} = useScreenSize();
+    const size = isDesktop ? 150 : 80;
     return (
         <React.Fragment>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
                 <Title>Memory</Title>
                 <Divider/>
                 <Grid container mt={2}>
-                    <Grid item xs={2}>
-                        <CircularProgressWithLabel value={memoryInfo.used_percent}/>
+                    <Grid item xs={4} md={2}>
+                        <CircularProgressWithLabel value={memoryInfo.used_percent} size={size}/>
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid item xs={8} md={4}>
                         <Grid container spacing={1}>
                             <InfoItem title="Total" value={bytesToSize(memoryInfo.total)}/>
                             <InfoItem title="Used" value={bytesToSize(memoryInfo.used)}/>
@@ -82,8 +85,8 @@ export const MemoryInfo = () => {
                             <InfoItem title="Used Percent" value={`${memoryInfo.used_percent.toFixed(2)}%`}/>
                         </Grid>
                     </Grid>
-                    <Grid item xs={6}>
-                        <ReactECharts  ref={(e) => (echartsRef.current = e)}  option={echartsOption}/>
+                    <Grid item xs={12} md={6}>
+                        <ReactECharts style={{height:isDesktop?300:200}}  ref={(e) => (echartsRef.current = e)}  option={echartsOption}/>
                     </Grid>
                 </Grid>
             </Paper>

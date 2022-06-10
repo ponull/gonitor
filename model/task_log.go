@@ -22,10 +22,9 @@ func (TaskLog) TableName() string {
 	return "task_log"
 }
 
-func (tl *TaskLog) List(pagination *Pagination, where OrmWhereMap) (*Pagination, error) {
+func (tl *TaskLog) List(pagination *Pagination, where OrmWhereMap) error {
 	var logList []*TaskLog
-	pagination.ormWhere = where
-	GetConn().Scopes(Paginate(logList, pagination)).Where(where).Find(&logList)
+	GetConn().Scopes(Paginate(logList, pagination, where)).Where(where).Find(&logList)
 	pagination.Rows = logList
-	return pagination, nil
+	return nil
 }

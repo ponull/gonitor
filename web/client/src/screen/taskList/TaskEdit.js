@@ -56,7 +56,7 @@ export const TaskEdit = forwardRef((props, ref) => {
             onClose={handleClose}
             TransitionComponent={Transition}
         >
-            <AppBar sx={{position: 'relative'}}>
+            <AppBar position="sticky">
                 <Toolbar>
                     <IconButton
                         edge="start"

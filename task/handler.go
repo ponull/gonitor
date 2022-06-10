@@ -59,30 +59,30 @@ func NewExecJobWrapper(taskInfo *model.Task) *ExecJobWrapper {
 	}
 }
 
-func parseTask(command string, taskType string) string {
+func parseTask(command string, taskType string) (string, []string) {
 	switch taskType {
 	case CmdTask:
-		return command
+		return "cmd", []string{"/C", command}
 	case HttpTask:
-		return "curl -L " + command
+		return "curl", []string{"-L", command}
 	case FileTask:
 		return parseFileTask(command)
 	}
-	return "echo '不支持的任务类型'"
+	return "cmd", []string{"/C", "echo", "不支持的任务类型"}
 }
 
-func parseFileTask(fileName string) string {
+func parseFileTask(fileName string) (string, []string) {
 	fileSuffix := path.Ext(fileName)
 	if !path.IsAbs(fileName) { //不是绝对路径就从自己下面找  因为考虑到可能会执行其他项目下面的文件做考虑
 		scriptRoot := core.Config.Script.Folder
 		fileName = scriptRoot + "/" + fileName
 	}
 	if fileSuffix == ".js" {
-		return "node " + fileName
+		return "node", []string{fileName}
 	} else if fileSuffix == ".py" {
-		return "python " + fileName
+		return "python", []string{fileName}
 	} else if fileSuffix == ".php" {
-		return "php " + fileName
+		return "php", []string{fileName}
 	}
-	return "echo '不支持的文件类型'"
+	return "echo", []string{"'不支持的文件类型'"}
 }

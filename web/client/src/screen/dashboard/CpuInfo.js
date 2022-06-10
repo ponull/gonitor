@@ -11,7 +11,8 @@ import httpRequest from "../../common/request/HttpRequest";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
 import {SystemMonitorTypeEnum} from "../../enum/subsciption";
 import moment from "moment";
-import {useInterval} from "../../common/utils/hook";
+import {useInterval, useScreenSize} from "../../common/utils/hook";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const CpuInfo = () => {
     const echartsRef = useRef(null);
@@ -58,24 +59,27 @@ export const CpuInfo = () => {
                 setCpuInfo(res.data);
             })
     }, [])
+
+    const {isDesktop} = useScreenSize();
+    const size = isDesktop ? 150 : 80;
     return (
         <React.Fragment>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
                 <Title>Cpu</Title>
                 <Divider/>
                 <Grid container mt={2} spacing={3}>
-                    <Grid item xs={2}>
-                        <CircularProgressWithLabel value={cpuInfo.total_percent} size={150}/>
+                    <Grid item xs={4} md={2}>
+                        <CircularProgressWithLabel value={cpuInfo.total_percent} size={size}/>
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid item xs={8} md={4}>
                         <Grid container spacing={1}>
                             <InfoItem title="Physical Count" value={cpuInfo.physical_cores_count}/>
                             <InfoItem title="Logical Count" value={cpuInfo.logical_cores_count}/>
                             <InfoItem title="Cpu Percent" value={`${cpuInfo.total_percent.toFixed(2)}%`}/>
                         </Grid>
                     </Grid>
-                    <Grid item xs={6}>
-                        <ReactECharts  ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
+                    <Grid item xs={12} md={6}>
+                        <ReactECharts style={{height:isDesktop?300:200}}  ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
                     </Grid>
                 </Grid>
             </Paper>

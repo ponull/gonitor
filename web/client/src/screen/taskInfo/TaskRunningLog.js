@@ -7,18 +7,14 @@ import RunCircleIcon from "@mui/icons-material/RunCircle";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import StopCircleIcon from "@mui/icons-material/StopCircle";
 import IconButton from "@mui/material/IconButton";
-import {Button, Collapse, DialogActions, DialogContent, DialogContentText, DialogTitle} from "@mui/material";
-import Box from "@mui/material/Box";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import httpRequest from "../../common/request/HttpRequest";
 import Table from "@mui/material/Table";
 import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
-import Dialog from "@mui/material/Dialog";
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import Paper from "@mui/material/Paper";
 import {TaskExecOutputDialog} from "./TaskExecOutputDialog";
+import TableContainer from "@mui/material/TableContainer";
 
 
 export const TaskLogTable = (props) => {
@@ -44,7 +40,8 @@ export const TaskLogTable = (props) => {
     })
     return (
         <React.Fragment>
-            <Paper>
+
+            <TableContainer component={Paper}>
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -61,7 +58,7 @@ export const TaskLogTable = (props) => {
                         ))}
                     </TableBody>
                 </Table>
-            </Paper>
+            </TableContainer>
 
         </React.Fragment>
     )

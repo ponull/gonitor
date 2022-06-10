@@ -34,10 +34,10 @@ export const LanguageMenu = () => {
                 }}
             >
                 <List>
-                    <ListItem button>
+                    <ListItem button disabled>
                         <ListItemText primary="简体中文"/>
                     </ListItem>
-                    <ListItem button>
+                    <ListItem button disabled>
                         <ListItemText primary="English"/>
                     </ListItem>
                 </List>

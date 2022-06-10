@@ -1,8 +1,14 @@
 package middleware
 
 import (
+	"errors"
+	"github.com/jinzhu/gorm"
+	"gonitor/core"
+	"gonitor/model"
 	"gonitor/web/context"
+	"gonitor/web/response/errorCode"
 	"net/http"
+	"strconv"
 )
 
 func Cors(context *context.Context) {
@@ -18,18 +24,18 @@ func Cors(context *context.Context) {
 	//context.Next()
 }
 
-//func CheckToken(c *context.Context) {
-//	token := c.Request.Header["Token"]
-//	userToken := model.UserToken{}
-//	dbResult := yogo.Db.Where("token = ?", token).Find(&userToken)
-//	//没有找到  就返回错误就好了
-//	if dbResult.Error != nil && errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
-//		result := map[string]interface{}{
-//			"code":    10001,
-//			"message": "登录状态失效, 请重新登录",
-//			"data":    nil,
-//		}
-//		c.AbortWithStatusJSON(200, result)
-//	}
-//	c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))
-//}
+func CheckToken(c *context.Context) {
+	token := c.Request.Header["Token"]
+	userToken := model.UserToken{}
+	dbResult := core.Db.Where("token = ?", token).Find(&userToken)
+	//没有找到  就返回错误就好了
+	if dbResult.Error != nil && errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
+		result := map[string]interface{}{
+			"code":    errorCode.TOKEN_EXPIRED,
+			"message": "登录状态失效, 请重新登录",
+			"data":    nil,
+		}
+		c.AbortWithStatusJSON(200, result)
+	}
+	c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))
+}

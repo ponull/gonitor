@@ -42,7 +42,7 @@ export const SystemInfo = () => {
                 <Title>System</Title>
                 <Divider/>
                 <Grid container sx={{mt: 2}} spacing={3}>
-                    <Grid item xs={7}>
+                    <Grid item xs={12} md={7}>
                         <Grid container spacing={1}>
                             <InfoItem title="OS" value={systemInfo.os}/>
                             <InfoItem title="Platform" value={systemInfo.platform}/>
@@ -51,7 +51,7 @@ export const SystemInfo = () => {
                             <InfoItem title="Boot Time" value={systemInfo.boot_time}/>
                         </Grid>
                     </Grid>
-                    <Grid item xs={5}>
+                    <Grid item xs={12} md={5}>
                         <Grid container spacing={1}>
                             <InfoItem title="Task Count" value={taskOverviewInfo.task_count}/>
                             <InfoItem title="Task Enable Count" value={taskOverviewInfo.task_enable_count}/>
@@ -119,6 +119,7 @@ export const CircularProgressWithLabel = (props) => {
         const color = value > 90 ? '#FF0000' : value > 75 ? '#FFA500' : '#20a53a';
         newOption.graphic.style.text = `${valueInt}%`;
         newOption.graphic.style.fill = `${color}`;
+        newOption.graphic.style.fontSize = `${size>100?30:15}px`;
         newOption.series[0].data[0].value = `${valueInt}`;
         newOption.series[0].data[1].value = `${100 - valueInt}`;
         newOption.series[0].data[0].itemStyle.color = `${color}`;
@@ -129,7 +130,7 @@ export const CircularProgressWithLabel = (props) => {
     const [option, setOption] = React.useState(originOption);
     return (
         // <Box sx={{width: size, height: size}}>
-            <ReactECharts ref={(e) => (echartsRef.current = e)} option={option} style={{height:150,width:150}}/>
+            <ReactECharts ref={(e) => (echartsRef.current = e)} option={option} style={{height:size,width:size}}/>
         // </Box>
         // <Box sx={{ position: 'relative', display: 'inline-flex', flex: 1 }}>
         //     <CircularProgress variant="determinate" {...props} size={100}/>

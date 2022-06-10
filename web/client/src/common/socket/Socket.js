@@ -102,10 +102,13 @@ export default class Socket extends Heart {
                 this.send(this.options.heartMsg)
             })
             if (typeof callback === 'function') {
-                callback(event)
+                callback(event, this)
             } else {
                 typeof this.options.openCb === 'function' && this.options.openCb(event)
             }
+            setTimeout(()=>{
+                this.fireSend()
+            },100)
         }
     }
 
@@ -174,11 +177,28 @@ export default class Socket extends Heart {
      */
     send(data) {
         //这里只是push 进来  然后通过队列模式  等连接上了就去推送
-        if (this.ws.readyState !== this.ws.OPEN) {
-            throw new Error('Not connected to server, cannot push')
+        // if (this.ws.readyState !== this.ws.OPEN) {
+        //     throw new Error('Not connected to server, cannot push')
+        // }
+        // data = JSON.stringify(data)
+        this.messageQueue.push(data)
+        // this.ws.send(data)
+    }
+
+    //send message queue
+    fireSend() {
+        if (this.messageQueue.length > 0) {
+            if (this.ws.readyState !== this.ws.OPEN) {
+                return  //断开之后就不管了  等重连之后触发open又会启动这个方法
+            }
+            const data = JSON.stringify(this.messageQueue.shift())
+            this.ws.send(data)
+            this.fireSend()
+        }else{
+            setTimeout(() => {
+                this.fireSend()
+            }, 100)
         }
-        data = JSON.stringify(data)
-        this.ws.send(data)
     }
 
     /**
