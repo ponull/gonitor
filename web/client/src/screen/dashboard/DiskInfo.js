@@ -1,5 +1,4 @@
 import * as React from "react";
-import Typography from "@mui/material/Typography";
 import {CircularProgressWithLabel} from "./System";
 import Paper from "@mui/material/Paper";
 import Title from "./Title";
@@ -8,6 +7,7 @@ import Grid from "@mui/material/Grid";
 import {InfoItem} from "./InfoItem";
 import {useEffect, useState} from "react";
 import httpRequest from "../../common/request/HttpRequest";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const DiskInfo = () => {
     const [usedPercent, setUsedPercent] = useState(0);
@@ -27,6 +27,9 @@ export const DiskInfo = () => {
     useEffect(()=>{
         setUsedPercent(diskInfo.used / diskInfo.total * 100)
     },[diskInfo])
+
+    const isDesktop = useMediaQuery('(min-width:600px)');
+    const size = isDesktop ? 150 : 80;
     return (
         <React.Fragment>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column'}}>
@@ -34,7 +37,7 @@ export const DiskInfo = () => {
                 <Divider/>
                 <Grid container mt={2}>
                     <Grid item xs={4}>
-                        <CircularProgressWithLabel value={usedPercent}/>
+                        <CircularProgressWithLabel value={usedPercent} size={size}/>
                     </Grid>
                     <Grid item xs={8}>
                         <Grid container spacing={1}>

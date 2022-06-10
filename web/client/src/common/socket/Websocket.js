@@ -31,6 +31,25 @@ const wbSocket = new Socket({
             time: new Date().getTime()
         }
     },
+    openCb:(event,socket)=>{
+        //将所有的订阅内容重新发过去
+        for (let subscribeType in subscribed) {
+            const subscribeTypeItem = subscribed[subscribeType];
+            for (let targetId in subscribeTypeItem) {
+                //没有绑定事件就不发了  没有用
+                if(Object.keys(subscribeTypeItem[targetId]) === 0){
+                    continue
+                }
+                socket.send({
+                    event: EventType.SUBSCRIBE,
+                    data: JSON.stringify({
+                        type: subscribeType,
+                        id: parseInt(targetId),
+                    }),
+                })
+            }
+        }
+    },
     messageCb: (res) => {
         const {event, data} = res;
         switch (event) {

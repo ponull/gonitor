@@ -70,10 +70,10 @@ export const TaskInfo = () => {
                             <Tab label="Ended" value="ended" />
                         </TabList>
                     </Box>
-                    <TabPanel value="running">
+                    <TabPanel value="running" sx={{p:1}}>
                         <TaskLogTable taskId={taskId}/>
                     </TabPanel>
-                    <TabPanel value="ended">
+                    <TabPanel value="ended" sx={{p:1}}>
                         <TaskEndedLog taskId={taskId}/>
                     </TabPanel>
                 </TabContext>
@@ -115,7 +115,7 @@ const TaskInfoContent = (props) => {
         <React.Fragment>
             <Paper>
                 <Grid container sx={{p: 2, mt: 2}}>
-                    <Grid item xs={6}>
+                    <Grid item xs={12} md={6}>
                         <InfoItem title="Name" value={taskInfo.name}/>
                         <InfoItem title="Schedule" value={taskInfo.schedule}/>
                         <InfoItem title="Execute Type" value={taskInfo.exec_type}/>
@@ -125,7 +125,7 @@ const TaskInfoContent = (props) => {
                         <InfoItem title="Next run time" value={taskInfo.next_run_time}/>
                         <InfoItem title="Running Count" value={taskInfo.running_count}/>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid item xs={12} md={6}>
                         <ReactECharts ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
                     </Grid>
                 </Grid>

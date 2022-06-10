@@ -165,7 +165,7 @@ func (client *Client) toggleSubscribe(subscriptionType string, taskId int64, isS
 	_, ok := client.subscribed[subscriptionType]
 	if !ok {
 		client.subscribed[subscriptionType] = make(map[int64]bool)
-		return
+		//return
 	}
 	//不用之前那个赋值true和false  否则这个结构会越来也大，不会清理
 	if !isSubscribe {

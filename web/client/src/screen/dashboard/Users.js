@@ -5,6 +5,8 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Title from './Title';
+import TableContainer from "@mui/material/TableContainer";
+import Paper from "@mui/material/Paper";
 
 export default function Users() {
     const userList = [
@@ -43,28 +45,30 @@ export default function Users() {
     return (
         <React.Fragment>
             <Title>Real Time Users(coming soon)</Title>
-            <Table size="small">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>No.</TableCell>
-                        <TableCell>User</TableCell>
-                        <TableCell>Terminal</TableCell>
-                        <TableCell>Host</TableCell>
-                        <TableCell>Started</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {userList.map((user, idx) => (
-                        <TableRow key={user.id}>
-                            <TableCell>{idx + 1}</TableCell>
-                            <TableCell>{user.user}</TableCell>
-                            <TableCell>{user.terminal}</TableCell>
-                            <TableCell>{user.host}</TableCell>
-                            <TableCell>{user.start}</TableCell>
+            <TableContainer component={Paper}>
+                <Table size="small">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>No.</TableCell>
+                            <TableCell>User</TableCell>
+                            <TableCell>Terminal</TableCell>
+                            <TableCell>Host</TableCell>
+                            <TableCell>Started</TableCell>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHead>
+                    <TableBody>
+                        {userList.map((user, idx) => (
+                            <TableRow key={user.id}>
+                                <TableCell>{idx + 1}</TableCell>
+                                <TableCell>{user.user}</TableCell>
+                                <TableCell>{user.terminal}</TableCell>
+                                <TableCell>{user.host}</TableCell>
+                                <TableCell>{user.start}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
         </React.Fragment>
     );
 }

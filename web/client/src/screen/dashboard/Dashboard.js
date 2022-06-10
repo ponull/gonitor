@@ -23,10 +23,10 @@ export const Dashboard = function () {
                 <Grid item xs={12}>
                     <MemoryInfo/>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={12} md={6}>
                     <DiskInfo/>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={12} md={6}>
                     <NetInfo/>
                 </Grid>
                 {/* Recent Orders */}

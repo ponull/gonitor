@@ -8,6 +8,7 @@ import (
 	"gonitor/utils"
 	"gonitor/web/context"
 	"gonitor/web/response"
+	"gonitor/web/response/errorCode"
 )
 
 //func UserRegister(context *context.Context) *response.Response {
@@ -33,6 +34,16 @@ import (
 //	})
 //}
 
+func GetUserList(context *context.Context) *response.Response {
+	userModel := &model.User{}
+	pagination := model.InitPagination(context)
+	err := userModel.List(pagination, map[string]interface{}{})
+	if err != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, err.Error(), nil)
+	}
+	return response.Resp().Success("success", pagination)
+}
+
 func UserLogin(context *context.Context) *response.Response {
 	loginAccount := context.Request.PostFormValue("login_account")
 	password := context.Request.PostFormValue("password")
@@ -52,4 +63,36 @@ func UserLogin(context *context.Context) *response.Response {
 		return response.Resp().Error(2001, err.Error(), make(map[string]interface{}))
 	}
 	return response.Resp().Success("登录成功", token)
+}
+
+func AddUser(context *context.Context) *response.Response {
+	type userFormTpl struct {
+		LoginAccount    string `json:"login_account"`
+		UserName        string `json:"user_name"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirm_password"`
+		Avatar          string `json:"avatar"`
+	}
+	userFormData := userFormTpl{}
+	err := context.ShouldBindJSON(&userFormData)
+	if err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
+	}
+	if userFormData.Password != userFormData.ConfirmPassword {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "Incorrect password twice", nil)
+	}
+	if len(userFormData.Password) < 6 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "密码小于6位数", nil)
+	}
+	newUser := &model.User{
+		Username:     userFormData.UserName,
+		LoginAccount: userFormData.LoginAccount,
+		Password:     utils.Md5(userFormData.Password),
+		Avatar:       userFormData.Avatar,
+	}
+	err = newUser.RegisterNewUser()
+	if err != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, "Add user fail: "+err.Error(), nil)
+	}
+	return response.Resp().Success("success", nil)
 }

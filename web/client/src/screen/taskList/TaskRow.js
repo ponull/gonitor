@@ -5,15 +5,11 @@ import {useNavigate} from "react-router-dom";
 import httpRequest from "../../common/request/HttpRequest";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
-import IconButton from "@mui/material/IconButton";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {StrategyEnum} from "../../enum/task";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import {Button, ButtonGroup, ClickAwayListener, Grow, Popper} from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Paper from "@mui/material/Paper";
-import {TaskLogContainer} from "./TaskLog";
 import {useSnackbar} from "notistack";
 import LoadingButton from "@mui/lab/LoadingButton";
 

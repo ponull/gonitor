@@ -66,9 +66,9 @@ func (p *Pagination) GetSort() string {
 	return p.Sort
 }
 
-func Paginate(value interface{}, pagination *Pagination) func(db *gorm.DB) *gorm.DB {
+func Paginate(value interface{}, pagination *Pagination, where OrmWhereMap) func(db *gorm.DB) *gorm.DB {
 	var totalRows int64
-	GetConn().Model(value).Count(&totalRows)
+	GetConn().Model(value).Where(where).Count(&totalRows)
 	pagination.TotalRows = totalRows
 	totalPages := int(math.Ceil(float64(totalRows) / float64(pagination.Limit)))
 	pagination.TotalPages = totalPages

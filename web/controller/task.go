@@ -49,7 +49,7 @@ func GetTaskLogList(context *context.Context) *response.Response {
 	pagination := model.InitPagination(context)
 
 	taskModel := &model.TaskLog{}
-	pagination, err := taskModel.List(pagination, ormWhereMap)
+	err := taskModel.List(pagination, ormWhereMap)
 	if err != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, err.Error(), nil)
 	}
