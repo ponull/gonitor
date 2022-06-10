@@ -8,6 +8,7 @@ import {InfoItem} from "./InfoItem";
 import {useEffect, useState} from "react";
 import httpRequest from "../../common/request/HttpRequest";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import {useScreenSize} from "../../common/utils/hook";
 
 export const DiskInfo = () => {
     const [usedPercent, setUsedPercent] = useState(0);
@@ -28,7 +29,7 @@ export const DiskInfo = () => {
         setUsedPercent(diskInfo.used / diskInfo.total * 100)
     },[diskInfo])
 
-    const isDesktop = useMediaQuery('(min-width:600px)');
+    const {isDesktop} = useScreenSize();
     const size = isDesktop ? 150 : 80;
     return (
         <React.Fragment>

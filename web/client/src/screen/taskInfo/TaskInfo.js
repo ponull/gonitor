@@ -9,7 +9,7 @@ import Container from "@mui/material/Container";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
 import RunCircleIcon from "@mui/icons-material/RunCircle";
 import {InfoItem} from "./InfoItem";
-import {useInterval} from "../../common/utils/hook";
+import {useInterval, useScreenSize} from "../../common/utils/hook";
 import moment from "moment";
 import ReactECharts from "echarts-for-react";
 import {TaskLogTable} from "./TaskRunningLog";
@@ -17,6 +17,7 @@ import {TabContext, TabList, TabPanel} from "@mui/lab";
 import Box from "@mui/material/Box";
 import {Tab} from "@mui/material";
 import {TaskEndedLog} from "./TaskEndedLog";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const TaskInfo = () => {
     const params = useParams()
@@ -111,6 +112,8 @@ const TaskInfoContent = (props) => {
         setEchartsOption(newOption);
         echartsRef && echartsRef.current.getEchartsInstance().setOption(newOption);
     }, [usedList]);
+
+    const {isDesktop} = useScreenSize();
     return (
         <React.Fragment>
             <Paper>
@@ -126,7 +129,7 @@ const TaskInfoContent = (props) => {
                         <InfoItem title="Running Count" value={taskInfo.running_count}/>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                        <ReactECharts ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
+                        <ReactECharts style={{height:isDesktop?300:200}} ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
                     </Grid>
                 </Grid>
             </Paper>

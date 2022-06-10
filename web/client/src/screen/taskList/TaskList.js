@@ -1,11 +1,4 @@
 import * as React from 'react';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import Container from "@mui/material/Container";
 import LoadingButton from '@mui/lab/LoadingButton';
 import {
@@ -13,7 +6,7 @@ import {
     DialogActions,
     DialogContent,
     DialogContentText,
-    DialogTitle, Skeleton
+    DialogTitle
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
@@ -24,7 +17,9 @@ import httpRequest from "../../common/request/HttpRequest";
 import {Refresh as RefreshIcon} from "@mui/icons-material";
 import {TaskEdit} from "./TaskEdit";
 import {StrategyEnum} from "../../enum/task";
-import {TaskRow} from "./TaskRow";
+import {TaskListTableStyle} from "./TaskListTableStyle";
+import {TaskListCardStyle} from "./TaskListCardStyle";
+import {useScreenSize} from "../../common/utils/hook";
 
 export const TaskList = function () {
     const [taskList, setTaskList] = useState([]);
@@ -89,6 +84,7 @@ export const TaskList = function () {
         const newTaskList = taskList.filter(taskInfo => taskInfo.id !== taskId);
         setTaskList(newTaskList)
     }
+    const {isDesktop} = useScreenSize();
     return (
         <React.Fragment>
             <Container sx={{mt: 4, mb: 4}}>
@@ -109,47 +105,17 @@ export const TaskList = function () {
                         Add
                     </Button>
                 </Box>
-                <TableContainer component={Paper}>
-                    <Table sx={{minWidth: 650}} aria-label="simple table">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>No.</TableCell>
-                                <TableCell>Name</TableCell>
-                                <TableCell align="right">Type</TableCell>
-                                <TableCell align="right">Schedule</TableCell>
-                                <TableCell align="right">Strategy</TableCell>
-                                <TableCell align="right">Disabled</TableCell>
-                                <TableCell align="right">Running Count</TableCell>
-                                <TableCell align="right">Last Run Time</TableCell>
-                                <TableCell align="right">Next Run Time</TableCell>
-                                <TableCell align="right">Function</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ?
-                                new Array(5).fill(0).map((_, rowIdx) => (
-                                    <TableRow key={"row" + rowIdx}>
-                                        {new Array(10).fill(0).map((_, cellIdx) => (
-                                            <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
-                                                <Skeleton variant="text"/>
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))
-                                : taskList && taskList?.map((taskInfo, inx) => (
-                                <TaskRow key={taskInfo.uniKey} taskInfo={taskInfo} index={inx}
-                                         showConfirmDeleteDialog={showConfirmDeleteDialog}
-                                         showEditDialog={showEditDialog}/>
-                            ))
-                            }
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                {
+                    isDesktop?
+                        <TaskListTableStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
+                        : <TaskListCardStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
+                }
                 <DeleteConfirmDialog ref={taskDeleteConfirmDialogRef} deleteTaskById={deleteTaskList}/>
             </Container>
         </React.Fragment>
     )
 }
+
 
 
 

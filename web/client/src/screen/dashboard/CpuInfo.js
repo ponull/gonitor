@@ -11,7 +11,7 @@ import httpRequest from "../../common/request/HttpRequest";
 import {SubscribeType, useSubscribe} from "../../common/socket/Websocket";
 import {SystemMonitorTypeEnum} from "../../enum/subsciption";
 import moment from "moment";
-import {useInterval} from "../../common/utils/hook";
+import {useInterval, useScreenSize} from "../../common/utils/hook";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const CpuInfo = () => {
@@ -60,7 +60,7 @@ export const CpuInfo = () => {
             })
     }, [])
 
-    const isDesktop = useMediaQuery('(min-width:600px)');
+    const {isDesktop} = useScreenSize();
     const size = isDesktop ? 150 : 80;
     return (
         <React.Fragment>
@@ -79,7 +79,7 @@ export const CpuInfo = () => {
                         </Grid>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                        <ReactECharts  ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
+                        <ReactECharts style={{height:isDesktop?300:200}}  ref={(e) => (echartsRef.current = e)} option={echartsOption}/>
                     </Grid>
                 </Grid>
             </Paper>
