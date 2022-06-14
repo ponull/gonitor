@@ -96,3 +96,37 @@ func AddUser(context *context.Context) *response.Response {
 	}
 	return response.Resp().Success("success", nil)
 }
+
+func EditUser(context *context.Context) *response.Response {
+	type userFormTpl struct {
+		UserName        string `json:"user_name"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirm_password"`
+		Avatar          string `json:"avatar"`
+	}
+	userFormData := userFormTpl{}
+	err := context.ShouldBindJSON(&userFormData)
+	if err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
+	}
+	userId := context.Param("user_id")
+	userModel := &model.User{}
+	dbRt := core.Db.Where("id = ?", userId).First(userModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "invalid user id", nil)
+	}
+	if len(userFormData.Password) < 6 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "密码小于6位数", nil)
+	}
+	if userFormData.Password != userFormData.ConfirmPassword {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "Incorrect password twice", nil)
+	}
+	userModel.Username = userFormData.UserName
+	userModel.Password = userFormData.Password
+	userModel.Avatar = userFormData.Avatar
+	dbRt = core.Db.Save(userModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, "edit user fail: "+err.Error(), nil)
+	}
+	return response.Resp().Success("success", nil)
+}

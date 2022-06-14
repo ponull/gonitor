@@ -84,14 +84,14 @@ func (ri *RunningInstance) run() error {
 	//ri.execLog += fmt.Sprintf("执行成功\n")
 	ri.TaskLogInfo.Status = true
 	ri.TaskLogInfo.ProcessId = cmd.Process.Pid
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.GenerateExecLog())
 	pn, _ := process.NewProcess(int32(cmd.Process.Pid))
 	//ri.execLog += fmt.Sprintf("获取任务进程实例成功\n")
 	//记录进程实例，后面kill可能会用到
 	ri.Process = pn
 	//这个推送看怎么改一下
 	Manager.addTaskRunningIns(ri.taskInfo.ID, ri)
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.GenerateExecLog())
 	err = cmd.Wait()
 	execStat.CommandExecStatus = true
 	if err != nil {
@@ -139,7 +139,7 @@ func (ri *RunningInstance) afterRun() {
 		log.Println("保存任务日志失败", dbRt.Error.Error())
 	}
 	log.Printf("任务结束\n")
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.GenerateExecLog())
 	ri.writeLogOutput()
 	//执行结果判断推送等
 	if len(ri.taskInfo.ResultHandler) > 0 {
@@ -151,7 +151,7 @@ func (ri *RunningInstance) afterRun() {
 func (ri *RunningInstance) writeLogOutput() {
 	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
 	err := os.MkdirAll(path.Dir(filePath), 0666)
-	err = ioutil.WriteFile(filePath, []byte(ri.generateExecLog()), 0666)
+	err = ioutil.WriteFile(filePath, []byte(ri.GenerateExecLog()), 0666)
 	if err != nil {
 		log.Println("写执行日志失败")
 	}
@@ -167,7 +167,7 @@ func (ri *RunningInstance) getLastExecOutput() string {
 }
 
 //生成执行日志
-func (ri *RunningInstance) generateExecLog() string {
+func (ri *RunningInstance) GenerateExecLog() string {
 	execLog := fmt.Sprintf("******************目标任务: %s******************\n", ri.taskInfo.Name)
 	for i, resultItem := range ri.execResultList {
 		execLog += fmt.Sprintf("第%d次执行\n", i+1)

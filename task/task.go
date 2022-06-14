@@ -44,7 +44,7 @@ func (tm *manager) AddTask(taskId int64) error {
 		fmt.Println("query task info fail")
 		return dbRt.Error
 	}
-	//检查任务是否可以执行
+	//检查任务是否可以执行 这里虽然不执行，但是也加入任务列表，只是状态为disable=true
 	if task.IsDisable {
 		return nil
 	}

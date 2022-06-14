@@ -46,6 +46,7 @@ func GetTaskLogList(context *context.Context) *response.Response {
 	taskId := context.Param("task_id")
 	var ormWhereMap = make(model.OrmWhereMap)
 	ormWhereMap["task_id"] = taskId
+	ormWhereMap["status"] = 0
 	pagination := model.InitPagination(context)
 
 	taskModel := &model.TaskLog{}
@@ -66,7 +67,9 @@ func GetTaskRunningList(context *context.Context) *response.Response {
 	}
 	taskRunInsList := taskIns.RunningInstances
 	for _, taskRunIns := range taskRunInsList {
-		runningLogList = append(runningLogList, subscription.GetTaskLogInfoStatByLogModel(taskRunIns.TaskLogInfo))
+		TaskLogInfo := subscription.GetTaskLogInfoStatByLogModel(taskRunIns.TaskLogInfo)
+		TaskLogInfo.ExecOutput = taskRunIns.GenerateExecLog()
+		runningLogList = append(runningLogList, TaskLogInfo)
 	}
 	return response.Resp().Success("success", runningLogList)
 }
@@ -202,6 +205,10 @@ func AddTask(context *context.Context) *response.Response {
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "insert fail", nil)
+	}
+	err = task.Manager.AddTask(taskModel.ID)
+	if err != nil {
+		return response.Resp().Success("add to databases success, but task start fail", addInfo)
 	}
 	return response.Resp().Success("add success", addInfo)
 }

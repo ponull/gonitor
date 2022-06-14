@@ -36,6 +36,11 @@ func config(router group) {
 	}, middleware.CheckToken)
 	router.Group("/user", func(userGroup group) {
 		userGroup.Registered(POST, "/login", controller.UserLogin)
+		userGroup.Group("", func(adminGroup group) {
+			adminGroup.Registered(GET, "/list/:page_number/:page_size", controller.GetUserList)
+			adminGroup.Registered(POST, "", controller.AddUser)
+			adminGroup.Registered(PUT, "/:user_id", controller.EditUser)
+		})
 	})
 	router.Group("/push", func(pushGroup group) {
 		pushGroup.Registered(GET, "/test", controller.TestPush)

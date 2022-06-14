@@ -20,7 +20,7 @@ export const InfoItem = ({title, value}) => {
 
 const Title = styled(Typography)(({ theme }) => ({
     [theme.breakpoints.down('md')]: {
-        fontSize: 12,
+        fontSize: 14,
     },
     [theme.breakpoints.up('md')]: {
         fontSize: 16,

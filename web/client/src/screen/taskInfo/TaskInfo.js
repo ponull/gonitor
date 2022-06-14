@@ -62,7 +62,7 @@ export const TaskInfo = () => {
 
     return (
         <React.Fragment>
-            <Container>
+            <Box sx={{m:2}}>
                 <TaskInfoContent taskInfo={taskInfo}/>
                 <TabContext value={currentTab}>
                     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -78,7 +78,7 @@ export const TaskInfo = () => {
                         <TaskEndedLog taskId={taskId}/>
                     </TabPanel>
                 </TabContext>
-            </Container>
+            </Box>
         </React.Fragment>
     )
 }

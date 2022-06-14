@@ -5,12 +5,14 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import TaskIcon from '@mui/icons-material/Task';
 import {Link as RouterLink,} from 'react-router-dom';
 import {ListItem} from "@mui/material";
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 
 export const MainListItems = function () {
     return (
         <React.Fragment>
             <ListItemLink primary="控制台" to="/admin" icon={<DashboardIcon/>}/>
             <ListItemLink primary="任务列表" to="/admin/taskList" icon={<TaskIcon/>}/>
+            <ListItemLink primary="用户列表" to="/admin/userList" icon={<SupervisorAccountIcon/>}/>
         </React.Fragment>
     )
 }
