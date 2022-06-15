@@ -58,6 +58,7 @@ func initDb() {
 	db.AutoMigrate(&model.TaskLog{})
 	db.AutoMigrate(&model.User{})
 	db.AutoMigrate(&model.UserToken{})
+	db.AutoMigrate(&model.OperationLog{})
 	core.Db = db
 	//检查是否有admin这个用户 没有就加入
 	adminUser := &model.User{}

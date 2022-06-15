@@ -6,6 +6,7 @@ import (
 	"gonitor/web/ws/subscription"
 	"log"
 	"path"
+	"runtime"
 	"time"
 )
 
@@ -62,7 +63,12 @@ func NewExecJobWrapper(taskInfo *model.Task) *ExecJobWrapper {
 func parseTask(command string, taskType string) (string, []string) {
 	switch taskType {
 	case CmdTask:
-		return "cmd", []string{"/C", command}
+		switch runtime.GOOS {
+		case "windows":
+			return "cmd", []string{"/C", command}
+		default:
+			return "bash", []string{"-c", command}
+		}
 	case HttpTask:
 		return "curl", []string{"-L", command}
 	case FileTask:

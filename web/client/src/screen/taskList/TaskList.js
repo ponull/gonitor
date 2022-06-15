@@ -1,5 +1,4 @@
 import * as React from 'react';
-import Container from "@mui/material/Container";
 import LoadingButton from '@mui/lab/LoadingButton';
 import {
     Button,
@@ -20,6 +19,7 @@ import {StrategyEnum} from "../../enum/task";
 import {TaskListTableStyle} from "./TaskListTableStyle";
 import {TaskListCardStyle} from "./TaskListCardStyle";
 import {useScreenSize} from "../../common/utils/hook";
+import {useSnackbar} from "notistack";
 
 export const TaskList = function () {
     const [taskList, setTaskList] = useState([]);
@@ -87,7 +87,7 @@ export const TaskList = function () {
     const {isDesktop} = useScreenSize();
     return (
         <React.Fragment>
-            <Container sx={{mt: 4, mb: 4}}>
+            <Box sx={{m: 2}}>
                 <TaskAdd ref={taskAddRef} refreshTaskList={refreshTaskList}/>
                 <TaskEdit ref={taskEditRef} refreshTaskList={refreshTaskList} taskInfo={taskEditInfo}/>
                 <Box sx={{mb: 2, display: "flex", justifyContent: "flex-end",}}>
@@ -111,7 +111,7 @@ export const TaskList = function () {
                         : <TaskListCardStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
                 }
                 <DeleteConfirmDialog ref={taskDeleteConfirmDialogRef} deleteTaskById={deleteTaskList}/>
-            </Container>
+            </Box>
         </React.Fragment>
     )
 }
@@ -133,16 +133,19 @@ const DeleteConfirmDialog = forwardRef((props, ref) => {
     const handleClose = () => {
         setOpen(false);
     };
+    const {enqueueSnackbar} = useSnackbar();
     const deleteTask = () => {
         httpRequest.delete(`/task/${taskInfo.id}`)
             .then(res => {
-                const data = res.data
-                if (data.code === 0) {
+                if (res.code === 0) {
                     deleteTaskById(taskInfo.id)
+                    enqueueSnackbar("Delete Success", {variant: "success"});
+                } else {
+                    enqueueSnackbar(res.message, {variant: "error"});
                 }
             })
             .catch(err => {
-                console.log(err)
+                enqueueSnackbar(err.message, {variant: "error"})
             })
             .finally(() => {
                 handleClose()

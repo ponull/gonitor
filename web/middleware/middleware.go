@@ -37,5 +37,6 @@ func CheckToken(c *context.Context) {
 		}
 		c.AbortWithStatusJSON(200, result)
 	}
-	c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))
+	c.AddParam("current_user_id", strconv.FormatInt(userToken.UserID, 10))
+	//c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))
 }

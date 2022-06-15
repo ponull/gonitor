@@ -1,5 +1,5 @@
 import IconButton from "@mui/material/IconButton";
-import LanguageIcon from "@mui/icons-material/Language";
+import GTranslateIcon from '@mui/icons-material/GTranslate';
 import * as React from "react";
 import {ListItem, Popover} from "@mui/material";
 import List from "@mui/material/List";
@@ -21,7 +21,7 @@ export const LanguageMenu = () => {
     return (
         <React.Fragment>
             <IconButton aria-describedby={id} color="inherit" onClick={handleClick}>
-                <LanguageIcon/>
+                <GTranslateIcon/>
             </IconButton>
             <Popover
                 id={id}

@@ -21,6 +21,7 @@ import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import LastPageIcon from '@mui/icons-material/LastPage';
 import Box from "@mui/material/Box";
 import PropTypes from "prop-types";
+import {useSnackbar} from "notistack";
 
 function TablePaginationActions(props) {
     const theme = useTheme();
@@ -93,15 +94,17 @@ export const TaskEndedLog = (props) => {
     });
     const handleChangePage = (event, newPage) => {
         getLogList(newPage,pageInfo.limit)
-        // setPageInfo({...pageInfo, page: newPage})
     };
     const handleChangePageSize = (event) => {
-        console.log(event.target.value)
-        // setPageInfo({...pageInfo, limit: event.target.value, page: 0})
         getLogList(pageInfo.page, event.target.value)
     };
+    const {enqueueSnackbar} = useSnackbar();
     const getLogList = (page, limit) => {
         httpRequest.get(`/task/log/list/${taskId}/${page + 1}/${limit}`).then(res => {
+            if (res.code !== 0){
+                enqueueSnackbar(res.message, {variant: 'error'})
+                return;
+            }
             let data = res.data;
             setLogList(data.list)
             setPageInfo({
@@ -112,7 +115,8 @@ export const TaskEndedLog = (props) => {
         })
     }
     useEffect(() => {
-        getLogList()
+        getLogList(pageInfo.page, pageInfo.limit)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     return (
         <React.Fragment>

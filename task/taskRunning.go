@@ -32,6 +32,7 @@ type taskExecStat struct {
 	CommandExecStatus    bool   `json:"command_exec_status"`    //执行命令结果 已经启动或者未启动
 	CommandExecError     error  `json:"command_exec_error"`     //执行错误
 	CommandOutputContent string `json:"command_output_content"` //命令输出内容
+	CommandErrorContent  string `json:"command_error_content"`  //命令执行失败的输出内容
 	AssertResult         bool   `json:"assert_result"`          //断言结果
 	TaskResult           bool   `json:"task_result"`            //任务结果 前面三个都成功才成功
 }
@@ -72,33 +73,37 @@ func (ri *RunningInstance) run() error {
 	command, args := parseTask(ri.taskInfo.Command, ri.taskInfo.ExecType)
 	cmd := exec.Command(command, args...)
 	execStat.Command = cmd.String()
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
+	var stdOut, stdErr bytes.Buffer
+	cmd.Stdout = &stdOut
+	cmd.Stderr = &stdErr
 	err := cmd.Start()
 	execStat.CommandStartStatus = true
 	if err != nil {
+		//fmt.Println("exec start fail", stdErr.String())
+		execStat.CommandErrorContent = stdErr.String()
 		execStat.CommandStartError = err
 		return err
 	}
 	//ri.execLog += fmt.Sprintf("执行成功\n")
 	ri.TaskLogInfo.Status = true
 	ri.TaskLogInfo.ProcessId = cmd.Process.Pid
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.GenerateExecLog())
 	pn, _ := process.NewProcess(int32(cmd.Process.Pid))
 	//ri.execLog += fmt.Sprintf("获取任务进程实例成功\n")
 	//记录进程实例，后面kill可能会用到
 	ri.Process = pn
 	//这个推送看怎么改一下
 	Manager.addTaskRunningIns(ri.taskInfo.ID, ri)
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.GenerateExecLog())
 	err = cmd.Wait()
 	execStat.CommandExecStatus = true
 	if err != nil {
+		//fmt.Println("exec wait fail", stdErr.String())
+		execStat.CommandErrorContent = stdErr.String()
 		execStat.CommandExecError = err
 		return err
 	}
-	execStat.CommandOutputContent = out.String()
+	execStat.CommandOutputContent = stdOut.String()
 	//这个只是记录来备用的 现在外面有两个地方需要输出结果 其实没啥用
 	//使用断言
 	if len(ri.taskInfo.Assert) > 0 {
@@ -139,7 +144,7 @@ func (ri *RunningInstance) afterRun() {
 		log.Println("保存任务日志失败", dbRt.Error.Error())
 	}
 	log.Printf("任务结束\n")
-	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.generateExecLog())
+	subscription.SendTaskLogInfoFormOrm(ri.TaskLogInfo, ri.GenerateExecLog())
 	ri.writeLogOutput()
 	//执行结果判断推送等
 	if len(ri.taskInfo.ResultHandler) > 0 {
@@ -151,7 +156,7 @@ func (ri *RunningInstance) afterRun() {
 func (ri *RunningInstance) writeLogOutput() {
 	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
 	err := os.MkdirAll(path.Dir(filePath), 0666)
-	err = ioutil.WriteFile(filePath, []byte(ri.generateExecLog()), 0666)
+	err = ioutil.WriteFile(filePath, []byte(ri.GenerateExecLog()), 0666)
 	if err != nil {
 		log.Println("写执行日志失败")
 	}
@@ -167,7 +172,7 @@ func (ri *RunningInstance) getLastExecOutput() string {
 }
 
 //生成执行日志
-func (ri *RunningInstance) generateExecLog() string {
+func (ri *RunningInstance) GenerateExecLog() string {
 	execLog := fmt.Sprintf("******************目标任务: %s******************\n", ri.taskInfo.Name)
 	for i, resultItem := range ri.execResultList {
 		execLog += fmt.Sprintf("第%d次执行\n", i+1)
