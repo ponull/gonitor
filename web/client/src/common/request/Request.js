@@ -1,5 +1,12 @@
 import axios from 'axios'
 
+class Result {
+    constructor(code = 500021, message = "", data = null) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+    }
+}
 
 class Request {
     constructor(config) {
@@ -22,31 +29,31 @@ class Request {
         })
     }
 
-    delete(url,config = {}){
+    delete(url, config = {}) {
         return new Promise((resolve, reject) => {
             this.instance.delete(url, config)
-            .then((res) => {
-                return resolve(res.data)
-            })
-            .catch((err) => {
-                return reject(err)
-            })
-    })
+                .then((res) => {
+                    return resolve(res.data)
+                })
+                .catch((err) => {
+                    return reject(err)
+                })
+        })
     }
 
-    put(url,config = {}){
+    put(url, config = {}) {
         return new Promise((resolve, reject) => {
             this.instance.put(url, config)
-            .then((res) => {
-                return resolve(res.data)
-            })
-            .catch((err) => {
-                return reject(err)
-            })
-    })
+                .then((res) => {
+                    return resolve(res.data)
+                })
+                .catch((err) => {
+                    return reject(err)
+                })
+        })
     }
 
-    get(url, config = {}){
+    get(url, config = {}) {
         return new Promise((resolve, reject) => {
             this.instance.get(url, config)
                 .then((res) => {
@@ -58,7 +65,7 @@ class Request {
         })
     }
 
-    post(url, data, config){
+    post(url, data, config) {
         return new Promise((resolve, reject) => {
             this.instance.post(url, data, config)
                 .then((res) => {

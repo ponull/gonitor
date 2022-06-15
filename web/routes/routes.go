@@ -39,9 +39,15 @@ func config(router group) {
 		userGroup.Group("", func(adminGroup group) {
 			adminGroup.Registered(GET, "/list/:page_number/:page_size", controller.GetUserList)
 			adminGroup.Registered(POST, "", controller.AddUser)
+			adminGroup.Registered(GET, "/selfInfo", controller.GetSelfInfo)
+			adminGroup.Registered(GET, "/:user_id", controller.GetUserInfo)
 			adminGroup.Registered(PUT, "/:user_id", controller.EditUser)
-		})
+			adminGroup.Registered(DELETE, "/:user_id", controller.DeleteUser)
+		}, middleware.CheckToken)
 	})
+	router.Group("/op", func(opGroup group) {
+		opGroup.Registered(GET, "/list/:page_number/:page_size", controller.GetOperationLogList)
+	}, middleware.CheckToken)
 	router.Group("/push", func(pushGroup group) {
 		pushGroup.Registered(GET, "/test", controller.TestPush)
 	})

@@ -9,6 +9,9 @@ import List from "@mui/material/List";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import {useNavigate} from "react-router-dom";
+import {useEffect, useState} from "react";
+import httpRequest from "../../common/request/HttpRequest";
+import {useSnackbar} from "notistack";
 
 export const PersonMenu = () => {
     const [anchorEl, setAnchorEl] = React.useState(null);
@@ -26,12 +29,30 @@ export const PersonMenu = () => {
 
     const open = Boolean(anchorEl);
     const id = open ? 'person-popover' : undefined;
+    const [userInfo, setUserInfo] = useState({
+        username: "",
+        avatar: "",
+    })
+    const {enqueueSnackbar} = useSnackbar();
+    useEffect(()=>{
+        httpRequest.get(`/user/selfInfo`)
+            .then(res => {
+                if(res.code !== 0){
+                    enqueueSnackbar(res.message, {variant: "error"})
+                    return;
+                }
+                setUserInfo(res.data)
+            })
+            .catch(err => {
+
+            })
+    },[])
     return (
         <React.Fragment>
             <IconButton aria-describedby={id} color="inherit" sx={{ml: 2}} onClick={handleClick}>
                 <Avatar
-                    alt="Remy Sharp"
-                    src="https://mui.com/static/images/avatar/1.jpg"
+                    alt={userInfo.username}
+                    src={userInfo.avatar}
                     sx={{width: 40, height: 40}}
                 />
             </IconButton>

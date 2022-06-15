@@ -12,6 +12,7 @@ import {useImperativeHandle, useRef} from "react";
 import httpRequest from "../../common/request/HttpRequest";
 import {useSnackbar} from "notistack";
 import Slide from "@mui/material/Slide";
+import {UserInfoEditForm} from "./UserInfoEditForm";
 
 
 
@@ -20,13 +21,7 @@ const Transition = forwardRef(function Transition(props, ref,) {
 });
 
 export const UserEdit = forwardRef((props, ref) => {
-    const {refreshUserList} = props;
-    const userInfo = {
-        username: "",
-        password: "",
-        confirm_password: "",
-        avatar: "",
-    }
+    const {refreshUserList, userInfo} = props;
     useImperativeHandle(ref, () => ({
         handleClickOpen,
     }));
@@ -42,18 +37,18 @@ export const UserEdit = forwardRef((props, ref) => {
 
     const handleSubmit = () => {
         const formValue = formRef.current?.getFormValues()
-        httpRequest.post("/user", formValue)
+        httpRequest.put(`/user/${userInfo.id}`, formValue)
             .then(res => {
                 if (res.code !== 0){
                     enqueueSnackbar(res.message, {variant: "error"});
                     return;
                 }
-                enqueueSnackbar("Add Success", {variant: "success"});
+                enqueueSnackbar("Edit Success", {variant: "success"});
                 refreshUserList();
                 setOpen(false);
             })
             .catch(err => {
-                enqueueSnackbar("Add Fail", {variant: "error"});
+                enqueueSnackbar("Edit Fail", {variant: "error"});
             })
     }
 
@@ -84,7 +79,7 @@ export const UserEdit = forwardRef((props, ref) => {
                 </Toolbar>
             </AppBar>
             <Container maxWidth={"md"} sx={{mt:4}}>
-                {/*<TaskInfoEditForm ref={formRef} taskInfo={taskInfo}/>*/}
+                <UserInfoEditForm ref={formRef} userInfo={userInfo} isAdd={false}/>
             </Container>
         </Dialog>
     )

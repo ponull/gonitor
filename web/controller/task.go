@@ -90,6 +90,11 @@ func StopTask(context *context.Context) *response.Response {
 		fmt.Println("停止任务的时候更新数据库失败")
 	}
 	subscription.SendTaskInfoFormOrm(taskModel, 0, "", "")
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		taskModel.ID,
+		"StopTask",
+		fmt.Sprintf("Task:%s\nClient Ip:%s", taskModel.Name, context.ClientIP()))
 	return response.Resp().Success("success", nil)
 }
 
@@ -111,6 +116,11 @@ func StartTask(context *context.Context) *response.Response {
 		return response.Resp().Error(10002, "add task fail", nil)
 	}
 	subscription.SendTaskInfoFormOrm(taskModel, 0, "", "")
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		taskModel.ID,
+		"StartTask",
+		fmt.Sprintf("Task:%s\nClient Ip:%s", taskModel.Name, context.ClientIP()))
 	return response.Resp().Success("start success", nil)
 }
 
@@ -126,6 +136,11 @@ func StartOnceTask(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Error(215456, "exec fail "+err.Error(), nil)
 	}
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		taskModel.ID,
+		"TestTask",
+		fmt.Sprintf("Task:%s\nClient Ip:%s", taskModel.Name, context.ClientIP()))
 	return response.Resp().Success("success", map[string]string{
 		"output": output,
 	})
@@ -210,6 +225,11 @@ func AddTask(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Success("add to databases success, but task start fail", addInfo)
 	}
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		taskModel.ID,
+		"AddTask",
+		fmt.Sprintf("Task:%s\nClient Ip:%s", taskModel.Name, context.ClientIP()))
 	return response.Resp().Success("add success", addInfo)
 }
 
@@ -275,6 +295,12 @@ func EditTask(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Success("update success, but task update fail", editInfo)
 	}
+
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		taskModel.ID,
+		"EditTask",
+		fmt.Sprintf("Task:%s\nClient Ip:%s", taskModel.Name, context.ClientIP()))
 	return response.Resp().Success("update success", editInfo)
 }
 
@@ -296,6 +322,11 @@ func DeleteTask(context *context.Context) *response.Response {
 	if dbRt = core.Db.Delete(&taskModel); dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "delete task fail", nil)
 	}
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		taskModel.ID,
+		"DeleteTask",
+		fmt.Sprintf("Task:%s\nClient Ip:%s", taskModel.Name, context.ClientIP()))
 	return response.Resp().Success("delete success", taskModel)
 }
 

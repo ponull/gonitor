@@ -7,12 +7,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import {TaskInfoEditForm} from "../taskList/TaskInfoEditForm";
 import * as React from "react";
 import {useImperativeHandle, useRef} from "react";
 import httpRequest from "../../common/request/HttpRequest";
 import {useSnackbar} from "notistack";
 import Slide from "@mui/material/Slide";
+import {UserInfoEditForm} from "./UserInfoEditForm";
 
 
 
@@ -24,6 +24,7 @@ export const UserAdd = forwardRef((props, ref) => {
     const {refreshUserList} = props;
     const userInfo = {
         username: "",
+        login_account:"",
         password: "",
         confirm_password: "",
         avatar: "",
@@ -85,7 +86,7 @@ export const UserAdd = forwardRef((props, ref) => {
                 </Toolbar>
             </AppBar>
             <Container maxWidth={"md"} sx={{mt:4}}>
-                {/*<TaskInfoEditForm ref={formRef} taskInfo={taskInfo}/>*/}
+                <UserInfoEditForm ref={formRef} userInfo={userInfo} isAdd={true}/>
             </Container>
         </Dialog>
     )

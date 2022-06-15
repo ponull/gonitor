@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"gonitor/core"
 	"gonitor/model"
@@ -9,6 +10,7 @@ import (
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
+	"strconv"
 )
 
 //func UserRegister(context *context.Context) *response.Response {
@@ -33,6 +35,30 @@ import (
 //		"token": token,
 //	})
 //}
+
+func GetSelfInfo(context *context.Context) *response.Response {
+	userIdStr := context.Param("current_user_id")
+	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
+	fmt.Println(userId)
+	userModel := &model.User{}
+	info, err := userModel.Info(userId)
+	if err != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "Invalid User Id", nil)
+	}
+	return response.Resp().Success("success", info)
+}
+
+func GetUserInfo(context *context.Context) *response.Response {
+	userIdStr := context.Param("user_id")
+	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
+	fmt.Println(userId)
+	userModel := &model.User{}
+	info, err := userModel.Info(userId)
+	if err != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "Invalid User Id", nil)
+	}
+	return response.Resp().Success("success", info)
+}
 
 func GetUserList(context *context.Context) *response.Response {
 	userModel := &model.User{}
@@ -62,13 +88,14 @@ func UserLogin(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Error(2001, err.Error(), make(map[string]interface{}))
 	}
+	model.OperationLog{}.AddOperationLog(user.ID, user.ID, "Login", context.ClientIP())
 	return response.Resp().Success("登录成功", token)
 }
 
 func AddUser(context *context.Context) *response.Response {
 	type userFormTpl struct {
 		LoginAccount    string `json:"login_account"`
-		UserName        string `json:"user_name"`
+		UserName        string `json:"username"`
 		Password        string `json:"password"`
 		ConfirmPassword string `json:"confirm_password"`
 		Avatar          string `json:"avatar"`
@@ -94,12 +121,17 @@ func AddUser(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "Add user fail: "+err.Error(), nil)
 	}
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		newUser.ID,
+		"AddUser",
+		fmt.Sprintf("User:%s\nClient Ip:%s", newUser.Username, context.ClientIP()))
 	return response.Resp().Success("success", nil)
 }
 
 func EditUser(context *context.Context) *response.Response {
 	type userFormTpl struct {
-		UserName        string `json:"user_name"`
+		UserName        string `json:"username"`
 		Password        string `json:"password"`
 		ConfirmPassword string `json:"confirm_password"`
 		Avatar          string `json:"avatar"`
@@ -122,11 +154,31 @@ func EditUser(context *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "Incorrect password twice", nil)
 	}
 	userModel.Username = userFormData.UserName
-	userModel.Password = userFormData.Password
+	userModel.Password = utils.Md5(userFormData.Password)
 	userModel.Avatar = userFormData.Avatar
 	dbRt = core.Db.Save(userModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "edit user fail: "+err.Error(), nil)
 	}
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		userModel.ID,
+		"EditUser",
+		fmt.Sprintf("User:%s\nClient Ip:%s", userModel.Username, context.ClientIP()))
+	return response.Resp().Success("success", nil)
+}
+
+func DeleteUser(context *context.Context) *response.Response {
+	userId := context.Param("user_id")
+	userModel := &model.User{}
+	dbRt := core.Db.Where("id = ?", userId).Delete(userModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, "delete user fail!", nil)
+	}
+	model.OperationLog{}.AddOperationLog(
+		getCurrentUserId(context),
+		userModel.ID,
+		"DeleteUser",
+		fmt.Sprintf("User:%s\nClient Ip:%s", userModel.Username, context.ClientIP()))
 	return response.Resp().Success("success", nil)
 }

@@ -3,7 +3,16 @@ import {UserEdit} from "./UserEdit";
 import Box from "@mui/material/Box";
 import LoadingButton from "@mui/lab/LoadingButton";
 import {Refresh as RefreshIcon} from "@mui/icons-material";
-import {Button, Skeleton, TableFooter, TablePagination, useTheme} from "@mui/material";
+import {
+    Button, DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Skeleton,
+    TableFooter,
+    TablePagination,
+    useTheme
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import * as React from "react";
 import {useRef, useState,useEffect} from "react";
@@ -23,6 +32,8 @@ import FirstPageIcon from "@mui/icons-material/FirstPage";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import PropTypes from "prop-types";
+import {forwardRef, useImperativeHandle} from "react";
+import Dialog from "@mui/material/Dialog";
 
 
 
@@ -91,6 +102,7 @@ export const UserList = () => {
     const [userList, setUserList] = useState([]);
     const userAddRef = useRef(null);
     const userEditRef = useRef(null);
+    const userDeleteConfirmDialogRef = useRef(null);
     const [loading, setLoading] = useState(true)
     const [refreshLoading, setRefreshLoading] = useState(false)
     const [userEditInfo, setUserEditInfo] = useState({
@@ -104,10 +116,12 @@ export const UserList = () => {
         userAddRef.current?.handleClickOpen();
     }
     const showConfirmDeleteDialog = (userInfo) => {
-
+        userDeleteConfirmDialogRef.current.handleClickOpen(userInfo)
     }
     const showEditDialog = (userInfo) => {
         setUserEditInfo(userInfo);
+        console.log(userInfo)
+        userEditRef.current?.handleClickOpen();
     }
     const {enqueueSnackbar} = useSnackbar();
     const getUserList = async (page, limit) => {
@@ -166,6 +180,7 @@ export const UserList = () => {
         <Box sx={{m: 2}}>
             <UserAdd ref={userAddRef} refreshUserList={refreshUserList}/>
             <UserEdit ref={userEditRef} refreshUserList={refreshUserList} userInfo={userEditInfo}/>
+            <DeleteConfirmDialog ref={userDeleteConfirmDialogRef}/>
             <Box sx={{mb: 2, display: "flex", justifyContent: "flex-end",}}>
                 <LoadingButton
                     loading={refreshLoading}
@@ -217,7 +232,7 @@ export const UserList = () => {
                         <TableRow>
                             <TablePagination
                                 rowsPerPageOptions={[10, 20, 50]}
-                                colSpan={3}
+                                colSpan={6}
                                 count={pageInfo.total_rows}
                                 rowsPerPage={pageInfo.limit}
                                 page={pageInfo.page}
@@ -238,3 +253,57 @@ export const UserList = () => {
         </Box>
     )
 }
+
+const DeleteConfirmDialog = forwardRef((props, ref) => {
+    const {deleteUserById} = props
+    useImperativeHandle(ref, () => ({
+        handleClickOpen,
+    }));
+    const [open, setOpen] = useState(false);
+    const [userInfo, setUserInfo] = useState({});
+    const handleClickOpen = (userInfo) => {
+        setUserInfo(userInfo);
+        setOpen(true);
+    };
+    const handleClose = () => {
+        setOpen(false);
+    };
+    const {enqueueSnackbar} = useSnackbar();
+    const deleteUser = () => {
+        httpRequest.delete(`/user/${userInfo.id}`)
+            .then(res => {
+                if (res.code === 0) {
+                    deleteUserById(userInfo.id)
+                    enqueueSnackbar("Delete Success", {variant: "success"});
+                } else {
+                    enqueueSnackbar(res.message, {variant: "error"});
+                }
+            })
+            .catch(err => {
+                enqueueSnackbar(err.message, {variant: "error"})
+            })
+            .finally(() => {
+                handleClose()
+            })
+    }
+    return (
+        <React.Fragment>
+            <Dialog open={open} onClose={handleClose} aria-labelledby="form-dialog-title">
+                <DialogTitle id="form-dialog-title">Delete Task</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure to delete this task witch name {userInfo.username}?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={deleteUser} color="primary">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </React.Fragment>
+    )
+})

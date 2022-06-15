@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jinzhu/gorm"
 	"gonitor/core"
+	"time"
 )
 
 type User struct {
@@ -12,6 +13,15 @@ type User struct {
 	LoginAccount string `gorm:"column:login_account" json:"login_account"`
 	Password     string `gorm:"column:password" json:"password"`
 	Avatar       string `gorm:"column:avatar" json:"avatar"`
+}
+
+type UserInfoTpl struct {
+	ID           string    `json:"id"`
+	Username     string    `json:"username"`
+	LoginAccount string    `json:"login_account"`
+	Avatar       string    `json:"avatar"`
+	CreateTime   time.Time `json:"create_time"`
+	UpdateTime   time.Time `json:"update_time"`
 }
 
 func (User) TableName() string {
@@ -34,8 +44,18 @@ func (u *User) RegisterNewUser() error {
 }
 
 func (u *User) List(pagination *Pagination, where OrmWhereMap) error {
-	var logList []*User
-	GetConn().Scopes(Paginate(logList, pagination, where)).Where(where).Find(&logList)
-	pagination.Rows = logList
+	var userList []*UserInfoTpl
+	GetConn().Model(u).Scopes(Paginate(u, pagination, where)).Where(where).Scan(&userList)
+	pagination.Rows = userList
 	return nil
+}
+
+func (u *User) Info(userId int64) (UserInfoTpl, error) {
+	userInfo := UserInfoTpl{}
+	//var userInfo *UserInfoTpl
+	dbRt := GetConn().Model(u).Where("id = ?", userId).Scan(&userInfo)
+	if dbRt.Error != nil {
+		return UserInfoTpl{}, dbRt.Error
+	}
+	return userInfo, nil
 }

@@ -6,6 +6,7 @@ import TaskIcon from '@mui/icons-material/Task';
 import {Link as RouterLink,} from 'react-router-dom';
 import {ListItem} from "@mui/material";
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+import BookIcon from '@mui/icons-material/Book';
 
 export const MainListItems = function () {
     return (
@@ -13,6 +14,7 @@ export const MainListItems = function () {
             <ListItemLink primary="控制台" to="/admin" icon={<DashboardIcon/>}/>
             <ListItemLink primary="任务列表" to="/admin/taskList" icon={<TaskIcon/>}/>
             <ListItemLink primary="用户列表" to="/admin/userList" icon={<SupervisorAccountIcon/>}/>
+            <ListItemLink primary="操作日志" to="/admin/operationList" icon={<BookIcon/>}/>
         </React.Fragment>
     )
 }

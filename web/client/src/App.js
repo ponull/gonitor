@@ -7,6 +7,7 @@ import {TaskList} from "./screen/taskList/TaskList";
 import {TaskInfo} from "./screen/taskInfo/TaskInfo";
 import {Login} from "./screen/login/Login";
 import {UserList} from "./screen/userList/UserList";
+import {OperationList} from "./screen/operationList/OperationList";
 
 function App() {
     return (
@@ -18,6 +19,7 @@ function App() {
                     <Route path="taskList" element={<TaskList/>}/>
                     <Route path="taskInfo/:taskId" element={<TaskInfo/>}/>
                     <Route path="userList" element={<UserList/>}/>
+                    <Route path="operationList" element={<OperationList/>}/>
                 </Route>
             </Routes>
         </div>
