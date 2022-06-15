@@ -15,13 +15,13 @@ func Cors(context *context.Context) {
 	method := context.Request.Method
 	context.Header("Access-Control-Allow-Origin", "*")
 	context.Header("Access-Control-Allow-Headers", "Content-Type,AccessToken,X-CSRF-Token, Authorization, Token")
-	context.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+	context.Header("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
 	context.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
 	context.Header("Access-Control-Allow-Credentials", "true")
 	if method == "OPTIONS" {
 		context.AbortWithStatus(http.StatusNoContent)
 	}
-	//context.Next()
+	context.Next()
 }
 
 func CheckToken(c *context.Context) {
@@ -37,6 +37,5 @@ func CheckToken(c *context.Context) {
 		}
 		c.AbortWithStatusJSON(200, result)
 	}
-	c.AddParam("current_user_id", strconv.FormatInt(userToken.UserID, 10))
-	//c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))
+	c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))
 }
