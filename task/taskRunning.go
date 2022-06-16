@@ -138,6 +138,13 @@ func (ri *RunningInstance) beforeRun() error {
 
 func (ri *RunningInstance) afterRun() {
 	ri.TaskLogInfo.Status = false
+	resultLen := len(ri.execResultList)
+	if resultLen > 0 {
+		//最后一次执行的结果 作为真正执行的结果
+		lastResult := ri.execResultList[resultLen-1]
+		ri.TaskLogInfo.ExecResult = lastResult.TaskResult
+		ri.TaskLogInfo.RetryTimes = int8(resultLen - 1)
+	}
 	ri.TaskLogInfo.RunningTime = time.Now().Unix() - ri.TaskLogInfo.ExecTime.Unix()
 	dbRt := core.Db.Save(ri.TaskLogInfo)
 	if dbRt.Error != nil {
