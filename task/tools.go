@@ -25,18 +25,25 @@ func CheckTaskAssertJavascriptCode(jsCode string) error {
 	return nil
 }
 
-func GetTaskAssertResult(output string, jsCode string) bool {
+func GetTaskAssertResult(output string, jsCode string) (assertResult bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("assert run time panic: %v", err)
+			assertResult = false
+		}
+	}()
+	assertResult = false
 	vm := goja.New()
 	_, err := vm.RunString(jsCode)
 	if err != nil {
 		log.Println("JS断言代码有错误")
-		return false
+		return
 	}
 	var assertFn func(string) bool
 	err = vm.ExportTo(vm.Get("main"), &assertFn)
 	if err != nil {
 		log.Println("JS断言代码main方法格式不正确")
-		return false
+		return
 	}
 	return assertFn(output)
 }
