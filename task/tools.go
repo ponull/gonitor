@@ -45,7 +45,8 @@ func GetTaskAssertResult(output string, jsCode string) (assertResult bool) {
 		log.Println("JS断言代码main方法格式不正确")
 		return
 	}
-	return assertFn(output)
+	assertResult = assertFn(output)
+	return
 }
 
 func ExecResultHandler(resultHandlerCode string, execResult bool, resultHandlerData map[string]interface{}) {
