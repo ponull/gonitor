@@ -134,7 +134,7 @@ func StartOnceTask(context *context.Context) *response.Response {
 	}
 	output, err := task.Manager.StartOnceTask(taskId)
 	if err != nil {
-		return response.Resp().Error(215456, "exec fail "+err.Error(), nil)
+		return response.Resp().Error(215456, "exec fail "+err.Error()+"\n"+output, nil)
 	}
 	model.OperationLog{}.AddOperationLog(
 		getCurrentUserId(context),
