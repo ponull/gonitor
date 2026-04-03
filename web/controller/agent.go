@@ -7,7 +7,6 @@ import (
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
-	"strconv"
 	"time"
 )
 
@@ -176,9 +175,4 @@ func MigrateExistingTasks() {
 		return
 	}
 	core.Db.Model(&model.Task{}).Where("node_id = 0").Update("node_id", masterNodeId)
-}
-
-// nodeIdStr to int64 helper used in routes
-func parseNodeId(nodeIdStr string) (int64, error) {
-	return strconv.ParseInt(nodeIdStr, 10, 64)
 }
