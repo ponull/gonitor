@@ -60,6 +60,7 @@ const TaskCard = (props) => {
                             <InfoItem title="schedule" value={taskInfo.schedule}/>
                             <InfoItem title="command" value={taskInfo.command}/>
                             <InfoItem title="exec_type" value={taskInfo.exec_type}/>
+                            <InfoItem title="node" value={taskInfo.node_name || "主节点"}/>
                             <InfoItem title="running_count" value={taskInfo.running_count}/>
                             <InfoItem title="last_run_time" value={taskInfo.last_run_time}/>
                             <InfoItem title="next_run_time" value={taskInfo.next_run_time}/>

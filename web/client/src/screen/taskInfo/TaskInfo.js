@@ -137,6 +137,7 @@ const TaskInfoContent = (props) => {
                         }/>
                         <InfoItem title="Schedule" value={taskInfo.schedule}/>
                         <InfoItem title="Execute Type" value={taskInfo.exec_type}/>
+                        <InfoItem title="Node" value={taskInfo.node_name || "主节点"}/>
                         <InfoItem title="Status" value={taskInfo.is_disable ?
                             <Chip label="Disabled" color="default" size="small" icon={<DoDisturbOnIcon/>}/> :
                             <Chip label="Enabled" color="success" size="small" icon={<RunCircleIcon/>}/>

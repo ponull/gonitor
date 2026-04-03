@@ -1,4 +1,4 @@
-import {forwardRef, useImperativeHandle, useState} from "react";
+import {forwardRef, useEffect, useImperativeHandle, useState} from "react";
 import * as React from "react";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
@@ -10,6 +10,7 @@ import {AssertField} from "./fields/AssertField";
 import {ResultHandlerField} from "./fields/ResultHandlerField";
 import {ScheduleField} from "./fields/ScheduleField";
 import Box from "@mui/material/Box";
+import httpRequest from "../../common/request/HttpRequest";
 
 export const TaskInfoEditForm = forwardRef((props, ref) => {
     const {taskInfo} = props
@@ -31,6 +32,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             tags: tags.join(","),
             assert,
             result_handler: resultHandler,
+            node_id: parseInt(nodeId),
         }
     }
     const [taskName, setTaskName] = useState(taskInfo.name)
@@ -77,6 +79,21 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleAssertChange = (code) => setAssert(code)
     const [resultHandler, setResultHandler] = useState(taskInfo.result_handler)
     const handleResultHandlerChange = (code) => setResultHandler(code)
+    const [nodeId, setNodeId] = useState(taskInfo.node_id || 0)
+    const handleNodeIdChange = (event) => setNodeId(event.target.value)
+    const [nodeSelectList, setNodeSelectList] = useState([])
+    useEffect(() => {
+        httpRequest.get("/node/select").then(res => {
+            if (res.code === 0 && res.data) {
+                setNodeSelectList(res.data)
+                // 如果当前没有选中节点，默认选主节点
+                if (!taskInfo.node_id && res.data.length > 0) {
+                    const masterNode = res.data.find(n => n.is_master)
+                    if (masterNode) setNodeId(masterNode.id)
+                }
+            }
+        })
+    }, [])
     return (
         <React.Fragment>
             <Typography variant="h6" gutterBottom>
@@ -145,6 +162,25 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                             <MenuItem value={PriorityEnum.MEDIUM}>{PriorityEnum.getLabel(PriorityEnum.MEDIUM)}</MenuItem>
                             <MenuItem value={PriorityEnum.HIGH}>{PriorityEnum.getLabel(PriorityEnum.HIGH)}</MenuItem>
                             <MenuItem value={PriorityEnum.CRITICAL}>{PriorityEnum.getLabel(PriorityEnum.CRITICAL)}</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <FormControl variant="standard" sx={{minWidth: 200}}>
+                        <InputLabel id="node-select-label">执行节点</InputLabel>
+                        <Select
+                            labelId="node-select-label"
+                            id="node-select"
+                            value={nodeId}
+                            onChange={handleNodeIdChange}
+                            label="执行节点"
+                        >
+                            {nodeSelectList.map(node => (
+                                <MenuItem key={node.id} value={node.id}>
+                                    {node.name}{node.region ? ` (${node.region})` : ""}
+                                    {node.is_master ? " ★" : ""}
+                                </MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
                 </Grid>

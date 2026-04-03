@@ -34,6 +34,7 @@ export const TaskAdd = forwardRef((props, ref) => {
         tags: "",
         assert:"",
         result_handler:"",
+        node_id: 0,
     }
     useImperativeHandle(ref, () => ({
         handleClickOpen,
