@@ -15,15 +15,17 @@ import ReactECharts from "echarts-for-react";
 import {TaskLogTable} from "./TaskRunningLog";
 import {TabContext, TabList, TabPanel} from "@mui/lab";
 import Box from "@mui/material/Box";
-import {Tab} from "@mui/material";
+import {Chip, Tab, Typography} from "@mui/material";
 import {TaskEndedLog} from "./TaskEndedLog";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import {PriorityEnum} from "../../enum/task";
 
 export const TaskInfo = () => {
     const params = useParams()
     const taskId = params.taskId
     const [taskInfo, setTaskInfo] = useState({
         command: "",
+        description: "",
         exec_strategy: 0,
         exec_type: "",
         id: 0,
@@ -31,6 +33,8 @@ export const TaskInfo = () => {
         last_run_time: "",
         name: "",
         next_run_time: "",
+        priority: 1,
+        tags: "",
         retry_interval: 0,
         retry_times: 0,
         running_count: 0,
@@ -114,19 +118,41 @@ const TaskInfoContent = (props) => {
     }, [usedList]);
 
     const {isDesktop} = useScreenSize();
+    const tagList = taskInfo.tags ? taskInfo.tags.split(",").filter(t => t.trim()) : [];
     return (
         <React.Fragment>
             <Paper>
                 <Grid container sx={{p: 2, mt: 2}}>
                     <Grid item xs={12} md={6}>
                         <InfoItem title="Name" value={taskInfo.name}/>
+                        {taskInfo.description && (
+                            <InfoItem title="Description" value={taskInfo.description}/>
+                        )}
+                        <InfoItem title="Priority" value={
+                            <Chip
+                                label={PriorityEnum.getLabel(taskInfo.priority)}
+                                color={PriorityEnum.getColor(taskInfo.priority)}
+                                size="small"
+                            />
+                        }/>
                         <InfoItem title="Schedule" value={taskInfo.schedule}/>
                         <InfoItem title="Execute Type" value={taskInfo.exec_type}/>
-                        <InfoItem title="Disable" value={taskInfo.is_disable ? <DoDisturbOnIcon color="danger"/> :
-                            <RunCircleIcon color="success"/>}/>
+                        <InfoItem title="Status" value={taskInfo.is_disable ?
+                            <Chip label="Disabled" color="default" size="small" icon={<DoDisturbOnIcon/>}/> :
+                            <Chip label="Enabled" color="success" size="small" icon={<RunCircleIcon/>}/>
+                        }/>
                         <InfoItem title="Last run time" value={taskInfo.last_run_time}/>
                         <InfoItem title="Next run time" value={taskInfo.next_run_time}/>
                         <InfoItem title="Running Count" value={taskInfo.running_count}/>
+                        {tagList.length > 0 && (
+                            <InfoItem title="Tags" value={
+                                <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5}}>
+                                    {tagList.map(tag => (
+                                        <Chip key={tag} label={tag.trim()} size="small" variant="outlined"/>
+                                    ))}
+                                </Box>
+                            }/>
+                        )}
                     </Grid>
                     <Grid item xs={12} md={6}>
                         <ReactECharts style={{height:isDesktop?300:200}} ref={(e) => (echartsRef.current = e)} option={echartsOption}/>

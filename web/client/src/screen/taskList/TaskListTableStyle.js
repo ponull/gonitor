@@ -18,21 +18,22 @@ export const TaskListTableStyle = (props) => {
                     <TableRow>
                         <TableCell>No.</TableCell>
                         <TableCell>Name</TableCell>
+                        <TableCell align="right">Priority</TableCell>
                         <TableCell align="right">Type</TableCell>
                         <TableCell align="right">Schedule</TableCell>
                         <TableCell align="right">Strategy</TableCell>
-                        <TableCell align="right">Disabled</TableCell>
-                        <TableCell align="right">Running Count</TableCell>
+                        <TableCell align="center">Status</TableCell>
+                        <TableCell align="right">Running</TableCell>
                         <TableCell align="right">Last Run Time</TableCell>
                         <TableCell align="right">Next Run Time</TableCell>
-                        <TableCell align="right">Function</TableCell>
+                        <TableCell align="right">Actions</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                     {loading ?
                         new Array(5).fill(0).map((_, rowIdx) => (
                             <TableRow key={"row" + rowIdx}>
-                                {new Array(10).fill(0).map((_, cellIdx) => (
+                                {new Array(11).fill(0).map((_, cellIdx) => (
                                     <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
                                         <Skeleton variant="text"/>
                                     </TableCell>

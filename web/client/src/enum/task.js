@@ -45,3 +45,38 @@ export const StrategyEnum = {
         }
     }
 }
+
+export const PriorityEnum = {
+    LOW: 0,
+    MEDIUM: 1,
+    HIGH: 2,
+    CRITICAL: 3,
+    getLabel: function(priority) {
+        switch(priority) {
+            case this.LOW:
+                return 'Low';
+            case this.MEDIUM:
+                return 'Medium';
+            case this.HIGH:
+                return 'High';
+            case this.CRITICAL:
+                return 'Critical';
+            default:
+                return 'Unknown';
+        }
+    },
+    getColor: function(priority) {
+        switch(priority) {
+            case this.LOW:
+                return 'default';
+            case this.MEDIUM:
+                return 'info';
+            case this.HIGH:
+                return 'warning';
+            case this.CRITICAL:
+                return 'error';
+            default:
+                return 'default';
+        }
+    }
+}
