@@ -16,12 +16,15 @@ import (
 
 type taskInfo struct {
 	subscription.TaskInfo
+	Description   string `json:"description"`    //任务描述
 	ExecType      string `json:"exec_type"`      //执行类型
 	Command       string `json:"command"`        //执行命令
 	Schedule      string `json:"schedule"`       //定时规则
 	ExecStrategy  int8   `json:"exec_strategy"`  //执行策略
 	RetryTimes    int8   `json:"retry_times"`    //重试次数
 	RetryInterval int    `json:"retry_interval"` //重试间隔
+	Priority      int8   `json:"priority"`       //优先级
+	Tags          string `json:"tags"`           //标签
 	UpdateTime    string `json:"update_time"`    //更新时间
 	Assert        string `json:"assert"`
 	ResultHandler string `json:"result_handler"`
@@ -29,15 +32,38 @@ type taskInfo struct {
 
 func GetTaskList(context *context.Context) *response.Response {
 	var taskList []taskInfo
-	core.Db.Raw(`
-SELECT * FROM task WHERE delete_time IS NULL
-`).Scan(&taskList)
+	keyword := context.Query("keyword")
+	priority := context.Query("priority")
+	status := context.Query("status")
+
+	query := core.Db.Table("task").Where("delete_time IS NULL")
+
+	// Search by keyword (name, description, command, tags)
+	if keyword != "" {
+		likePattern := "%" + keyword + "%"
+		query = query.Where("name LIKE ? OR description LIKE ? OR command LIKE ? OR tags LIKE ?",
+			likePattern, likePattern, likePattern, likePattern)
+	}
+
+	// Filter by priority
+	if priority != "" {
+		query = query.Where("priority = ?", priority)
+	}
+
+	// Filter by status (enabled/disabled)
+	if status == "enabled" {
+		query = query.Where("is_disable = ?", false)
+	} else if status == "disabled" {
+		query = query.Where("is_disable = ?", true)
+	}
+
+	query.Order("priority DESC, id ASC").Scan(&taskList)
+
 	//查询最后一条日志记录 作为last_run_time
 	for i, taskItem := range taskList {
 		var taskLog model.TaskLog
-		core.Db.Where("task_id = ?", taskItem.ID).First(&taskLog)
+		core.Db.Where("task_id = ?", taskItem.ID).Order("id DESC").First(&taskLog)
 		taskList[i].LastRunTime = taskLog.ExecTime.Format("2006-01-02 15:04:05")
-
 	}
 	return response.Resp().Success("success", taskList)
 }
@@ -170,10 +196,13 @@ func GetTaskInfo(context *context.Context) *response.Response {
 func AddTask(context *context.Context) *response.Response {
 	type taskAddFormTpl struct {
 		Name          string `json:"name"`
+		Description   string `json:"description"`
 		ExecType      string `json:"exec_type"`
 		Command       string `json:"command"`
 		Schedule      string `json:"schedule"`
 		IsDisable     bool   `json:"is_disable"`
+		Priority      int8   `json:"priority"`
+		Tags          string `json:"tags"`
 		ExecStrategy  int8   `json:"exec_strategy"`
 		RetryTimes    int8   `json:"retry_times"`
 		RetryInterval int    `json:"retry_interval"`
@@ -185,6 +214,30 @@ func AddTask(context *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
+
+	// Input validation
+	if len(addInfo.Name) == 0 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name is required", nil)
+	}
+	if len(addInfo.Name) > 255 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name must be less than 255 characters", nil)
+	}
+	if len(addInfo.Command) == 0 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "command is required", nil)
+	}
+	if addInfo.ExecType != "cmd" && addInfo.ExecType != "http" && addInfo.ExecType != "file" {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "exec_type must be cmd, http, or file", nil)
+	}
+	if addInfo.Priority < 0 || addInfo.Priority > 3 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "priority must be between 0 and 3", nil)
+	}
+	if addInfo.RetryTimes < 0 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "retry_times must be non-negative", nil)
+	}
+	if addInfo.RetryInterval < 0 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "retry_interval must be non-negative", nil)
+	}
+
 	//todo 解析schedule 是否正确
 	err = task.CheckTaskSchedule(addInfo.Schedule)
 	if err != nil {
@@ -207,10 +260,13 @@ func AddTask(context *context.Context) *response.Response {
 	}
 	taskModel := &model.Task{
 		Name:          addInfo.Name,
+		Description:   addInfo.Description,
 		Command:       addInfo.Command,
 		Schedule:      addInfo.Schedule,
 		ExecType:      addInfo.ExecType,
 		IsDisable:     addInfo.IsDisable,
+		Priority:      addInfo.Priority,
+		Tags:          addInfo.Tags,
 		ExecStrategy:  addInfo.ExecStrategy,
 		RetryTimes:    addInfo.RetryTimes,
 		RetryInterval: addInfo.RetryInterval,
@@ -236,10 +292,13 @@ func AddTask(context *context.Context) *response.Response {
 func EditTask(context *context.Context) *response.Response {
 	type taskEditFormTpl struct {
 		Name          string `json:"name"`
+		Description   string `json:"description"`
 		ExecType      string `json:"exec_type"`
 		Command       string `json:"command"`
 		Schedule      string `json:"schedule"`
 		IsDisable     bool   `json:"is_disable"`
+		Priority      int8   `json:"priority"`
+		Tags          string `json:"tags"`
 		ExecStrategy  int8   `json:"exec_strategy"`
 		RetryTimes    int8   `json:"retry_times"`
 		RetryInterval int    `json:"retry_interval"`
@@ -256,6 +315,23 @@ func EditTask(context *context.Context) *response.Response {
 	dbRt := core.Db.Where("id = ?", taskId).First(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
+	}
+
+	// Input validation
+	if len(editInfo.Name) == 0 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name is required", nil)
+	}
+	if len(editInfo.Name) > 255 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name must be less than 255 characters", nil)
+	}
+	if len(editInfo.Command) == 0 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "command is required", nil)
+	}
+	if editInfo.ExecType != "cmd" && editInfo.ExecType != "http" && editInfo.ExecType != "file" {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "exec_type must be cmd, http, or file", nil)
+	}
+	if editInfo.Priority < 0 || editInfo.Priority > 3 {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "priority must be between 0 and 3", nil)
 	}
 
 	err = task.CheckTaskSchedule(editInfo.Schedule)
@@ -278,10 +354,13 @@ func EditTask(context *context.Context) *response.Response {
 	}
 
 	taskModel.Name = editInfo.Name
+	taskModel.Description = editInfo.Description
 	taskModel.Command = editInfo.Command
 	taskModel.Schedule = editInfo.Schedule
 	taskModel.ExecType = editInfo.ExecType
 	taskModel.IsDisable = editInfo.IsDisable
+	taskModel.Priority = editInfo.Priority
+	taskModel.Tags = editInfo.Tags
 	taskModel.ExecStrategy = editInfo.ExecStrategy
 	taskModel.RetryTimes = editInfo.RetryTimes
 	taskModel.RetryInterval = editInfo.RetryInterval

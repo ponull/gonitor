@@ -73,14 +73,12 @@ func GetUserList(context *context.Context) *response.Response {
 func UserLogin(context *context.Context) *response.Response {
 	loginAccount := context.Request.PostFormValue("login_account")
 	password := context.Request.PostFormValue("password")
-	password = utils.Md5(password)
-	ormWhere := model.OrmWhereMap{
-		"login_account": loginAccount,
-		"password":      password,
-	}
 	user := model.User{}
-	result := core.Db.Where(ormWhere).First(&user)
+	result := core.Db.Where("login_account = ?", loginAccount).First(&user)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return response.Resp().Error(2002, "错误的用户名或密码", make(map[string]interface{}))
+	}
+	if !utils.CheckPassword(password, user.Password) {
 		return response.Resp().Error(2002, "错误的用户名或密码", make(map[string]interface{}))
 	}
 	userToken := &model.UserToken{}
@@ -111,10 +109,14 @@ func AddUser(context *context.Context) *response.Response {
 	if len(userFormData.Password) < 6 {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "密码小于6位数", nil)
 	}
+	hashedPassword, err := utils.HashPassword(userFormData.Password)
+	if err != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, "Password hashing failed", nil)
+	}
 	newUser := &model.User{
 		Username:     userFormData.UserName,
 		LoginAccount: userFormData.LoginAccount,
-		Password:     utils.Md5(userFormData.Password),
+		Password:     hashedPassword,
 		Avatar:       userFormData.Avatar,
 	}
 	err = newUser.RegisterNewUser()
@@ -153,8 +155,12 @@ func EditUser(context *context.Context) *response.Response {
 	if userFormData.Password != userFormData.ConfirmPassword {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "Incorrect password twice", nil)
 	}
+	hashedPassword, err := utils.HashPassword(userFormData.Password)
+	if err != nil {
+		return response.Resp().Error(errorCode.DB_ERROR, "Password hashing failed", nil)
+	}
 	userModel.Username = userFormData.UserName
-	userModel.Password = utils.Md5(userFormData.Password)
+	userModel.Password = hashedPassword
 	userModel.Avatar = userFormData.Avatar
 	dbRt = core.Db.Save(userModel)
 	if dbRt.Error != nil {
