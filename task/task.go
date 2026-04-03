@@ -48,6 +48,10 @@ func (tm *manager) AddTask(taskId int64) error {
 	if task.IsDisable {
 		return nil
 	}
+	// 检查是否为本地执行的任务（主节点任务或node_id=0）
+	if !isLocalTask(task) {
+		return nil
+	}
 	taskIns := &taskInstance{
 		TaskID:           taskId,
 		TaskInfo:         task,
@@ -136,4 +140,17 @@ func (tm *manager) addTaskRunningIns(taskId int64, instance *RunningInstance) {
 		return
 	}
 	taskIns.RunningInstances[instance.TaskLogInfo.ID] = instance
+}
+
+// isLocalTask 判断任务是否在本地执行
+func isLocalTask(t *model.Task) bool {
+	if t.NodeID == 0 {
+		return true
+	}
+	node := &model.Node{}
+	dbRt := core.Db.Where("id = ?", t.NodeID).First(node)
+	if dbRt.Error != nil {
+		return true // 找不到节点默认本地执行
+	}
+	return node.IsMaster
 }
