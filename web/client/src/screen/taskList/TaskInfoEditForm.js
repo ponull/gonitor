@@ -3,12 +3,13 @@ import * as React from "react";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
-import {FormControl, FormLabel, InputLabel, MenuItem, Radio, RadioGroup, Select, Switch} from "@mui/material";
+import {Chip, FormControl, FormLabel, InputLabel, MenuItem, Radio, RadioGroup, Select, Switch} from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import {ExecuteTypeEnum} from "../../enum/task";
+import {ExecuteTypeEnum, PriorityEnum} from "../../enum/task";
 import {AssertField} from "./fields/AssertField";
 import {ResultHandlerField} from "./fields/ResultHandlerField";
 import {ScheduleField} from "./fields/ScheduleField";
+import Box from "@mui/material/Box";
 
 export const TaskInfoEditForm = forwardRef((props, ref) => {
     const {taskInfo} = props
@@ -18,6 +19,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const getFormValues = () => {
         return {
             name: taskName,
+            description,
             exec_type: executeType,
             command,
             schedule,
@@ -25,12 +27,16 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             retry_interval: parseInt(retryInterval),
             exec_strategy: parseInt(ExecStrategy),
             is_disable: IsDisable,
+            priority: parseInt(priority),
+            tags: tags.join(","),
             assert,
             result_handler: resultHandler,
         }
     }
     const [taskName, setTaskName] = useState(taskInfo.name)
     const handleTaskNameChange = (event) => setTaskName(event.target.value)
+    const [description, setDescription] = useState(taskInfo.description || "")
+    const handleDescriptionChange = (event) => setDescription(event.target.value)
     const [executeType, setExecuteType] = useState(taskInfo.exec_type)
     const handleExecuteTypeChange = (event) => {
         const executeType = event.target.value;
@@ -50,6 +56,23 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleExecStrategyChange = (event) => setExecStrategy(event.target.value)
     const [IsDisable, setIsDisable] = useState(taskInfo.is_disable)
     const handleIsDisableChange = (event) => setIsDisable(event.target.checked)
+    const [priority, setPriority] = useState(taskInfo.priority !== undefined ? taskInfo.priority : PriorityEnum.MEDIUM)
+    const handlePriorityChange = (event) => setPriority(event.target.value)
+    const [tags, setTags] = useState(taskInfo.tags ? taskInfo.tags.split(",").filter(t => t.trim() !== "") : [])
+    const [tagInput, setTagInput] = useState("")
+    const handleTagInputChange = (event) => setTagInput(event.target.value)
+    const handleTagInputKeyDown = (event) => {
+        if (event.key === "Enter" && tagInput.trim() !== "") {
+            event.preventDefault();
+            if (!tags.includes(tagInput.trim())) {
+                setTags([...tags, tagInput.trim()]);
+            }
+            setTagInput("");
+        }
+    }
+    const handleDeleteTag = (tagToDelete) => {
+        setTags(tags.filter(tag => tag !== tagToDelete));
+    }
     const [assert, setAssert] = useState(taskInfo.assert)
     const handleAssertChange = (code) => setAssert(code)
     const [resultHandler, setResultHandler] = useState(taskInfo.result_handler)
@@ -73,6 +96,20 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                     />
                 </Grid>
                 <Grid item xs={12}>
+                    <TextField
+                        id="description"
+                        name="description"
+                        label="Description"
+                        value={description}
+                        onChange={handleDescriptionChange}
+                        fullWidth
+                        multiline
+                        rows={2}
+                        variant="standard"
+                        placeholder="Describe what this task does..."
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
                     <FormControl variant="standard" sx={{minWidth: 120}}>
                         <InputLabel id="exec-type-label">Execute Type</InputLabel>
                         <Select
@@ -94,6 +131,23 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                         </Select>
                     </FormControl>
                 </Grid>
+                <Grid item xs={12} md={6}>
+                    <FormControl variant="standard" sx={{minWidth: 120}}>
+                        <InputLabel id="priority-label">Priority</InputLabel>
+                        <Select
+                            labelId="priority-label"
+                            id="priority"
+                            value={priority}
+                            onChange={handlePriorityChange}
+                            label="Priority"
+                        >
+                            <MenuItem value={PriorityEnum.LOW}>{PriorityEnum.getLabel(PriorityEnum.LOW)}</MenuItem>
+                            <MenuItem value={PriorityEnum.MEDIUM}>{PriorityEnum.getLabel(PriorityEnum.MEDIUM)}</MenuItem>
+                            <MenuItem value={PriorityEnum.HIGH}>{PriorityEnum.getLabel(PriorityEnum.HIGH)}</MenuItem>
+                            <MenuItem value={PriorityEnum.CRITICAL}>{PriorityEnum.getLabel(PriorityEnum.CRITICAL)}</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Grid>
                 <Grid item xs={12}>
                     <TextField
                         required
@@ -108,6 +162,24 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                 </Grid>
                 <Grid item xs={12}>
                     <ScheduleField schedule={schedule} handleScheduleChange={handleScheduleChange}/>
+                </Grid>
+                <Grid item xs={12}>
+                    <TextField
+                        id="tags"
+                        name="tags"
+                        label="Tags (press Enter to add)"
+                        value={tagInput}
+                        onChange={handleTagInputChange}
+                        onKeyDown={handleTagInputKeyDown}
+                        fullWidth
+                        variant="standard"
+                        placeholder="Type a tag and press Enter..."
+                    />
+                    <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1}}>
+                        {tags.map((tag) => (
+                            <Chip key={tag} label={tag} size="small" onDelete={() => handleDeleteTag(tag)}/>
+                        ))}
+                    </Box>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <TextField
@@ -125,9 +197,9 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                 <Grid item xs={12} md={6}>
                     <TextField
                         required
-                        id="address1"
-                        name="address1"
-                        label="Retry Interval(unit second)"
+                        id="retryInterval"
+                        name="retryInterval"
+                        label="Retry Interval (seconds)"
                         value={retryInterval}
                         onChange={handleRetryIntervalChange}
                         fullWidth

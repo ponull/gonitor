@@ -16,8 +16,12 @@ func CheckTaskAssertJavascriptCode(jsCode string) error {
 		return err
 		//return response.Resp().Error(2154646, "JS断言代码有错误", nil)
 	}
+	mainVal := vm.Get("main")
+	if mainVal == nil || goja.IsUndefined(mainVal) || goja.IsNull(mainVal) {
+		return errors.New("main function is not defined")
+	}
 	var assertFn func(string) bool
-	err = vm.ExportTo(vm.Get("main"), &assertFn)
+	err = vm.ExportTo(mainVal, &assertFn)
 	if err != nil {
 		return err
 		//return response.Resp().Error(2154646, "JS断言代码main方法格式不正确", nil)
@@ -39,8 +43,13 @@ func GetTaskAssertResult(output string, jsCode string) (assertResult bool) {
 		log.Println("JS断言代码有错误")
 		return
 	}
+	mainVal := vm.Get("main")
+	if mainVal == nil || goja.IsUndefined(mainVal) || goja.IsNull(mainVal) {
+		log.Println("JS断言代码main方法未定义")
+		return
+	}
 	var assertFn func(string) bool
-	err = vm.ExportTo(vm.Get("main"), &assertFn)
+	err = vm.ExportTo(mainVal, &assertFn)
 	if err != nil {
 		log.Println("JS断言代码main方法格式不正确")
 		return

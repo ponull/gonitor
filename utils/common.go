@@ -8,16 +8,39 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
 )
 
+// Md5 is kept for backward compatibility (e.g. legacy password verification).
 func Md5(str string) string {
 	h := md5.New()
 	io.WriteString(h, str)
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// HashPassword generates a bcrypt hash from a plaintext password.
+func HashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+// CheckPassword compares a plaintext password against a bcrypt hash.
+// It also supports legacy MD5 hashes for backward compatibility.
+func CheckPassword(password, hash string) bool {
+	// Try bcrypt first
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err == nil {
+		return true
+	}
+	// Fall back to MD5 for legacy passwords
+	return Md5(password) == hash
 }
 
 func HttpGet(url string, params map[string]string, headers map[string]string, cookies map[string]string) (*http.Response, error) {

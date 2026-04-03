@@ -22,6 +22,7 @@ export const TaskAdd = forwardRef((props, ref) => {
     const {refreshTaskList} = props;
     const taskInfo = {
         name: "",
+        description: "",
         exec_type: ExecuteTypeEnum.HTTP,
         command:"",
         schedule:"",
@@ -29,6 +30,8 @@ export const TaskAdd = forwardRef((props, ref) => {
         retry_interval: 3000,
         execute_strategy: 0,
         is_disable: false,
+        priority: 1,
+        tags: "",
         assert:"",
         result_handler:"",
     }

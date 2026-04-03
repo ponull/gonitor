@@ -6,7 +6,7 @@ import (
 
 type TaskLog struct {
 	Base
-	TaskId      int64     `gorm:"column:task_id" json:"task_id"`           //任务名称
+	TaskId      int64     `gorm:"column:task_id;index" json:"task_id"`     //任务名称
 	Command     string    `gorm:"column:command" json:"command"`           //最终执行命令 例如http 和 file的执行  就不一样
 	Status      bool      `gorm:"column:status" json:"status"`             //当前运行状态
 	OutputFile  string    `gorm:"column:output" json:"output"`             //当前运行状态

@@ -66,7 +66,12 @@ func initDb() {
 	if dbRt.Error != nil && errors.Is(dbRt.Error, gorm.ErrRecordNotFound) {
 		fmt.Println("未找到admin用户，准备初始化")
 		adminUser.LoginAccount = "admin"
-		adminUser.Password = utils.Md5("123456")
+		hashedPassword, err := utils.HashPassword("123456")
+		if err != nil {
+			fmt.Println("密码加密失败")
+			return
+		}
+		adminUser.Password = hashedPassword
 		adminUser.Avatar = "https://mui.com/static/images/avatar/1.jpg"
 		dbRt = db.Create(adminUser)
 		if dbRt.Error != nil {
