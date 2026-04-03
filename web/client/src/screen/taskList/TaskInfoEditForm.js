@@ -199,7 +199,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                         required
                         id="retryInterval"
                         name="retryInterval"
-                        label="Retry Interval (unit second)"
+                        label="Retry Interval (seconds)"
                         value={retryInterval}
                         onChange={handleRetryIntervalChange}
                         fullWidth

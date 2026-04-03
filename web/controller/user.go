@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
-	"github.com/jinzhu/gorm"
 	"gonitor/core"
 	"gonitor/model"
 	"gonitor/utils"
@@ -75,7 +73,7 @@ func UserLogin(context *context.Context) *response.Response {
 	password := context.Request.PostFormValue("password")
 	user := model.User{}
 	result := core.Db.Where("login_account = ?", loginAccount).First(&user)
-	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if result.Error != nil {
 		return response.Resp().Error(2002, "错误的用户名或密码", make(map[string]interface{}))
 	}
 	if !utils.CheckPassword(password, user.Password) {
