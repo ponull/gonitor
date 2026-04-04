@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"gonitor/core"
 	"gonitor/model"
@@ -36,21 +38,38 @@ func initLog() {
 }
 
 func initDb() {
-	if _, err := os.Stat(core.Config.Sqlite.DbPath); err != nil {
-		fmt.Printf("未找到数据库\n")
-		fmt.Printf("新建空数据库\n")
-		_, err := os.Create(core.Config.Sqlite.DbPath)
-		if err != nil {
-			fmt.Printf("创建数据库失败\n%s\n", err)
+	driver := core.Config.Database.Driver
+	dsn := core.Config.Database.DSN
+
+	var db *gorm.DB
+	var err error
+
+	switch driver {
+	case "sqlite3":
+		if _, statErr := os.Stat(dsn); statErr != nil {
+			fmt.Printf("未找到数据库\n")
+			fmt.Printf("新建空数据库\n")
+			_, createErr := os.Create(dsn)
+			if createErr != nil {
+				fmt.Printf("创建数据库失败\n%s\n", createErr)
+			}
+			fmt.Printf("创建数据库成功\n")
 		}
-		fmt.Printf("创建数据库成功\n")
+		db, err = gorm.Open("sqlite3", dsn)
+	case "mysql":
+		db, err = gorm.Open("mysql", dsn)
+	case "postgres":
+		db, err = gorm.Open("postgres", dsn)
+	default:
+		panic(fmt.Sprintf("不支持的数据库类型: %s (支持: sqlite3, mysql, postgres)", driver))
 	}
-	//db, err := gorm.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/jd_promotion?charset=utf8mb4&parseTime=True&loc=Local")
-	db, err := gorm.Open("sqlite3", core.Config.Sqlite.DbPath)
+
 	if err != nil {
-		log.Println("Unable to connect to the database")
+		log.Printf("Unable to connect to the database (%s): %v\n", driver, err)
 		panic(err)
 	}
+	fmt.Printf("数据库连接成功 (%s)\n", driver)
+
 	if core.Config.App.DbLog {
 		db.LogMode(true)
 	}
@@ -60,6 +79,7 @@ func initDb() {
 	db.AutoMigrate(&model.UserToken{})
 	db.AutoMigrate(&model.OperationLog{})
 	db.AutoMigrate(&model.Node{})
+	db.AutoMigrate(&model.NodeEvent{})
 	core.Db = db
 
 	//检查是否有主节点 没有就创建

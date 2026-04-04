@@ -10,9 +10,31 @@ Script:
 Sqlite:
  DbPath: gonitor.db
 
+# 多数据库支持 (可选，优先级高于Sqlite配置)
+# Driver: sqlite3, mysql, postgres
+# Database:
+#  Driver: sqlite3
+#  DSN: gonitor.db
+#
+# MySQL 示例:
+# Database:
+#  Driver: mysql
+#  DSN: root:password@tcp(127.0.0.1:3306)/gonitor?charset=utf8mb4&parseTime=True&loc=Local
+#
+# PostgreSQL 示例:
+# Database:
+#  Driver: postgres
+#  DSN: host=127.0.0.1 port=5432 user=postgres password=password dbname=gonitor sslmode=disable
+
 HttpServer:
  Host: 127.0.0.1
  Post: 8899
+
+# 边缘节点配置 (仅边缘节点使用)
+# Agent:
+#  MasterAddress: http://master-ip:8899
+#  SecretKey: your-secret-key
+#  NodeName: edge-node-1
 
 WeCom:
  CorpId: wwe369416f1c4fc21b
