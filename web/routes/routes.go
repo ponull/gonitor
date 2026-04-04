@@ -43,6 +43,9 @@ func config(router group) {
 		nodeGroup.Registered(DELETE, "/:node_id", controller.DeleteNode)
 		nodeGroup.Registered(GET, "/regenerate/:node_id", controller.RegenerateNodeKey)
 		nodeGroup.Registered(GET, "/taskCount/:node_id", controller.GetNodeTaskCount)
+		nodeGroup.Registered(POST, "/deploy", controller.DeployNode)
+		nodeGroup.Registered(POST, "/deploy/new", controller.DeployNewNode)
+		nodeGroup.Registered(POST, "/deploy/test", controller.TestSSHConnection)
 	}, middleware.CheckToken)
 	router.Group("/agent", func(agentGroup group) {
 		agentGroup.Registered(POST, "/heartbeat", controller.AgentHeartbeat)
