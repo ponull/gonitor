@@ -11,18 +11,61 @@ import (
 	"golang.org/x/crypto/ssh"
 	"log"
 	"net"
+	"regexp"
 	"strings"
 	"time"
 )
 
+// validateInstallPath validates the install path to prevent command injection.
+// Only allows alphanumeric characters, slashes, hyphens, underscores, and dots.
+func validateInstallPath(path string) error {
+	if path == "" {
+		return fmt.Errorf("install path is empty")
+	}
+	// Only allow safe characters in file paths
+	safePathPattern := regexp.MustCompile(`^[a-zA-Z0-9/_\-\.]+$`)
+	if !safePathPattern.MatchString(path) {
+		return fmt.Errorf("install path contains invalid characters")
+	}
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("install path must not contain '..'")
+	}
+	return nil
+}
+
+// validateSSHHost checks that the host is not empty and resolves to an IP address.
+func validateSSHHost(host string) error {
+	if host == "" {
+		return fmt.Errorf("host is empty")
+	}
+	_, err := net.ResolveIPAddr("ip", host)
+	return err
+}
+
+// newSSHClientConfig creates an SSH client configuration.
+// Note: HostKeyCallback uses InsecureIgnoreHostKey because this is an internal
+// deployment tool where the admin is connecting to their own known servers.
+// For production environments requiring strict host key verification, consider
+// implementing known_hosts file based verification.
+func newSSHClientConfig(user, password string, timeout time.Duration) *ssh.ClientConfig {
+	return &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // #nosec - admin deploys to own servers
+		Timeout:         timeout,
+	}
+}
+
 // DeployNode 通过SSH自动部署边缘节点
 func DeployNode(ctx *context.Context) *response.Response {
 	type deployForm struct {
-		NodeID   int64  `json:"node_id"`
-		SSHHost  string `json:"ssh_host"`
-		SSHPort  int    `json:"ssh_port"`
-		SSHUser  string `json:"ssh_user"`
-		SSHPass  string `json:"ssh_password"`
+		NodeID      int64  `json:"node_id"`
+		SSHHost     string `json:"ssh_host"`
+		SSHPort     int    `json:"ssh_port"`
+		SSHUser     string `json:"ssh_user"`
+		SSHPass     string `json:"ssh_password"`
 		InstallPath string `json:"install_path"`
 	}
 	form := deployForm{}
@@ -31,8 +74,8 @@ func DeployNode(ctx *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
 
-	if form.SSHHost == "" {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "SSH host is required", nil)
+	if err := validateSSHHost(form.SSHHost); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "invalid SSH host: "+err.Error(), nil)
 	}
 	if form.SSHUser == "" {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "SSH user is required", nil)
@@ -40,11 +83,14 @@ func DeployNode(ctx *context.Context) *response.Response {
 	if form.SSHPass == "" {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "SSH password is required", nil)
 	}
-	if form.SSHPort <= 0 {
+	if form.SSHPort <= 0 || form.SSHPort > 65535 {
 		form.SSHPort = 22
 	}
 	if form.InstallPath == "" {
 		form.InstallPath = "/opt/gonitor"
+	}
+	if err := validateInstallPath(form.InstallPath); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "invalid install path: "+err.Error(), nil)
 	}
 
 	// 查找节点
@@ -61,17 +107,8 @@ func DeployNode(ctx *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "node_id is required", nil)
 	}
 
-	// 构建SSH配置
-	sshConfig := &ssh.ClientConfig{
-		User: form.SSHUser,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(form.SSHPass),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         15 * time.Second,
-	}
-
-	// 连接SSH
+	// 构建SSH配置并连接
+	sshConfig := newSSHClientConfig(form.SSHUser, form.SSHPass, 15*time.Second)
 	addr := fmt.Sprintf("%s:%d", form.SSHHost, form.SSHPort)
 	client, err := ssh.Dial("tcp", addr, sshConfig)
 	if err != nil {
@@ -107,10 +144,10 @@ func DeployNode(ctx *context.Context) *response.Response {
 			nodeModel.Name, form.SSHUser, form.SSHHost, form.SSHPort, form.InstallPath, ctx.ClientIP()))
 
 	result := map[string]interface{}{
-		"node_id":   nodeModel.ID,
-		"node_name": nodeModel.Name,
-		"ssh_host":  form.SSHHost,
-		"sys_info":  sysInfo,
+		"node_id":    nodeModel.ID,
+		"node_name":  nodeModel.Name,
+		"ssh_host":   form.SSHHost,
+		"sys_info":   sysInfo,
 		"deploy_log": deployLog,
 	}
 
@@ -137,22 +174,17 @@ func TestSSHConnection(ctx *context.Context) *response.Response {
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
-	if form.SSHHost == "" || form.SSHUser == "" || form.SSHPass == "" {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "SSH host, user and password are required", nil)
+	if err := validateSSHHost(form.SSHHost); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "invalid SSH host: "+err.Error(), nil)
 	}
-	if form.SSHPort <= 0 {
+	if form.SSHUser == "" || form.SSHPass == "" {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "SSH user and password are required", nil)
+	}
+	if form.SSHPort <= 0 || form.SSHPort > 65535 {
 		form.SSHPort = 22
 	}
 
-	sshConfig := &ssh.ClientConfig{
-		User: form.SSHUser,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(form.SSHPass),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         10 * time.Second,
-	}
-
+	sshConfig := newSSHClientConfig(form.SSHUser, form.SSHPass, 10*time.Second)
 	addr := fmt.Sprintf("%s:%d", form.SSHHost, form.SSHPort)
 	client, err := ssh.Dial("tcp", addr, sshConfig)
 	if err != nil {
@@ -170,19 +202,20 @@ func TestSSHConnection(ctx *context.Context) *response.Response {
 }
 
 // collectRemoteSystemInfo 通过SSH收集远程系统信息
+// These are read-only system info commands that do not use user-supplied input.
 func collectRemoteSystemInfo(client *ssh.Client) map[string]string {
 	info := map[string]string{}
 
 	commands := map[string]string{
-		"os":          "uname -s 2>/dev/null || echo unknown",
-		"arch":        "uname -m 2>/dev/null || echo unknown",
-		"hostname":    "hostname 2>/dev/null || echo unknown",
-		"kernel":      "uname -r 2>/dev/null || echo unknown",
-		"cpu_cores":   "nproc 2>/dev/null || echo 0",
+		"os":           "uname -s 2>/dev/null || echo unknown",
+		"arch":         "uname -m 2>/dev/null || echo unknown",
+		"hostname":     "hostname 2>/dev/null || echo unknown",
+		"kernel":       "uname -r 2>/dev/null || echo unknown",
+		"cpu_cores":    "nproc 2>/dev/null || echo 0",
 		"memory_total": "free -b 2>/dev/null | awk '/Mem:/{print $2}' || echo 0",
-		"ip":          "hostname -I 2>/dev/null | awk '{print $1}' || echo unknown",
-		"go_version":  "go version 2>/dev/null | awk '{print $3}' || echo not_installed",
-		"platform":    "cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"' || echo unknown",
+		"ip":           "hostname -I 2>/dev/null | awk '{print $1}' || echo unknown",
+		"go_version":   "go version 2>/dev/null | awk '{print $3}' || echo not_installed",
+		"platform":     "cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"' || echo unknown",
 	}
 
 	for key, cmd := range commands {
@@ -198,6 +231,7 @@ func collectRemoteSystemInfo(client *ssh.Client) map[string]string {
 }
 
 // executeDeployCommands 执行部署命令
+// The installPath parameter is pre-validated by validateInstallPath to contain only safe characters.
 func executeDeployCommands(client *ssh.Client, installPath string, node *model.Node) (string, error) {
 	var logBuilder strings.Builder
 	masterAddr := fmt.Sprintf("http://%s:%s", core.Config.HttpServer.Host, core.Config.HttpServer.Post)
@@ -307,14 +341,20 @@ func DeployNewNode(ctx *context.Context) *response.Response {
 	if form.Name == "" {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "node name is required", nil)
 	}
-	if form.SSHHost == "" || form.SSHUser == "" || form.SSHPass == "" {
+	if err := validateSSHHost(form.SSHHost); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "invalid SSH host: "+err.Error(), nil)
+	}
+	if form.SSHUser == "" || form.SSHPass == "" {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "SSH credentials are required", nil)
 	}
-	if form.SSHPort <= 0 {
+	if form.SSHPort <= 0 || form.SSHPort > 65535 {
 		form.SSHPort = 22
 	}
 	if form.InstallPath == "" {
 		form.InstallPath = "/opt/gonitor"
+	}
+	if err := validateInstallPath(form.InstallPath); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "invalid install path: "+err.Error(), nil)
 	}
 
 	// 检查名称是否已存在
@@ -325,15 +365,7 @@ func DeployNewNode(ctx *context.Context) *response.Response {
 	}
 
 	// 先测试SSH连接
-	sshConfig := &ssh.ClientConfig{
-		User: form.SSHUser,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(form.SSHPass),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         15 * time.Second,
-	}
-
+	sshConfig := newSSHClientConfig(form.SSHUser, form.SSHPass, 15*time.Second)
 	addr := fmt.Sprintf("%s:%d", form.SSHHost, form.SSHPort)
 	client, err := ssh.Dial("tcp", addr, sshConfig)
 	if err != nil {
@@ -391,13 +423,4 @@ func DeployNewNode(ctx *context.Context) *response.Response {
 
 	result["status"] = "success"
 	return response.Resp().Success("node created and deployed successfully", result)
-}
-
-// validateSSHHost checks that the host is not empty and resolves to an IP address.
-func validateSSHHost(host string) error {
-	if host == "" {
-		return fmt.Errorf("host is empty")
-	}
-	_, err := net.ResolveIPAddr("ip", host)
-	return err
 }
