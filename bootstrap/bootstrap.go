@@ -59,7 +59,27 @@ func initDb() {
 	db.AutoMigrate(&model.User{})
 	db.AutoMigrate(&model.UserToken{})
 	db.AutoMigrate(&model.OperationLog{})
+	db.AutoMigrate(&model.Node{})
 	core.Db = db
+
+	//检查是否有主节点 没有就创建
+	masterNode := &model.Node{}
+	dbRtNode := db.Where("is_master = ?", true).First(masterNode)
+	if dbRtNode.Error != nil && errors.Is(dbRtNode.Error, gorm.ErrRecordNotFound) {
+		fmt.Println("未找到主节点，准备初始化")
+		masterNode.Name = "主节点"
+		masterNode.Region = "本地"
+		masterNode.IsMaster = true
+		masterNode.Status = 1
+		masterNode.Remark = "默认主控节点"
+		dbRtNode = db.Create(masterNode)
+		if dbRtNode.Error != nil {
+			fmt.Println("创建主节点失败")
+		} else {
+			fmt.Println("创建主节点成功")
+		}
+	}
+
 	//检查是否有admin这个用户 没有就加入
 	adminUser := &model.User{}
 	dbRt := db.Where("login_account = ?", "admin").First(adminUser)

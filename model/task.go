@@ -15,6 +15,7 @@ type Task struct {
 	RetryInterval int    `gorm:"column:retry_interval" json:"retry_interval"` //重试间隔
 	Assert        string `gorm:"column:assert" json:"assert"`                 //断言
 	ResultHandler string `gorm:"column:result_handler" json:"result_handler"` //结果处理
+	NodeID        int64  `gorm:"column:node_id;default:0" json:"node_id"`     //执行节点ID 0=主节点
 }
 
 func (Task) TableName() string {

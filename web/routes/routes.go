@@ -34,6 +34,21 @@ func config(router group) {
 		})
 		//taskGroup.Registered(GET, "/stop/kill", controller.StopTask)
 	}, middleware.CheckToken)
+	router.Group("/node", func(nodeGroup group) {
+		nodeGroup.Registered(GET, "/list", controller.GetNodeList)
+		nodeGroup.Registered(GET, "/select", controller.GetNodeSelectList)
+		nodeGroup.Registered(GET, "/info/:node_id", controller.GetNodeInfo)
+		nodeGroup.Registered(POST, "", controller.AddNode)
+		nodeGroup.Registered(PUT, "/:node_id", controller.EditNode)
+		nodeGroup.Registered(DELETE, "/:node_id", controller.DeleteNode)
+		nodeGroup.Registered(GET, "/regenerate/:node_id", controller.RegenerateNodeKey)
+		nodeGroup.Registered(GET, "/taskCount/:node_id", controller.GetNodeTaskCount)
+	}, middleware.CheckToken)
+	router.Group("/agent", func(agentGroup group) {
+		agentGroup.Registered(POST, "/heartbeat", controller.AgentHeartbeat)
+		agentGroup.Registered(GET, "/tasks", controller.AgentGetTasks)
+		agentGroup.Registered(POST, "/report", controller.AgentReportTaskResult)
+	})
 	router.Group("/user", func(userGroup group) {
 		userGroup.Registered(POST, "/login", controller.UserLogin)
 		userGroup.Group("", func(adminGroup group) {

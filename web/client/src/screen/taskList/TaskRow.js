@@ -37,6 +37,7 @@ export const TaskRow = (props) => {
                 </TableCell>
                 <TableCell align="right">{selfTaskInfo.exec_type}</TableCell>
                 <TableCell align="right">{selfTaskInfo.schedule}</TableCell>
+                <TableCell align="right">{selfTaskInfo.node_name || "主节点"}</TableCell>
                 <TableCell align="right">{StrategyEnum.getLanguage(selfTaskInfo.exec_strategy)}</TableCell>
                 <TableCell align="center">
                     <Chip

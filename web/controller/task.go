@@ -28,6 +28,8 @@ type taskInfo struct {
 	UpdateTime    string `json:"update_time"`    //更新时间
 	Assert        string `json:"assert"`
 	ResultHandler string `json:"result_handler"`
+	NodeID        int64  `json:"node_id"`        //执行节点ID
+	NodeName      string `json:"node_name"`      //执行节点名称
 }
 
 func GetTaskList(context *context.Context) *response.Response {
@@ -64,6 +66,7 @@ func GetTaskList(context *context.Context) *response.Response {
 		var taskLog model.TaskLog
 		core.Db.Where("task_id = ?", taskItem.ID).Order("id DESC").First(&taskLog)
 		taskList[i].LastRunTime = taskLog.ExecTime.Format("2006-01-02 15:04:05")
+		taskList[i].NodeName = GetTaskNodeName(taskItem.NodeID)
 	}
 	return response.Resp().Success("success", taskList)
 }
@@ -190,6 +193,7 @@ func GetTaskInfo(context *context.Context) *response.Response {
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "Invalid task id", nil)
 	}
+	taskInfo.NodeName = GetTaskNodeName(taskModel.NodeID)
 	return response.Resp().Success("success", taskInfo)
 }
 
@@ -208,6 +212,7 @@ func AddTask(context *context.Context) *response.Response {
 		RetryInterval int    `json:"retry_interval"`
 		Assert        string `json:"assert"`
 		ResultHandler string `json:"result_handler"`
+		NodeID        int64  `json:"node_id"`
 	}
 	addInfo := taskAddFormTpl{}
 	err := context.ShouldBindJSON(&addInfo)
@@ -272,12 +277,13 @@ func AddTask(context *context.Context) *response.Response {
 		RetryInterval: addInfo.RetryInterval,
 		Assert:        addInfo.Assert,
 		ResultHandler: addInfo.ResultHandler,
+		NodeID:        addInfo.NodeID,
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "insert fail", nil)
 	}
-	err = task.Manager.AddTask(taskModel.ID)
+	err = SyncTaskToNode(taskModel.ID)
 	if err != nil {
 		return response.Resp().Success("add to databases success, but task start fail", addInfo)
 	}
@@ -304,6 +310,7 @@ func EditTask(context *context.Context) *response.Response {
 		RetryInterval int    `json:"retry_interval"`
 		Assert        string `json:"assert"`
 		ResultHandler string `json:"result_handler"`
+		NodeID        int64  `json:"node_id"`
 	}
 	editInfo := taskEditFormTpl{}
 	err := context.ShouldBindJSON(&editInfo)
@@ -366,13 +373,18 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel.RetryInterval = editInfo.RetryInterval
 	taskModel.Assert = editInfo.Assert
 	taskModel.ResultHandler = editInfo.ResultHandler
+	taskModel.NodeID = editInfo.NodeID
 	dbRt = core.Db.Save(taskModel)
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.DB_ERROR, "update fail", nil)
 	}
-	err = task.Manager.UpdateTask(taskModel.ID)
-	if err != nil {
-		return response.Resp().Success("update success, but task update fail", editInfo)
+	// 更新任务调度：先删除旧的，判断是否为本地任务再决定是否重新加入cron
+	task.Manager.DeleteTask(taskModel.ID)
+	if IsLocalTask(taskModel) && !taskModel.IsDisable {
+		err = task.Manager.AddTask(taskModel.ID)
+		if err != nil {
+			return response.Resp().Success("update success, but task update fail", editInfo)
+		}
 	}
 
 	model.OperationLog{}.AddOperationLog(
