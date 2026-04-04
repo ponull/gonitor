@@ -227,7 +227,41 @@ func collectRemoteSystemInfo(client *ssh.Client) map[string]string {
 		info[key] = strings.TrimSpace(output)
 	}
 
+	// Map uname arch to Go arch naming for binary selection
+	info["goarch"] = mapToGoArch(info["arch"])
+	info["goos"] = mapToGoOS(info["os"])
+
 	return info
+}
+
+// mapToGoArch maps uname -m output to GOARCH values
+func mapToGoArch(arch string) string {
+	switch strings.ToLower(arch) {
+	case "x86_64", "amd64":
+		return "amd64"
+	case "aarch64", "arm64":
+		return "arm64"
+	case "armv7l", "armv6l":
+		return "arm"
+	case "i386", "i686":
+		return "386"
+	default:
+		return arch
+	}
+}
+
+// mapToGoOS maps uname -s output to GOOS values
+func mapToGoOS(osName string) string {
+	switch strings.ToLower(osName) {
+	case "linux":
+		return "linux"
+	case "darwin":
+		return "darwin"
+	case "freebsd":
+		return "freebsd"
+	default:
+		return strings.ToLower(osName)
+	}
 }
 
 // executeDeployCommands 执行部署命令
@@ -268,7 +302,8 @@ GONITOR_EOF`, installPath, installPath, installPath, installPath, installPath,
 		{"Generating systemd service", fmt.Sprintf(`cat > /tmp/gonitor-agent.service << 'GONITOR_EOF'
 [Unit]
 Description=Gonitor Agent - Edge Node
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -276,14 +311,19 @@ WorkingDirectory=%s
 ExecStart=%s/gonitor start
 Restart=always
 RestartSec=5
+WatchdogSec=60
 StandardOutput=journal
 StandardError=journal
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
 GONITOR_EOF`, installPath, installPath)},
 		{"Installing systemd service", "sudo cp /tmp/gonitor-agent.service /etc/systemd/system/gonitor-agent.service 2>/dev/null || true"},
 		{"Reloading systemd", "sudo systemctl daemon-reload 2>/dev/null || true"},
+		{"Enabling auto-start", "sudo systemctl enable gonitor-agent.service 2>/dev/null || true"},
 		{"Checking installation", fmt.Sprintf("ls -la %s/", installPath)},
 	}
 

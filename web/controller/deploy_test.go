@@ -51,3 +51,50 @@ func TestValidateInstallPath(t *testing.T) {
 		})
 	}
 }
+
+func TestMapToGoArch(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"x86_64", "amd64"},
+		{"amd64", "amd64"},
+		{"aarch64", "arm64"},
+		{"arm64", "arm64"},
+		{"armv7l", "arm"},
+		{"armv6l", "arm"},
+		{"i386", "386"},
+		{"i686", "386"},
+		{"unknown", "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := mapToGoArch(tt.input)
+			if result != tt.expected {
+				t.Errorf("mapToGoArch(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMapToGoOS(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Linux", "linux"},
+		{"Darwin", "darwin"},
+		{"FreeBSD", "freebsd"},
+		{"Unknown", "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := mapToGoOS(tt.input)
+			if result != tt.expected {
+				t.Errorf("mapToGoOS(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

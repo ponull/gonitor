@@ -7,6 +7,7 @@ import (
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
+	"strings"
 	"time"
 )
 
@@ -138,6 +139,89 @@ func AgentReportTaskResult(context *context.Context) *response.Response {
 	core.Db.Create(taskLog)
 
 	return response.Resp().Success("report success", nil)
+}
+
+// AgentCheckUpdate 边缘节点检查更新
+func AgentCheckUpdate(context *context.Context) *response.Response {
+	secretKey := context.GetHeader("X-Node-Secret")
+	if secretKey == "" {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "missing secret key", nil)
+	}
+	nodeModel := &model.Node{}
+	dbRt := core.Db.Where("secret_key = ?", secretKey).First(nodeModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "invalid secret key", nil)
+	}
+
+	currentVersion := context.Query("version")
+	latestVersion := core.Version
+
+	// Normalize versions by stripping "v" prefix for comparison
+	normalizedCurrent := strings.TrimPrefix(currentVersion, "v")
+	normalizedLatest := strings.TrimPrefix(latestVersion, "v")
+
+	needUpdate := normalizedCurrent != "" && normalizedCurrent != normalizedLatest && latestVersion != "dev"
+
+	return response.Resp().Success("success", map[string]interface{}{
+		"latest_version":  latestVersion,
+		"current_version": currentVersion,
+		"need_update":     needUpdate,
+	})
+}
+
+// AgentReportEvents 边缘节点上报离线缓存的事件（启动后同步）
+func AgentReportEvents(context *context.Context) *response.Response {
+	secretKey := context.GetHeader("X-Node-Secret")
+	if secretKey == "" {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "missing secret key", nil)
+	}
+	nodeModel := &model.Node{}
+	dbRt := core.Db.Where("secret_key = ?", secretKey).First(nodeModel)
+	if dbRt.Error != nil {
+		return response.Resp().Error(errorCode.NOT_FOUND, "invalid secret key", nil)
+	}
+
+	type eventItem struct {
+		EventType string `json:"event_type"`
+		Message   string `json:"message"`
+		EventTime string `json:"event_time"`
+	}
+	var events []eventItem
+	err := context.ShouldBindJSON(&events)
+	if err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
+	}
+
+	synced := 0
+	for _, evt := range events {
+		eventTime, parseErr := time.Parse("2006-01-02 15:04:05", evt.EventTime)
+		if parseErr != nil {
+			eventTime = time.Now()
+		}
+		nodeEvent := &model.NodeEvent{
+			NodeID:    nodeModel.ID,
+			EventType: evt.EventType,
+			Message:   evt.Message,
+			EventTime: eventTime,
+			Synced:    true,
+		}
+		core.Db.Create(nodeEvent)
+		synced++
+	}
+
+	return response.Resp().Success("events synced", map[string]interface{}{
+		"synced_count": synced,
+	})
+}
+
+// GetVersionInfo 获取系统版本信息（公开接口）
+func GetVersionInfo(context *context.Context) *response.Response {
+	return response.Resp().Success("success", map[string]interface{}{
+		"version":    core.Version,
+		"build_time": core.BuildTime,
+		"git_commit": core.GitCommit,
+		"component":  core.Component,
+	})
 }
 
 // AgentSyncTask 将任务同步到边缘节点（由主节点调用的内部逻辑）

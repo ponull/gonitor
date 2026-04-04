@@ -51,6 +51,8 @@ func config(router group) {
 		agentGroup.Registered(POST, "/heartbeat", controller.AgentHeartbeat)
 		agentGroup.Registered(GET, "/tasks", controller.AgentGetTasks)
 		agentGroup.Registered(POST, "/report", controller.AgentReportTaskResult)
+		agentGroup.Registered(GET, "/check-update", controller.AgentCheckUpdate)
+		agentGroup.Registered(POST, "/events", controller.AgentReportEvents)
 	})
 	router.Group("/user", func(userGroup group) {
 		userGroup.Registered(POST, "/login", controller.UserLogin)
@@ -69,6 +71,7 @@ func config(router group) {
 	router.Group("/push", func(pushGroup group) {
 		pushGroup.Registered(GET, "/test", controller.TestPush)
 	})
+	router.Registered(GET, "/version", controller.GetVersionInfo)
 }
 
 func Load(r *gin.Engine) {

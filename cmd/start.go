@@ -4,6 +4,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"gonitor/core"
 	"gonitor/task"
 	"gonitor/web"
 	"io/ioutil"
@@ -11,7 +12,29 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"syscall"
+	"time"
 )
+
+// logShutdownEvent writes a shutdown event to a local log file.
+// This ensures events are recorded even when HTTP reporting fails.
+func logShutdownEvent(sigName string) {
+	eventLog := fmt.Sprintf("[%s] signal=%s version=%s component=%s\n",
+		time.Now().Format("2006-01-02 15:04:05"), sigName, core.Version, core.Component)
+	logDir := "tmp"
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		log.Printf("无法创建事件日志目录: %v", err)
+		return
+	}
+	logFile := logDir + "/events.log"
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("无法写入事件日志: %v", err)
+		return
+	}
+	defer f.Close()
+	f.WriteString(eventLog)
+}
 
 //var daemon bool
 // startCmd represents the start command
@@ -34,7 +57,8 @@ var startCmd = &cobra.Command{
 			daemon = false
 			os.Exit(0)
 		}
-		log.Println("gonitor 启动中")
+		log.Printf("gonitor %s 启动中 (version=%s, commit=%s, built=%s)\n",
+			core.Component, core.Version, core.GitCommit, core.BuildTime)
 		err := task.Manager.Start()
 		if err != nil {
 			fmt.Println("gonitor 启动失败:", err.Error())
@@ -42,15 +66,20 @@ var startCmd = &cobra.Command{
 		}
 		web.StartService()
 		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, os.Kill)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 
 		s := <-c
 		fmt.Println()
 		fmt.Println("-----------------Stop---------------")
-		fmt.Println("Got signal:", s)
-		fmt.Println("Killing task process")
+		fmt.Printf("Got signal: %v\n", s)
+
+		// 记录关机事件到本地日志，防止来不及发送HTTP请求
+		logShutdownEvent(s.String())
+
+		fmt.Println("Stopping tasks...")
 		task.Manager.Stop()
-		fmt.Println("The End")
+
+		fmt.Printf("gonitor %s stopped gracefully\n", core.Component)
 	},
 }
 

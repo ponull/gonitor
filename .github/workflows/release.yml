@@ -1,0 +1,219 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: web/client/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: web/client
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: web/client
+        run: npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: web/client/build/
+          retention-days: 1
+
+  build-binaries:
+    name: Build ${{ matrix.component }} (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Master node builds
+          - component: master
+            goos: linux
+            goarch: amd64
+          - component: master
+            goos: linux
+            goarch: arm64
+          - component: master
+            goos: darwin
+            goarch: amd64
+          - component: master
+            goos: darwin
+            goarch: arm64
+          - component: master
+            goos: windows
+            goarch: amd64
+          # Edge node builds
+          - component: agent
+            goos: linux
+            goarch: amd64
+          - component: agent
+            goos: linux
+            goarch: arm64
+          - component: agent
+            goos: linux
+            goarch: arm
+            goarm: '7'
+          - component: agent
+            goos: darwin
+            goarch: amd64
+          - component: agent
+            goos: darwin
+            goarch: arm64
+          - component: agent
+            goos: windows
+            goarch: amd64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: web/client/build/
+
+      - name: Set version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: ${{ matrix.goos == 'linux' && '1' || '0' }}
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S')
+          COMMIT=$(git rev-parse --short HEAD)
+
+          # For cross-compilation with CGO on Linux arm64, use cross-compiler
+          if [ "$GOOS" = "linux" ] && [ "$GOARCH" = "arm64" ]; then
+            sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+            export CC=aarch64-linux-gnu-gcc
+            export CGO_ENABLED=1
+          elif [ "$GOOS" = "linux" ] && [ "$GOARCH" = "arm" ]; then
+            sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabihf
+            export CC=arm-linux-gnueabihf-gcc
+            export CGO_ENABLED=1
+          elif [ "$GOOS" != "linux" ]; then
+            export CGO_ENABLED=0
+          fi
+
+          LDFLAGS="-X gonitor/core.Version=${VERSION} -X 'gonitor/core.BuildTime=${BUILD_TIME}' -X gonitor/core.GitCommit=${COMMIT} -X gonitor/core.Component=${{ matrix.component }}"
+
+          BINARY_NAME="gonitor-${{ matrix.component }}"
+          if [ "$GOOS" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+
+          go build -ldflags "${LDFLAGS}" -o "${BINARY_NAME}" .
+
+          # Create archive
+          ARCHIVE_NAME="gonitor-${{ matrix.component }}-${VERSION}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ -n "${{ matrix.goarm }}" ]; then
+            ARCHIVE_NAME="${ARCHIVE_NAME}v${{ matrix.goarm }}"
+          fi
+
+          mkdir -p "dist/${ARCHIVE_NAME}"
+          cp "${BINARY_NAME}" "dist/${ARCHIVE_NAME}/"
+          cp config.yml "dist/${ARCHIVE_NAME}/config.yml.example"
+
+          if [ "$GOOS" != "windows" ]; then
+            tar -czf "dist/${ARCHIVE_NAME}.tar.gz" -C dist "${ARCHIVE_NAME}"
+          else
+            cd dist && zip -r "${ARCHIVE_NAME}.zip" "${ARCHIVE_NAME}" && cd ..
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gonitor-${{ matrix.component }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm && format('v{0}', matrix.goarm) || '' }}
+          path: dist/*.tar.gz
+          if-no-files-found: ignore
+
+      - name: Upload build artifact (Windows)
+        if: matrix.goos == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gonitor-${{ matrix.component }}-${{ matrix.goos }}-${{ matrix.goarch }}-zip
+          path: dist/*.zip
+
+  run-tests:
+    name: Run Tests
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: web/client/build/
+
+      - name: Run tests
+        run: go test ./utils/... ./task/... ./model/... ./web/controller/... -v
+
+  release:
+    name: Create Release
+    needs: [build-binaries, run-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          pattern: gonitor-*
+
+      - name: Collect release files
+        run: |
+          mkdir -p release
+          find artifacts/ -name '*.tar.gz' -o -name '*.zip' | while read f; do
+            cp "$f" release/
+          done
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
