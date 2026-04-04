@@ -7,6 +7,7 @@ import (
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
+	"strings"
 	"time"
 )
 
@@ -153,11 +154,18 @@ func AgentCheckUpdate(context *context.Context) *response.Response {
 	}
 
 	currentVersion := context.Query("version")
+	latestVersion := core.Version
+
+	// Normalize versions by stripping "v" prefix for comparison
+	normalizedCurrent := strings.TrimPrefix(currentVersion, "v")
+	normalizedLatest := strings.TrimPrefix(latestVersion, "v")
+
+	needUpdate := normalizedCurrent != "" && normalizedCurrent != normalizedLatest && latestVersion != "dev"
 
 	return response.Resp().Success("success", map[string]interface{}{
-		"latest_version":  core.Version,
+		"latest_version":  latestVersion,
 		"current_version": currentVersion,
-		"need_update":     currentVersion != "" && currentVersion != core.Version && core.Version != "dev",
+		"need_update":     needUpdate,
 	})
 }
 

@@ -21,7 +21,12 @@ import (
 func logShutdownEvent(sigName string) {
 	eventLog := fmt.Sprintf("[%s] signal=%s version=%s component=%s\n",
 		time.Now().Format("2006-01-02 15:04:05"), sigName, core.Version, core.Component)
-	logFile := "tmp/events.log"
+	logDir := "tmp"
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		log.Printf("无法创建事件日志目录: %v", err)
+		return
+	}
+	logFile := logDir + "/events.log"
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Printf("无法写入事件日志: %v", err)
