@@ -21,12 +21,49 @@ func AgentHeartbeat(context *context.Context) *response.Response {
 	if dbRt.Error != nil {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid secret key", nil)
 	}
+
+	// 接收边缘节点上报的系统信息
+	type heartbeatInfo struct {
+		IP           string `json:"ip"`
+		OS           string `json:"os"`
+		Arch         string `json:"arch"`
+		CPUCores     int    `json:"cpu_cores"`
+		MemoryTotal  uint64 `json:"memory_total"`
+		GoVersion    string `json:"go_version"`
+		AgentVersion string `json:"agent_version"`
+	}
+	info := heartbeatInfo{}
+	_ = context.ShouldBindJSON(&info)
+
 	nodeModel.Status = 1
+	now := time.Now()
+	nodeModel.LastPingAt = &now
+	if info.IP != "" {
+		nodeModel.IP = info.IP
+	}
+	if info.OS != "" {
+		nodeModel.OS = info.OS
+	}
+	if info.Arch != "" {
+		nodeModel.Arch = info.Arch
+	}
+	if info.CPUCores > 0 {
+		nodeModel.CPUCores = info.CPUCores
+	}
+	if info.MemoryTotal > 0 {
+		nodeModel.MemoryTotal = info.MemoryTotal
+	}
+	if info.GoVersion != "" {
+		nodeModel.GoVersion = info.GoVersion
+	}
+	if info.AgentVersion != "" {
+		nodeModel.AgentVersion = info.AgentVersion
+	}
 	core.Db.Save(nodeModel)
 	return response.Resp().Success("heartbeat ok", map[string]interface{}{
 		"node_id":   nodeModel.ID,
 		"node_name": nodeModel.Name,
-		"time":      time.Now().Format("2006-01-02 15:04:05"),
+		"time":      now.Format("2006-01-02 15:04:05"),
 	})
 }
 
