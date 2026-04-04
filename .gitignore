@@ -4,3 +4,5 @@ tmp
 script
 gonitor.exe
 gonitor.db
+web/client/node_modules
+web/client/build
