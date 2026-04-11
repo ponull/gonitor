@@ -9,7 +9,6 @@ import (
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -157,7 +156,7 @@ func AgentReportTaskResult(context *context.Context) *response.Response {
 		filePath := path.Join(core.Config.Script.LogFolder, outputFile)
 		err = os.MkdirAll(path.Dir(filePath), 0755)
 		if err == nil {
-			_ = ioutil.WriteFile(filePath, []byte(logContent), 0644)
+			_ = os.WriteFile(filePath, []byte(logContent), 0644)
 		}
 	}
 
