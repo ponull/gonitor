@@ -124,6 +124,41 @@ export const TaskList = function () {
     }
     const {isDesktop} = useScreenSize();
     const hasFilters = Boolean(searchKeyword || filterPriority !== "" || filterStatus);
+    let taskListContent;
+    if (errorMessage) {
+        taskListContent = (
+            <Alert
+                severity="error"
+                action={<Button color="inherit" size="small" onClick={refreshTaskList}>Retry</Button>}
+            >
+                {errorMessage}
+            </Alert>
+        );
+    } else if (!loading && taskList.length === 0) {
+        taskListContent = (
+            <Alert severity="info">
+                {hasFilters ? "No tasks match the current filters." : "No tasks yet. Create your first task to get started."}
+            </Alert>
+        );
+    } else if (isDesktop) {
+        taskListContent = (
+            <TaskListTableStyle
+                loading={loading}
+                taskList={taskList}
+                showConfirmDeleteDialog={showConfirmDeleteDialog}
+                showEditDialog={showEditDialog}
+            />
+        );
+    } else {
+        taskListContent = (
+            <TaskListCardStyle
+                loading={loading}
+                taskList={taskList}
+                showConfirmDeleteDialog={showConfirmDeleteDialog}
+                showEditDialog={showEditDialog}
+            />
+        );
+    }
     return (
         <React.Fragment>
             <Box sx={{m: 2}}>
@@ -183,22 +218,7 @@ export const TaskList = function () {
                         Add
                     </Button>
                 </Box>
-                {
-                    errorMessage ? (
-                        <Alert
-                            severity="error"
-                            action={<Button color="inherit" size="small" onClick={refreshTaskList}>Retry</Button>}
-                        >
-                            {errorMessage}
-                        </Alert>
-                    ) : !loading && taskList.length === 0 ? (
-                        <Alert severity="info">
-                            {hasFilters ? "No tasks match the current filters." : "No tasks yet. Create your first task to get started."}
-                        </Alert>
-                    ) : isDesktop?
-                        <TaskListTableStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
-                        : <TaskListCardStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
-                }
+                {taskListContent}
                 <DeleteConfirmDialog ref={taskDeleteConfirmDialogRef} deleteTaskById={deleteTaskList}/>
             </Box>
         </React.Fragment>
