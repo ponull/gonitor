@@ -1,8 +1,15 @@
-import { render, screen } from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import App from './App';
+import {MemoryRouter} from "react-router-dom";
+import {NotistackWrapper} from "./components/NotistackWrapper";
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test('renders login route', () => {
+  render(
+      <NotistackWrapper>
+        <MemoryRouter initialEntries={['/']}>
+          <App />
+        </MemoryRouter>
+      </NotistackWrapper>
+  );
+  expect(screen.getByRole('heading', {name: /sign in/i})).toBeInTheDocument();
 });

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import LoadingButton from '@mui/lab/LoadingButton';
 import {
+    Alert,
     Button,
-    Chip,
     DialogActions,
     DialogContent,
     DialogContentText,
@@ -17,7 +17,7 @@ import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import {TaskAdd} from "./TaskAdd";
-import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
+import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState} from "react";
 import Dialog from "@mui/material/Dialog";
 import httpRequest from "../../common/request/HttpRequest";
 import {Refresh as RefreshIcon} from "@mui/icons-material";
@@ -51,6 +51,7 @@ export const TaskList = function () {
     const taskDeleteConfirmDialogRef = useRef(null);
     const [loading, setLoading] = useState(true)
     const [refreshLoading, setRefreshLoading] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
     const [searchKeyword, setSearchKeyword] = useState("")
     const [filterPriority, setFilterPriority] = useState("")
     const [filterStatus, setFilterStatus] = useState("")
@@ -65,15 +66,20 @@ export const TaskList = function () {
         taskDeleteConfirmDialogRef.current?.handleClickOpen(taskInfo);
     }
     const firstRenderRef = useRef(true);
-    const getTaskList = async () => {
-        const params = new URLSearchParams();
-        if (searchKeyword) params.append("keyword", searchKeyword);
-        if (filterPriority !== "") params.append("priority", filterPriority);
-        if (filterStatus) params.append("status", filterStatus);
-        const queryString = params.toString();
-        const url = queryString ? `/task/list?${queryString}` : "/task/list";
-        const res = await httpRequest.get(url);
-        if (res.code === 0) {
+    const getTaskList = useCallback(async () => {
+        try {
+            const params = new URLSearchParams();
+            if (searchKeyword) params.append("keyword", searchKeyword);
+            if (filterPriority !== "") params.append("priority", filterPriority);
+            if (filterStatus) params.append("status", filterStatus);
+            const queryString = params.toString();
+            const url = queryString ? `/task/list?${queryString}` : "/task/list";
+            const res = await httpRequest.get(url);
+            if (res.code !== 0) {
+                setTaskList([]);
+                setErrorMessage(res.message || "Failed to load tasks");
+                return;
+            }
             const newTaskList = res.data ? res.data.map(taskInfo => {
                 return {
                     ...taskInfo,
@@ -81,14 +87,17 @@ export const TaskList = function () {
                     uniKey: taskInfo.update_time + "_" + taskInfo.id
                 }
             }) : [];
+            setErrorMessage("");
             setTaskList(newTaskList);
+        } catch (err) {
+            setTaskList([]);
+            setErrorMessage(err.message || "Failed to load tasks");
         }
-    }
-    const refreshTaskList = () => {
+    }, [filterPriority, filterStatus, searchKeyword])
+    const refreshTaskList = async () => {
         setRefreshLoading(true);
-        getTaskList().then(() => {
-            setRefreshLoading(false);
-        })
+        await getTaskList();
+        setRefreshLoading(false);
     }
     useEffect(() => {
         if (!firstRenderRef.current) {
@@ -96,14 +105,14 @@ export const TaskList = function () {
         }
         firstRenderRef.current = false;
         getTaskList().then(() => {
+            setRefreshLoading(false);
             setLoading(false);
         });
-    },[])
-    const handleSearch = () => {
+    }, [getTaskList])
+    const handleSearch = async () => {
         setLoading(true);
-        getTaskList().then(() => {
-            setLoading(false);
-        });
+        await getTaskList();
+        setLoading(false);
     }
     const handleSearchKeyDown = (event) => {
         if (event.key === "Enter") {
@@ -115,6 +124,7 @@ export const TaskList = function () {
         setTaskList(newTaskList)
     }
     const {isDesktop} = useScreenSize();
+    const hasFilters = Boolean(searchKeyword || filterPriority !== "" || filterStatus);
     return (
         <React.Fragment>
             <Box sx={{m: 2}}>
@@ -175,7 +185,18 @@ export const TaskList = function () {
                     </Button>
                 </Box>
                 {
-                    isDesktop?
+                    errorMessage ? (
+                        <Alert
+                            severity="error"
+                            action={<Button color="inherit" size="small" onClick={refreshTaskList}>Retry</Button>}
+                        >
+                            {errorMessage}
+                        </Alert>
+                    ) : !loading && taskList.length === 0 ? (
+                        <Alert severity="info">
+                            {hasFilters ? "No tasks match the current filters." : "No tasks yet. Create your first task to get started."}
+                        </Alert>
+                    ) : isDesktop?
                         <TaskListTableStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
                         : <TaskListCardStyle loading={loading} taskList={taskList} showConfirmDeleteDialog={showConfirmDeleteDialog} showEditDialog={showEditDialog}/>
                 }

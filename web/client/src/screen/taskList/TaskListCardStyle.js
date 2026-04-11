@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Card, CardContent, Chip} from "@mui/material";
+import {Card, CardContent, Chip, Skeleton} from "@mui/material";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
@@ -12,7 +12,21 @@ export const TaskListCardStyle = (props) => {
     return (
         <React.Fragment>
             <Box>
-                {loading ? ""
+                {loading ? new Array(3).fill(0).map((_, index) => (
+                        <Card key={index} sx={{mt: 1}}>
+                            <CardContent>
+                                <Skeleton variant="text" width="40%"/>
+                                <Skeleton variant="text" width="25%"/>
+                                <Grid container spacing={2} sx={{mt: 0.5}}>
+                                    {new Array(4).fill(0).map((__, infoIndex) => (
+                                        <Grid item xs={6} key={infoIndex}>
+                                            <Skeleton variant="text"/>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    ))
                     : taskList && taskList?.map((taskInfo, inx) => (
                     <TaskCard key={taskInfo.uniKey} taskInfo={taskInfo} index={inx}
                               showConfirmDeleteDialog={showConfirmDeleteDialog}
