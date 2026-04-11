@@ -105,7 +105,6 @@ export const TaskList = function () {
         }
         firstRenderRef.current = false;
         getTaskList().then(() => {
-            setRefreshLoading(false);
             setLoading(false);
         });
     }, [getTaskList])
