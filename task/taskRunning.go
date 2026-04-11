@@ -2,6 +2,7 @@ package task
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/shirou/gopsutil/process"
@@ -71,7 +72,18 @@ func (ri *RunningInstance) run() error {
 	execStat := newTaskExecStat()
 	ri.execResultList = append(ri.execResultList, execStat)
 	command, args := parseTask(ri.taskInfo.Command, ri.taskInfo.ExecType)
-	cmd := exec.Command(command, args...)
+
+	// 根据任务超时配置创建 context
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if ri.taskInfo.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(ri.taskInfo.Timeout)*time.Second)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, command, args...)
 	execStat.Command = cmd.String()
 	var stdOut, stdErr bytes.Buffer
 	cmd.Stdout = &stdOut
@@ -98,6 +110,12 @@ func (ri *RunningInstance) run() error {
 	err = cmd.Wait()
 	execStat.CommandExecStatus = true
 	if err != nil {
+		// 判断是否超时
+		if ctx.Err() == context.DeadlineExceeded {
+			execStat.CommandErrorContent = fmt.Sprintf("任务执行超时（超时限制: %d秒）", ri.taskInfo.Timeout)
+			execStat.CommandExecError = fmt.Errorf("任务执行超时（超时限制: %d秒）", ri.taskInfo.Timeout)
+			return execStat.CommandExecError
+		}
 		//fmt.Println("exec wait fail", stdErr.String())
 		execStat.CommandErrorContent = stdErr.String()
 		execStat.CommandExecError = err
