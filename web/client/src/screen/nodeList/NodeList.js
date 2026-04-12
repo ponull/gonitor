@@ -1,9 +1,10 @@
 import * as React from "react";
-import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
+import {forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState} from "react";
 import Box from "@mui/material/Box";
 import LoadingButton from "@mui/lab/LoadingButton";
 import {Refresh as RefreshIcon} from "@mui/icons-material";
 import {
+    Alert,
     Button,
     Chip,
     Collapse,
@@ -57,6 +58,7 @@ export const NodeList = () => {
     const nodeDeployNewRef = useRef(null);
     const [loading, setLoading] = useState(true);
     const [refreshLoading, setRefreshLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
     const [expandedNodeId, setExpandedNodeId] = useState(null);
     const [nodeEditInfo, setNodeEditInfo] = useState({
         id: 0,
@@ -67,20 +69,30 @@ export const NodeList = () => {
     });
     const {enqueueSnackbar} = useSnackbar();
 
-    const getNodeList = async () => {
-        const res = await httpRequest.get("/node/list");
-        if (res.code !== 0) {
-            enqueueSnackbar(res.message, {variant: "error"});
-            return;
+    const getNodeList = useCallback(async () => {
+        try {
+            const res = await httpRequest.get("/node/list");
+            if (res.code !== 0) {
+                const message = res.message || "节点列表加载失败";
+                setNodeList([]);
+                setErrorMessage(message);
+                enqueueSnackbar(message, {variant: "error"});
+                return;
+            }
+            setErrorMessage("");
+            setNodeList(res.data || []);
+        } catch (err) {
+            const message = err.message || "节点列表加载失败";
+            setNodeList([]);
+            setErrorMessage(message);
+            enqueueSnackbar(message, {variant: "error"});
         }
-        setNodeList(res.data || []);
-    };
+    }, [enqueueSnackbar]);
 
-    const refreshNodeList = () => {
+    const refreshNodeList = async () => {
         setRefreshLoading(true);
-        getNodeList().then(() => {
-            setRefreshLoading(false);
-        });
+        await getNodeList();
+        setRefreshLoading(false);
     };
 
     const firstRenderRef = useRef(true);
@@ -88,7 +100,7 @@ export const NodeList = () => {
         if (!firstRenderRef.current) return;
         firstRenderRef.current = false;
         getNodeList().then(() => setLoading(false));
-    }, []);
+    }, [getNodeList]);
 
     const showCreateDialog = () => {
         nodeAddRef.current?.handleClickOpen();
@@ -159,151 +171,164 @@ export const NodeList = () => {
                 </Button>
             </Box>
 
-            <TableContainer component={Paper}>
-                <Table sx={{minWidth: 650}} aria-label="node table">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell width={40}/>
-                            <TableCell>No.</TableCell>
-                            <TableCell>节点名称</TableCell>
-                            <TableCell>区域</TableCell>
-                            <TableCell>地址 / IP</TableCell>
-                            <TableCell align="center">状态</TableCell>
-                            <TableCell align="center">类型</TableCell>
-                            <TableCell>系统信息</TableCell>
-                            <TableCell>密钥</TableCell>
-                            <TableCell align="right">操作</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ?
-                            new Array(3).fill(0).map((_, rowIdx) => (
-                                <TableRow key={"row" + rowIdx}>
-                                    {new Array(10).fill(0).map((_, cellIdx) => (
-                                        <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
-                                            <Skeleton variant="text"/>
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                            : nodeList && nodeList.map((node, inx) => (
-                            <React.Fragment key={node.id}>
-                                <TableRow>
-                                    <TableCell>
-                                        {!node.is_master && (
-                                            <IconButton size="small" onClick={() => toggleExpand(node.id)}>
-                                                {expandedNodeId === node.id ? <KeyboardArrowUpIcon/> :
-                                                    <KeyboardArrowDownIcon/>}
-                                            </IconButton>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{inx + 1}</TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" fontWeight={500}>{node.name}</Typography>
-                                    </TableCell>
-                                    <TableCell>{node.region}</TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" sx={{fontFamily: "monospace"}}>
-                                            {node.is_master ? "-" : node.address}
-                                        </Typography>
-                                        {node.ip && !node.is_master && (
-                                            <Typography variant="caption" color="text.secondary"
-                                                        sx={{display: "block"}}>
-                                                IP: {node.ip}
-                                            </Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        <Chip
-                                            label={node.status === 1 ? "在线" : "离线"}
-                                            color={node.status === 1 ? "success" : "default"}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        <Chip
-                                            label={node.is_master ? "主节点" : "边缘节点"}
-                                            color={node.is_master ? "primary" : "secondary"}
-                                            size="small"
-                                            variant="outlined"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        {node.os ? (
-                                            <Box>
-                                                <Typography variant="caption">
-                                                    {node.os}{node.arch ? ` / ${node.arch}` : ""}
-                                                </Typography>
-                                                {node.cpu_cores > 0 && (
-                                                    <Typography variant="caption" color="text.secondary"
-                                                                sx={{display: "block"}}>
-                                                        {node.cpu_cores} 核 / {formatBytes(node.memory_total)}
-                                                    </Typography>
-                                                )}
-                                            </Box>
-                                        ) : "-"}
-                                    </TableCell>
-                                    <TableCell>
-                                        {!node.is_master && node.secret_key ? (
-                                            <Box sx={{display: "flex", alignItems: "center", gap: 0.5}}>
-                                                <Typography variant="body2"
-                                                            sx={{fontFamily: "monospace", fontSize: 12}}>
-                                                    {node.secret_key.substring(0, 8)}...
-                                                </Typography>
-                                                <Tooltip title="复制密钥">
-                                                    <IconButton size="small"
-                                                                onClick={() => copyToClipboard(node.secret_key)}>
-                                                        <ContentCopyIcon fontSize="small"/>
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </Box>
-                                        ) : "-"}
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        {!node.is_master && (
-                                            <Box sx={{display: "flex", justifyContent: "flex-end", gap: 0.5}}>
-                                                <Tooltip title="SSH部署">
-                                                    <IconButton size="small" color="secondary"
-                                                                onClick={() => showDeployDialog(node)}>
-                                                        <CloudUploadIcon fontSize="small"/>
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="编辑">
-                                                    <IconButton size="small" onClick={() => showEditDialog(node)}>
-                                                        <EditIcon fontSize="small"/>
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="重新生成密钥">
-                                                    <IconButton size="small"
-                                                                onClick={() => handleRegenerateKey(node.id)}>
-                                                        <VpnKeyIcon fontSize="small"/>
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="删除">
-                                                    <IconButton size="small" color="error"
-                                                                onClick={() => showDeleteDialog(node)}>
-                                                        <DeleteIcon fontSize="small"/>
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </Box>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                                {!node.is_master && (
+            {errorMessage ? (
+                <Alert
+                    severity="error"
+                    action={<Button color="inherit" size="small" onClick={refreshNodeList}>重试</Button>}
+                >
+                    {errorMessage}
+                </Alert>
+            ) : !loading && nodeList.length === 0 ? (
+                <Alert severity="info">
+                    当前还没有边缘节点，您可以先手动添加节点或使用一键部署创建新节点。
+                </Alert>
+            ) : (
+                <TableContainer component={Paper}>
+                    <Table sx={{minWidth: 650}} aria-label="node table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell width={40}/>
+                                <TableCell>No.</TableCell>
+                                <TableCell>节点名称</TableCell>
+                                <TableCell>区域</TableCell>
+                                <TableCell>地址 / IP</TableCell>
+                                <TableCell align="center">状态</TableCell>
+                                <TableCell align="center">类型</TableCell>
+                                <TableCell>系统信息</TableCell>
+                                <TableCell>密钥</TableCell>
+                                <TableCell align="right">操作</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {loading ?
+                                new Array(3).fill(0).map((_, rowIdx) => (
+                                    <TableRow key={"row" + rowIdx}>
+                                        {new Array(10).fill(0).map((_, cellIdx) => (
+                                            <TableCell key={"row" + rowIdx + "cell" + cellIdx}>
+                                                <Skeleton variant="text"/>
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                                : nodeList && nodeList.map((node, inx) => (
+                                <React.Fragment key={node.id}>
                                     <TableRow>
-                                        <TableCell colSpan={10} sx={{py: 0, borderBottom: expandedNodeId === node.id ? undefined : "none"}}>
-                                            <Collapse in={expandedNodeId === node.id} timeout="auto" unmountOnExit>
-                                                <NodeDetailPanel node={node}/>
-                                            </Collapse>
+                                        <TableCell>
+                                            {!node.is_master && (
+                                                <IconButton size="small" onClick={() => toggleExpand(node.id)}>
+                                                    {expandedNodeId === node.id ? <KeyboardArrowUpIcon/> :
+                                                        <KeyboardArrowDownIcon/>}
+                                                </IconButton>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>{inx + 1}</TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" fontWeight={500}>{node.name}</Typography>
+                                        </TableCell>
+                                        <TableCell>{node.region}</TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" sx={{fontFamily: "monospace"}}>
+                                                {node.is_master ? "-" : node.address}
+                                            </Typography>
+                                            {node.ip && !node.is_master && (
+                                                <Typography variant="caption" color="text.secondary"
+                                                            sx={{display: "block"}}>
+                                                    IP: {node.ip}
+                                                </Typography>
+                                            )}
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Chip
+                                                label={node.status === 1 ? "在线" : "离线"}
+                                                color={node.status === 1 ? "success" : "default"}
+                                                size="small"
+                                            />
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Chip
+                                                label={node.is_master ? "主节点" : "边缘节点"}
+                                                color={node.is_master ? "primary" : "secondary"}
+                                                size="small"
+                                                variant="outlined"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            {node.os ? (
+                                                <Box>
+                                                    <Typography variant="caption">
+                                                        {node.os}{node.arch ? ` / ${node.arch}` : ""}
+                                                    </Typography>
+                                                    {node.cpu_cores > 0 && (
+                                                        <Typography variant="caption" color="text.secondary"
+                                                                    sx={{display: "block"}}>
+                                                            {node.cpu_cores} 核 / {formatBytes(node.memory_total)}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            ) : "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            {!node.is_master && node.secret_key ? (
+                                                <Box sx={{display: "flex", alignItems: "center", gap: 0.5}}>
+                                                    <Typography variant="body2"
+                                                                sx={{fontFamily: "monospace", fontSize: 12}}>
+                                                        {node.secret_key.substring(0, 8)}...
+                                                    </Typography>
+                                                    <Tooltip title="复制密钥">
+                                                        <IconButton size="small"
+                                                                    onClick={() => copyToClipboard(node.secret_key)}>
+                                                            <ContentCopyIcon fontSize="small"/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Box>
+                                            ) : "-"}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            {!node.is_master && (
+                                                <Box sx={{display: "flex", justifyContent: "flex-end", gap: 0.5}}>
+                                                    <Tooltip title="SSH部署">
+                                                        <IconButton size="small" color="secondary"
+                                                                    onClick={() => showDeployDialog(node)}>
+                                                            <CloudUploadIcon fontSize="small"/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="编辑">
+                                                        <IconButton size="small" onClick={() => showEditDialog(node)}>
+                                                            <EditIcon fontSize="small"/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="重新生成密钥">
+                                                        <IconButton size="small"
+                                                                    onClick={() => handleRegenerateKey(node.id)}>
+                                                            <VpnKeyIcon fontSize="small"/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="删除">
+                                                        <IconButton size="small" color="error"
+                                                                    onClick={() => showDeleteDialog(node)}>
+                                                            <DeleteIcon fontSize="small"/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Box>
+                                            )}
                                         </TableCell>
                                     </TableRow>
-                                )}
-                            </React.Fragment>
-                        ))
-                        }
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                                    {!node.is_master && (
+                                        <TableRow>
+                                            <TableCell colSpan={10} sx={{py: 0, borderBottom: expandedNodeId === node.id ? undefined : "none"}}>
+                                                <Collapse in={expandedNodeId === node.id} timeout="auto" unmountOnExit>
+                                                    <NodeDetailPanel node={node}/>
+                                                </Collapse>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </React.Fragment>
+                            ))
+                            }
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
         </Box>
     );
 };
