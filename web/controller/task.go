@@ -16,20 +16,95 @@ import (
 
 type taskInfo struct {
 	subscription.TaskInfo
-	Description   string `json:"description"`    //任务描述
-	ExecType      string `json:"exec_type"`      //执行类型
-	Command       string `json:"command"`        //执行命令
-	Schedule      string `json:"schedule"`       //定时规则
-	ExecStrategy  int8   `json:"exec_strategy"`  //执行策略
-	RetryTimes    int8   `json:"retry_times"`    //重试次数
-	RetryInterval int    `json:"retry_interval"` //重试间隔
-	Priority      int8   `json:"priority"`       //优先级
-	Tags          string `json:"tags"`           //标签
-	UpdateTime    string `json:"update_time"`    //更新时间
-	Assert        string `json:"assert"`
-	ResultHandler string `json:"result_handler"`
-	NodeID        int64  `json:"node_id"`        //执行节点ID
-	NodeName      string `json:"node_name"`      //执行节点名称
+	Description     string `json:"description"`        //任务描述
+	ExecType        string `json:"exec_type"`          //执行类型
+	Command         string `json:"command"`            //执行命令
+	Schedule        string `json:"schedule"`           //定时规则
+	ExecStrategy    int8   `json:"exec_strategy"`      //执行策略
+	RetryTimes      int8   `json:"retry_times"`        //重试次数
+	RetryInterval   int    `json:"retry_interval"`     //重试间隔
+	Timeout         int    `json:"timeout"`            //超时时间
+	DependsOnTaskID int64  `json:"depends_on_task_id"` //依赖任务ID
+	Priority        int8   `json:"priority"`           //优先级
+	Tags            string `json:"tags"`               //标签
+	UpdateTime      string `json:"update_time"`        //更新时间
+	Assert          string `json:"assert"`
+	ResultHandler   string `json:"result_handler"`
+	NodeID          int64  `json:"node_id"`   //执行节点ID
+	NodeName        string `json:"node_name"` //执行节点名称
+}
+
+type taskMutationPayload struct {
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	ExecType        string `json:"exec_type"`
+	Command         string `json:"command"`
+	Schedule        string `json:"schedule"`
+	IsDisable       bool   `json:"is_disable"`
+	Priority        int8   `json:"priority"`
+	Tags            string `json:"tags"`
+	ExecStrategy    int8   `json:"exec_strategy"`
+	RetryTimes      int8   `json:"retry_times"`
+	RetryInterval   int    `json:"retry_interval"`
+	Timeout         int    `json:"timeout"`
+	DependsOnTaskID int64  `json:"depends_on_task_id"`
+	Assert          string `json:"assert"`
+	ResultHandler   string `json:"result_handler"`
+	NodeID          int64  `json:"node_id"`
+}
+
+func validateTaskMutationPayload(taskID int64, payload *taskMutationPayload) error {
+	if len(payload.Name) == 0 {
+		return fmt.Errorf("task name is required")
+	}
+	if len(payload.Name) > 255 {
+		return fmt.Errorf("task name must be less than 255 characters")
+	}
+	if len(payload.Command) == 0 {
+		return fmt.Errorf("command is required")
+	}
+	if payload.ExecType != "cmd" && payload.ExecType != "http" && payload.ExecType != "file" {
+		return fmt.Errorf("exec_type must be cmd, http, or file")
+	}
+	if payload.Priority < 0 || payload.Priority > 3 {
+		return fmt.Errorf("priority must be between 0 and 3")
+	}
+	if payload.RetryTimes < 0 {
+		return fmt.Errorf("retry_times must be non-negative")
+	}
+	if payload.RetryInterval < 0 {
+		return fmt.Errorf("retry_interval must be non-negative")
+	}
+	if payload.Timeout < 0 {
+		return fmt.Errorf("timeout must be non-negative")
+	}
+	if payload.DependsOnTaskID < 0 {
+		return fmt.Errorf("depends_on_task_id must be non-negative")
+	}
+	if payload.DependsOnTaskID > 0 {
+		if taskID > 0 && payload.DependsOnTaskID == taskID {
+			return fmt.Errorf("task dependency cannot reference itself")
+		}
+		depTask := &model.Task{}
+		dbRt := core.Db.Where("id = ?", payload.DependsOnTaskID).First(depTask)
+		if dbRt.Error != nil {
+			return fmt.Errorf("depends_on_task_id is invalid")
+		}
+	}
+	if err := task.CheckTaskSchedule(payload.Schedule); err != nil {
+		return fmt.Errorf("schedule format error")
+	}
+	if len(payload.Assert) > 0 {
+		if err := task.CheckTaskAssertJavascriptCode(payload.Assert); err != nil {
+			return fmt.Errorf("JS断言代码有错误")
+		}
+	}
+	if len(payload.ResultHandler) > 0 {
+		if err := task.CheckTaskAssertJavascriptCode(payload.ResultHandler); err != nil {
+			return fmt.Errorf("结果handler JS代码有错误")
+		}
+	}
+	return nil
 }
 
 func GetTaskList(context *context.Context) *response.Response {
@@ -103,7 +178,7 @@ func GetTaskRunningList(context *context.Context) *response.Response {
 	return response.Resp().Success("success", runningLogList)
 }
 
-//已经开始的任务不关闭
+// 已经开始的任务不关闭
 func StopTask(context *context.Context) *response.Response {
 	taskIdStr := context.Param("task_id")
 	taskId, _ := strconv.ParseInt(taskIdStr, 10, 64)
@@ -175,12 +250,12 @@ func StartOnceTask(context *context.Context) *response.Response {
 	})
 }
 
-//修改状态并且杀死所有正在运行的实例
+// 修改状态并且杀死所有正在运行的实例
 func killTask(context *context.Context) *response.Response {
 	return response.Resp().String("pending")
 }
 
-//杀死指定实例
+// 杀死指定实例
 func killTaskRunningInstance(context *context.Context) *response.Response {
 	return response.Resp().String("pending")
 }
@@ -198,86 +273,31 @@ func GetTaskInfo(context *context.Context) *response.Response {
 }
 
 func AddTask(context *context.Context) *response.Response {
-	type taskAddFormTpl struct {
-		Name          string `json:"name"`
-		Description   string `json:"description"`
-		ExecType      string `json:"exec_type"`
-		Command       string `json:"command"`
-		Schedule      string `json:"schedule"`
-		IsDisable     bool   `json:"is_disable"`
-		Priority      int8   `json:"priority"`
-		Tags          string `json:"tags"`
-		ExecStrategy  int8   `json:"exec_strategy"`
-		RetryTimes    int8   `json:"retry_times"`
-		RetryInterval int    `json:"retry_interval"`
-		Assert        string `json:"assert"`
-		ResultHandler string `json:"result_handler"`
-		NodeID        int64  `json:"node_id"`
-	}
-	addInfo := taskAddFormTpl{}
+	addInfo := taskMutationPayload{}
 	err := context.ShouldBindJSON(&addInfo)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
 	}
-
-	// Input validation
-	if len(addInfo.Name) == 0 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name is required", nil)
-	}
-	if len(addInfo.Name) > 255 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name must be less than 255 characters", nil)
-	}
-	if len(addInfo.Command) == 0 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "command is required", nil)
-	}
-	if addInfo.ExecType != "cmd" && addInfo.ExecType != "http" && addInfo.ExecType != "file" {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "exec_type must be cmd, http, or file", nil)
-	}
-	if addInfo.Priority < 0 || addInfo.Priority > 3 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "priority must be between 0 and 3", nil)
-	}
-	if addInfo.RetryTimes < 0 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "retry_times must be non-negative", nil)
-	}
-	if addInfo.RetryInterval < 0 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "retry_interval must be non-negative", nil)
-	}
-
-	//todo 解析schedule 是否正确
-	err = task.CheckTaskSchedule(addInfo.Schedule)
-	if err != nil {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
-	}
-
-	//解析 assert脚本是否正确
-	if len(addInfo.Assert) > 0 {
-		err := task.CheckTaskAssertJavascriptCode(addInfo.Assert)
-		if err != nil {
-			return response.Resp().Error(2154646, "JS断言代码有错误", nil)
-		}
-	}
-
-	if len(addInfo.ResultHandler) > 0 {
-		err := task.CheckTaskAssertJavascriptCode(addInfo.ResultHandler)
-		if err != nil {
-			return response.Resp().Error(2154646, "结果handler JS代码有错误", nil)
-		}
+	if err = validateTaskMutationPayload(0, &addInfo); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, err.Error(), nil)
 	}
 	taskModel := &model.Task{
-		Name:          addInfo.Name,
-		Description:   addInfo.Description,
-		Command:       addInfo.Command,
-		Schedule:      addInfo.Schedule,
-		ExecType:      addInfo.ExecType,
-		IsDisable:     addInfo.IsDisable,
-		Priority:      addInfo.Priority,
-		Tags:          addInfo.Tags,
-		ExecStrategy:  addInfo.ExecStrategy,
-		RetryTimes:    addInfo.RetryTimes,
-		RetryInterval: addInfo.RetryInterval,
-		Assert:        addInfo.Assert,
-		ResultHandler: addInfo.ResultHandler,
-		NodeID:        addInfo.NodeID,
+		Name:            addInfo.Name,
+		Description:     addInfo.Description,
+		Command:         addInfo.Command,
+		Schedule:        addInfo.Schedule,
+		ExecType:        addInfo.ExecType,
+		IsDisable:       addInfo.IsDisable,
+		Priority:        addInfo.Priority,
+		Tags:            addInfo.Tags,
+		ExecStrategy:    addInfo.ExecStrategy,
+		RetryTimes:      addInfo.RetryTimes,
+		RetryInterval:   addInfo.RetryInterval,
+		Timeout:         addInfo.Timeout,
+		DependsOnTaskID: addInfo.DependsOnTaskID,
+		Assert:          addInfo.Assert,
+		ResultHandler:   addInfo.ResultHandler,
+		NodeID:          addInfo.NodeID,
 	}
 	dbRt := core.Db.Create(taskModel)
 	if dbRt.Error != nil {
@@ -296,23 +316,7 @@ func AddTask(context *context.Context) *response.Response {
 }
 
 func EditTask(context *context.Context) *response.Response {
-	type taskEditFormTpl struct {
-		Name          string `json:"name"`
-		Description   string `json:"description"`
-		ExecType      string `json:"exec_type"`
-		Command       string `json:"command"`
-		Schedule      string `json:"schedule"`
-		IsDisable     bool   `json:"is_disable"`
-		Priority      int8   `json:"priority"`
-		Tags          string `json:"tags"`
-		ExecStrategy  int8   `json:"exec_strategy"`
-		RetryTimes    int8   `json:"retry_times"`
-		RetryInterval int    `json:"retry_interval"`
-		Assert        string `json:"assert"`
-		ResultHandler string `json:"result_handler"`
-		NodeID        int64  `json:"node_id"`
-	}
-	editInfo := taskEditFormTpl{}
+	editInfo := taskMutationPayload{}
 	err := context.ShouldBindJSON(&editInfo)
 	if err != nil {
 		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "parse fail:"+err.Error(), nil)
@@ -324,40 +328,8 @@ func EditTask(context *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.NOT_FOUND, "invalid task id", nil)
 	}
 
-	// Input validation
-	if len(editInfo.Name) == 0 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name is required", nil)
-	}
-	if len(editInfo.Name) > 255 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "task name must be less than 255 characters", nil)
-	}
-	if len(editInfo.Command) == 0 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "command is required", nil)
-	}
-	if editInfo.ExecType != "cmd" && editInfo.ExecType != "http" && editInfo.ExecType != "file" {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "exec_type must be cmd, http, or file", nil)
-	}
-	if editInfo.Priority < 0 || editInfo.Priority > 3 {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "priority must be between 0 and 3", nil)
-	}
-
-	err = task.CheckTaskSchedule(editInfo.Schedule)
-	if err != nil {
-		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, "schedule format error", nil)
-	}
-
-	//解析 assert脚本是否正确
-	if len(editInfo.Assert) > 0 {
-		err := task.CheckTaskAssertJavascriptCode(editInfo.Assert)
-		if err != nil {
-			return response.Resp().Error(2154646, "JS断言代码有错误", nil)
-		}
-	}
-	if len(editInfo.ResultHandler) > 0 {
-		err := task.CheckTaskAssertJavascriptCode(editInfo.ResultHandler)
-		if err != nil {
-			return response.Resp().Error(2154646, "结果handler JS代码有错误", nil)
-		}
+	if err = validateTaskMutationPayload(taskModel.ID, &editInfo); err != nil {
+		return response.Resp().Error(errorCode.PARSE_PARAMS_ERROR, err.Error(), nil)
 	}
 
 	taskModel.Name = editInfo.Name
@@ -371,6 +343,8 @@ func EditTask(context *context.Context) *response.Response {
 	taskModel.ExecStrategy = editInfo.ExecStrategy
 	taskModel.RetryTimes = editInfo.RetryTimes
 	taskModel.RetryInterval = editInfo.RetryInterval
+	taskModel.Timeout = editInfo.Timeout
+	taskModel.DependsOnTaskID = editInfo.DependsOnTaskID
 	taskModel.Assert = editInfo.Assert
 	taskModel.ResultHandler = editInfo.ResultHandler
 	taskModel.NodeID = editInfo.NodeID

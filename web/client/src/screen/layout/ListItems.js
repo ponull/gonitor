@@ -8,6 +8,7 @@ import {ListItem} from "@mui/material";
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 import BookIcon from '@mui/icons-material/Book';
 import CloudIcon from '@mui/icons-material/Cloud';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 export const MainListItems = function () {
     return (
@@ -17,6 +18,7 @@ export const MainListItems = function () {
             <ListItemLink primary="节点管理" to="/admin/nodeList" icon={<CloudIcon/>}/>
             <ListItemLink primary="用户列表" to="/admin/userList" icon={<SupervisorAccountIcon/>}/>
             <ListItemLink primary="操作日志" to="/admin/operationList" icon={<BookIcon/>}/>
+            <ListItemLink primary="系统设置" to="/admin/systemSettings" icon={<SettingsIcon/>}/>
         </React.Fragment>
     )
 }

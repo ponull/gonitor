@@ -2,7 +2,6 @@ import * as React from 'react';
 import LoadingButton from '@mui/lab/LoadingButton';
 import {
     Button,
-    Chip,
     DialogActions,
     DialogContent,
     DialogContentText,
@@ -16,6 +15,7 @@ import {
 import Box from "@mui/material/Box";
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import DownloadIcon from '@mui/icons-material/Download';
 import {TaskAdd} from "./TaskAdd";
 import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 import Dialog from "@mui/material/Dialog";
@@ -41,12 +41,14 @@ export const TaskList = function () {
         schedule: "",
         retry_times: 0,
         retry_interval: 3000,
+        timeout: 0,
         exec_strategy: StrategyEnum.PARALLEL,
         is_disable: false,
         priority: PriorityEnum.MEDIUM,
         tags: "",
         assert: "",
         result_handler: "",
+        depends_on_task_id: 0,
     });
     const taskDeleteConfirmDialogRef = useRef(null);
     const [loading, setLoading] = useState(true)
@@ -114,6 +116,24 @@ export const TaskList = function () {
         const newTaskList = taskList.filter(taskInfo => taskInfo.id !== taskId);
         setTaskList(newTaskList)
     }
+    const {enqueueSnackbar} = useSnackbar();
+    const exportTaskList = async () => {
+        const res = await httpRequest.get("/task/export");
+        if (res.code !== 0) {
+            enqueueSnackbar(res.message, {variant: "error"});
+            return;
+        }
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], {type: "application/json;charset=utf-8"});
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `gonitor-tasks-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        enqueueSnackbar("Export Success", {variant: "success"});
+    }
     const {isDesktop} = useScreenSize();
     return (
         <React.Fragment>
@@ -170,6 +190,9 @@ export const TaskList = function () {
                     >
                         Refresh
                     </LoadingButton>
+                    <Button variant="outlined" startIcon={<DownloadIcon/>} onClick={exportTaskList}>
+                        Export
+                    </Button>
                     <Button variant="contained" startIcon={<AddIcon/>} onClick={showCreateDialog}>
                         Add
                     </Button>

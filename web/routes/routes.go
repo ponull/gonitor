@@ -17,6 +17,7 @@ func config(router group) {
 		systemGroup.Registered(GET, "/memory", controller.GetMemoryInfo)
 		systemGroup.Registered(GET, "/disk", controller.GetDiskInfo)
 		systemGroup.Registered(GET, "/net", controller.GetNetInfo)
+		systemGroup.Registered(GET, "/settings", controller.GetSystemSettings)
 	}, middleware.CheckToken)
 	router.Group("/task", func(taskGroup group) {
 		taskGroup.Registered(POST, "", controller.AddTask)
@@ -27,6 +28,8 @@ func config(router group) {
 		taskGroup.Registered(GET, "/stop/:task_id", controller.StopTask)
 		taskGroup.Registered(GET, "/start/:task_id", controller.StartTask)
 		taskGroup.Registered(GET, "/test/:task_id", controller.StartOnceTask)
+		taskGroup.Registered(GET, "/export", controller.ExportTasks)
+		taskGroup.Registered(POST, "/import", controller.ImportTasks)
 		taskGroup.Group("/log", func(logGroup group) {
 			logGroup.Registered(GET, "/list/running/:task_id", controller.GetTaskRunningList)
 			logGroup.Registered(GET, "/list/:task_id/:page_number/:page_size", controller.GetTaskLogList)
@@ -74,6 +77,7 @@ func config(router group) {
 	router.Registered(GET, "/version", controller.GetVersionInfo)
 	router.Registered(GET, "/healthz", controller.HealthCheck)
 	router.Registered(GET, "/readyz", controller.ReadyCheck)
+	router.Registered(GET, "/metrics", controller.GetPrometheusMetrics, middleware.CheckToken)
 }
 
 func Load(r *gin.Engine) {
