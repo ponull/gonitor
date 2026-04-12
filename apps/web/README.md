@@ -9,6 +9,7 @@
 npm run web:deps
 npm run web:start
 npm run web:build
+npm run web:test
 ```
 
 如果后续需要把源码物理迁移到 `apps/web`，还需要同步调整 Go 侧静态资源 embed 与发布流程。

@@ -7,10 +7,10 @@
   "scripts": {
     "server:start": "go run ./main.go start",
     "server:test": "go test ./utils/... ./task/... ./model/... ./web/controller/... ./web/routes/... ./core/...",
-    "web:deps": "npm --prefix web/client install",
+    "web:deps": "npm --prefix apps/web run deps",
     "web:start": "npm --prefix apps/web run start",
     "web:build": "npm --prefix apps/web run build",
-    "web:test": "npm --prefix apps/web run test",
+    "web:test": "npm --prefix apps/web run test:ci",
     "mobile:deps": "cd apps/mobile && flutter pub get",
     "mobile:run": "cd apps/mobile && flutter run"
   }
