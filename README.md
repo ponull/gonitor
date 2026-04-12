@@ -111,6 +111,7 @@ Gonitor 是一个基于 **Go (Gin)** + **React (MUI)** 构建的分布式任务�
 | 操作系统 | Linux / macOS / Windows |
 | Go | >= 1.17 |
 | Node.js | >= 14（仅前端构建需要） |
+| Flutter | >= 3.22（仅移动端开发需要） |
 | 磁盘空间 | >= 100 MB |
 
 ### 构建与启动
@@ -173,6 +174,18 @@ npm install
 npm start
 # 默认访问 http://localhost:3000，API 代理到 http://localhost:8899
 ```
+
+### Flutter 移动端（Monorepo apps/mobile）
+
+仓库现已补充 `apps/mobile` Flutter 工程，用于在手机端查看概览、任务、节点、日志和系统设置。
+
+```bash
+cd apps/mobile
+flutter pub get
+flutter run
+```
+
+> 移动端默认复用现有 Go API，可直接连接 `http://localhost:8899`；如果暂时没有后端环境，也可以在 App 内进入 Demo 模式预览全部页面。
 
 ---
 
@@ -636,9 +649,16 @@ gonitor/
 │           ├── HttpRequest.js # API 请求封装
 │           └── Websocket.js   # WebSocket 封装
 │
+├── apps/
+│   └── mobile/                # Flutter 移动端（自适应手机 / 平板）
+│       ├── lib/               # App 入口、导航、页面与 API 客户端
+│       ├── pubspec.yaml       # Flutter 工程定义
+│       └── README.md          # 移动端使用说明
+│
 ├── script/                    # 脚本文件存放目录（file 类型任务）
 ├── docs/                      # 文档
-│   └── DEPLOYMENT.md          # 部署文档
+│   ├── DEPLOYMENT.md          # 部署文档
+│   └── MOBILE_MONOREPO_PLAN.md # Monorepo + 移动端设计与落地说明
 └── tmp/                       # 临时文件（日志等，.gitignore 忽略）
     ├── run.log                # 运行日志
     └── log/                   # 任务输出日志
