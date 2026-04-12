@@ -1,0 +1,17 @@
+{
+  "name": "gonitor-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "server:start": "go run ./main.go start",
+    "server:test": "go test ./utils/... ./task/... ./model/... ./web/controller/... ./web/routes/... ./core/...",
+    "web:deps": "npm --prefix web/client install",
+    "web:start": "npm --prefix apps/web run start",
+    "web:build": "npm --prefix apps/web run build",
+    "web:test": "npm --prefix apps/web run test",
+    "mobile:deps": "cd apps/mobile && flutter pub get",
+    "mobile:run": "cd apps/mobile && flutter run"
+  }
+}

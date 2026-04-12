@@ -6,6 +6,9 @@ gonitor.exe
 gonitor.db
 web/client/node_modules
 web/client/build
+node_modules
+apps/web/node_modules
+apps/web/build
 apps/mobile/.dart_tool
 apps/mobile/build
 apps/mobile/.packages

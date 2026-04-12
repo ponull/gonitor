@@ -165,13 +165,14 @@ go build -o gonitor .
 ### 开发模式（前后端分离）
 
 ```bash
+# 安装 React 依赖
+npm run web:deps
+
 # 启动后端
-go run main.go start
+npm run server:start
 
 # 另开终端启动前端（热更新）
-cd web/client
-npm install
-npm start
+npm run web:start
 # 默认访问 http://localhost:3000，API 代理到 http://localhost:8899
 ```
 
@@ -180,12 +181,31 @@ npm start
 仓库现已补充 `apps/mobile` Flutter 工程，用于在手机端查看概览、任务、节点、日志和系统设置。
 
 ```bash
-cd apps/mobile
-flutter pub get
-flutter run
+npm run mobile:deps
+npm run mobile:run
 ```
 
 > 移动端默认复用现有 Go API，可直接连接 `http://localhost:8899`；如果暂时没有后端环境，也可以在 App 内进入 Demo 模式预览全部页面。
+
+### Monorepo 统一入口
+
+仓库根目录现已提供统一脚本，按 React + Flutter + Go 三端组织：
+
+```bash
+# React Web
+npm run web:deps
+npm run web:start
+
+# Go Server
+npm run server:start
+npm run server:test
+
+# Flutter Mobile
+npm run mobile:deps
+npm run mobile:run
+```
+
+> 说明：为了兼容当前 Go 服务端 `go:embed web/client/build/*` 的静态资源打包方式，React 源码暂时仍保留在 `web/client`，并通过 `apps/web` 工作区入口统一到 monorepo 结构下。
 
 ---
 
@@ -631,7 +651,17 @@ gonitor/
 │       ├── push.go            # 推送测试接口
 │       └── websocket.go       # WebSocket 接口
 │
-├── web/client/                # React 前端
+├── apps/
+│   ├── server/                # Go 服务端 monorepo 入口说明
+│   ├── web/                   # React Web monorepo 工作区入口
+│   │   ├── package.json       # Web 工作区脚本（代理到 web/client）
+│   │   └── README.md          # Web 工作区说明
+│   └── mobile/                # Flutter 移动端（自适应手机 / 平板）
+│       ├── lib/               # App 入口、导航、页面与 API 客户端
+│       ├── pubspec.yaml       # Flutter 工程定义
+│       └── README.md          # 移动端使用说明
+│
+├── web/client/                # React 源码与构建输出（当前仍供 Go embed 使用）
 │   ├── public/                # 静态资源
 │   └── src/
 │       ├── App.js             # 路由配置
@@ -648,12 +678,6 @@ gonitor/
 │       └── utils/
 │           ├── HttpRequest.js # API 请求封装
 │           └── Websocket.js   # WebSocket 封装
-│
-├── apps/
-│   └── mobile/                # Flutter 移动端（自适应手机 / 平板）
-│       ├── lib/               # App 入口、导航、页面与 API 客户端
-│       ├── pubspec.yaml       # Flutter 工程定义
-│       └── README.md          # 移动端使用说明
 │
 ├── script/                    # 脚本文件存放目录（file 类型任务）
 ├── docs/                      # 文档

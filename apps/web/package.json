@@ -1,0 +1,10 @@
+{
+  "name": "gonitor-web",
+  "private": true,
+  "description": "Monorepo React entry that proxies to the legacy web/client source tree.",
+  "scripts": {
+    "start": "npm --prefix ../../web/client start",
+    "build": "npm --prefix ../../web/client build",
+    "test": "npm --prefix ../../web/client test -- --watch=false"
+  }
+}
