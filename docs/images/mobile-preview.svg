@@ -1,0 +1,121 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="900" fill="#F4F7FB"/>
+  <text x="540" y="48" fill="#111827" font-size="24" font-family="Arial" font-weight="700">Gonitor Flutter mobile preview</text>
+
+  <g>
+    <rect x="120" y="90" width="430" height="740" rx="42" fill="#101828"/>
+    <rect x="140" y="110" width="390" height="700" rx="34" fill="#F5F7FB"/>
+    <rect x="270" y="124" width="120" height="18" rx="9" fill="#CBD5E1"/>
+    <rect x="164" y="174" width="342" height="74" rx="24" fill="#FFFFFF"/>
+    <text x="186" y="206" fill="#111827" font-size="24" font-family="Arial" font-weight="700">Gonitor Mobile</text>
+    <text x="186" y="228" fill="#6B7280" font-size="14" font-family="Arial">Overview / Mobile-first dashboard</text>
+
+    <g>
+      <rect x="164" y="270" width="162" height="118" rx="24" fill="#FFFFFF"/>
+      <rect x="180" y="286" width="48" height="48" rx="16" fill="#E9F0FF"/>
+      <text x="180" y="354" fill="#6B7280" font-size="16" font-family="Arial">Tasks</text>
+      <text x="180" y="378" fill="#111827" font-size="28" font-family="Arial" font-weight="700">42</text>
+    </g>
+    <g>
+      <rect x="344" y="270" width="162" height="118" rx="24" fill="#FFFFFF"/>
+      <rect x="360" y="286" width="48" height="48" rx="16" fill="#EAFBF2"/>
+      <text x="360" y="354" fill="#6B7280" font-size="16" font-family="Arial">Nodes</text>
+      <text x="360" y="378" fill="#111827" font-size="28" font-family="Arial" font-weight="700">5</text>
+    </g>
+    <g>
+      <rect x="164" y="404" width="162" height="118" rx="24" fill="#FFFFFF"/>
+      <rect x="180" y="420" width="48" height="48" rx="16" fill="#FFF1E8"/>
+      <text x="180" y="488" fill="#6B7280" font-size="16" font-family="Arial">Users</text>
+      <text x="180" y="512" fill="#111827" font-size="28" font-family="Arial" font-weight="700">6</text>
+    </g>
+    <g>
+      <rect x="344" y="404" width="162" height="118" rx="24" fill="#FFFFFF"/>
+      <rect x="360" y="420" width="48" height="48" rx="16" fill="#F4EEFF"/>
+      <text x="360" y="488" fill="#6B7280" font-size="16" font-family="Arial">Version</text>
+      <text x="360" y="512" fill="#111827" font-size="24" font-family="Arial" font-weight="700">v0.1</text>
+    </g>
+
+    <rect x="164" y="544" width="342" height="202" rx="24" fill="#FFFFFF"/>
+    <text x="186" y="576" fill="#111827" font-size="20" font-family="Arial" font-weight="700">System health overview</text>
+    <g>
+      <rect x="182" y="596" width="146" height="58" rx="18" fill="#F8FAFC"/>
+      <text x="194" y="620" fill="#111827" font-size="16" font-family="Arial" font-weight="700">CPU 33.5%</text>
+      <rect x="194" y="632" width="110" height="10" rx="5" fill="#DBEAFE"/>
+      <rect x="194" y="632" width="62" height="10" rx="5" fill="#2E6BFF"/>
+    </g>
+    <g>
+      <rect x="340" y="596" width="146" height="58" rx="18" fill="#F8FAFC"/>
+      <text x="352" y="620" fill="#111827" font-size="16" font-family="Arial" font-weight="700">Memory 43.1%</text>
+      <rect x="352" y="632" width="110" height="10" rx="5" fill="#D1FAE5"/>
+      <rect x="352" y="632" width="74" height="10" rx="5" fill="#16A34A"/>
+    </g>
+    <g>
+      <rect x="182" y="668" width="146" height="58" rx="18" fill="#F8FAFC"/>
+      <text x="194" y="692" fill="#111827" font-size="16" font-family="Arial" font-weight="700">Disk 142GB</text>
+      <rect x="194" y="704" width="110" height="10" rx="5" fill="#FFEDD5"/>
+      <rect x="194" y="704" width="80" height="10" rx="5" fill="#F97316"/>
+    </g>
+    <g>
+      <rect x="340" y="668" width="146" height="58" rx="18" fill="#F8FAFC"/>
+      <text x="352" y="692" fill="#111827" font-size="16" font-family="Arial" font-weight="700">Load 0.62</text>
+      <rect x="352" y="704" width="110" height="10" rx="5" fill="#EDE9FE"/>
+      <rect x="352" y="704" width="50" height="10" rx="5" fill="#7C3AED"/>
+    </g>
+
+    <rect x="164" y="752" width="342" height="42" rx="21" fill="#FFFFFF"/>
+    <text x="194" y="778" fill="#111827" font-size="14" font-family="Arial" font-weight="700">Overview</text>
+    <text x="282" y="778" fill="#6B7280" font-size="14" font-family="Arial">Tasks</text>
+    <text x="350" y="778" fill="#6B7280" font-size="14" font-family="Arial">Nodes</text>
+    <text x="424" y="778" fill="#6B7280" font-size="14" font-family="Arial">Users</text>
+  </g>
+
+  <g>
+    <rect x="760" y="90" width="430" height="740" rx="42" fill="#101828"/>
+    <rect x="780" y="110" width="390" height="700" rx="34" fill="#F5F7FB"/>
+    <rect x="910" y="124" width="120" height="18" rx="9" fill="#CBD5E1"/>
+    <rect x="804" y="174" width="342" height="62" rx="24" fill="#FFFFFF"/>
+    <text x="826" y="212" fill="#111827" font-size="20" font-family="Arial" font-weight="700">Tasks / Search / Quick actions</text>
+
+    <g>
+      <rect x="804" y="258" width="342" height="154" rx="24" fill="#FFFFFF"/>
+      <text x="826" y="290" fill="#111827" font-size="20" font-family="Arial" font-weight="700">daily-report-sync</text>
+      <text x="826" y="314" fill="#6B7280" font-size="14" font-family="Arial">Schedule / tags / last run summary</text>
+      <rect x="826" y="332" width="60" height="28" rx="14" fill="#EEF2FF"/>
+      <text x="844" y="350" fill="#111827" font-size="13" font-family="Arial">High</text>
+      <rect x="896" y="332" width="52" height="28" rx="14" fill="#F3F4F6"/>
+      <text x="913" y="350" fill="#111827" font-size="13" font-family="Arial">cmd</text>
+      <rect x="826" y="372" width="98" height="34" rx="17" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <rect x="938" y="372" width="110" height="34" rx="17" fill="#E9F0FF"/>
+      <text x="850" y="394" fill="#111827" font-size="14" font-family="Arial">Enable</text>
+      <text x="972" y="394" fill="#111827" font-size="14" font-family="Arial">Run now</text>
+    </g>
+
+    <g>
+      <rect x="804" y="430" width="342" height="154" rx="24" fill="#FFFFFF"/>
+      <text x="826" y="462" fill="#111827" font-size="20" font-family="Arial" font-weight="700">health-check-http</text>
+      <text x="826" y="486" fill="#6B7280" font-size="14" font-family="Arial">HTTP task / critical / edge node health</text>
+      <rect x="826" y="504" width="70" height="28" rx="14" fill="#EEF2FF"/>
+      <text x="842" y="522" fill="#111827" font-size="13" font-family="Arial">Critical</text>
+      <rect x="906" y="504" width="58" height="28" rx="14" fill="#F3F4F6"/>
+      <text x="922" y="522" fill="#111827" font-size="13" font-family="Arial">http</text>
+      <rect x="826" y="544" width="98" height="34" rx="17" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <rect x="938" y="544" width="110" height="34" rx="17" fill="#E9F0FF"/>
+      <text x="850" y="566" fill="#111827" font-size="14" font-family="Arial">Pause</text>
+      <text x="972" y="566" fill="#111827" font-size="14" font-family="Arial">Run now</text>
+    </g>
+
+    <g>
+      <rect x="804" y="602" width="342" height="154" rx="24" fill="#FFFFFF"/>
+      <text x="826" y="634" fill="#111827" font-size="20" font-family="Arial" font-weight="700">archive-old-logs</text>
+      <text x="826" y="658" fill="#6B7280" font-size="14" font-family="Arial">File task / delayed strategy / Tokyo edge</text>
+      <rect x="826" y="676" width="58" height="28" rx="14" fill="#F3F4F6"/>
+      <text x="842" y="694" fill="#111827" font-size="13" font-family="Arial">Low</text>
+      <rect x="894" y="676" width="48" height="28" rx="14" fill="#F3F4F6"/>
+      <text x="911" y="694" fill="#111827" font-size="13" font-family="Arial">file</text>
+      <rect x="826" y="716" width="98" height="34" rx="17" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <rect x="938" y="716" width="110" height="34" rx="17" fill="#E9F0FF"/>
+      <text x="850" y="738" fill="#111827" font-size="14" font-family="Arial">Enable</text>
+      <text x="972" y="738" fill="#111827" font-size="14" font-family="Arial">Run now</text>
+    </g>
+  </g>
+</svg>

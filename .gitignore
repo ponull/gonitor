@@ -6,3 +6,8 @@ gonitor.exe
 gonitor.db
 web/client/node_modules
 web/client/build
+apps/mobile/.dart_tool
+apps/mobile/build
+apps/mobile/.packages
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
