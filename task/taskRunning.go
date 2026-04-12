@@ -213,9 +213,13 @@ func (ri *RunningInstance) writeLogOutput() {
 func (ri *RunningInstance) writeLogContent(content string) {
 	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
 	err := os.MkdirAll(path.Dir(filePath), 0755)
+	if err != nil {
+		log.Println("创建执行日志目录失败", err.Error())
+		return
+	}
 	err = ioutil.WriteFile(filePath, []byte(content), 0666)
 	if err != nil {
-		log.Println("写执行日志失败")
+		log.Println("写执行日志失败", err.Error())
 	}
 }
 
