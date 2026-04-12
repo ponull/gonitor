@@ -9,11 +9,15 @@ import (
 	"gonitor/web/response/errorCode"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func Cors(context *context.Context) {
 	method := context.Request.Method
-	context.Header("Access-Control-Allow-Origin", "*")
+	origin := context.Request.Header.Get("Origin")
+	if origin != "" {
+		context.Header("Access-Control-Allow-Origin", origin)
+	}
 	context.Header("Access-Control-Allow-Headers", "Content-Type,AccessToken,X-CSRF-Token, Authorization, Token")
 	context.Header("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
 	context.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
@@ -36,6 +40,19 @@ func CheckToken(c *context.Context) {
 			"data":    nil,
 		}
 		c.AbortWithStatusJSON(200, result)
+		return
+	}
+	// 校验 token 是否过期
+	if !userToken.ExpiredAt.IsZero() && userToken.ExpiredAt.Before(time.Now()) {
+		// 清理过期 token
+		core.Db.Where("id = ?", userToken.ID).Delete(&model.UserToken{})
+		result := map[string]interface{}{
+			"code":    errorCode.TOKEN_EXPIRED,
+			"message": "登录已过期, 请重新登录",
+			"data":    nil,
+		}
+		c.AbortWithStatusJSON(200, result)
+		return
 	}
 	c.AddParam("current_user_id", strconv.FormatInt(userToken.UserID, 10))
 	c.Request.Header.Add("user_id", strconv.FormatInt(userToken.UserID, 10))

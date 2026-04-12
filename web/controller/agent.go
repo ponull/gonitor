@@ -1,12 +1,16 @@
 package controller
 
 import (
+	"fmt"
 	"gonitor/core"
 	"gonitor/model"
 	"gonitor/task"
+	"gonitor/utils"
 	"gonitor/web/context"
 	"gonitor/web/response"
 	"gonitor/web/response/errorCode"
+	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -126,6 +130,9 @@ func AgentReportTaskResult(context *context.Context) *response.Response {
 		return response.Resp().Error(errorCode.NOT_FOUND, "task not found or not assigned to this node", nil)
 	}
 
+	// 生成输出文件路径，与本地任务日志格式保持一致
+	outputFile := fmt.Sprintf("%d/%s_%s.txt", resultInfo.TaskID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8))
+
 	// 写入任务日志
 	taskLog := &model.TaskLog{
 		TaskId:      resultInfo.TaskID,
@@ -135,8 +142,23 @@ func AgentReportTaskResult(context *context.Context) *response.Response {
 		RunningTime: resultInfo.RunningTime,
 		ExecResult:  resultInfo.ExecResult,
 		Status:      false,
+		OutputFile:  outputFile,
 	}
 	core.Db.Create(taskLog)
+
+	// 将执行输出写入日志文件，与本地任务统一日志存储
+	if resultInfo.ExecOutput != "" {
+		logContent := fmt.Sprintf("******************目标任务: %s (远程节点: %s)******************\n", taskModel.Name, nodeModel.Name)
+		logContent += fmt.Sprintf("执行结果: %v\n", resultInfo.ExecResult)
+		logContent += fmt.Sprintf("运行时间: %d秒\n", resultInfo.RunningTime)
+		logContent += fmt.Sprintf("输出:\n%s\n", resultInfo.ExecOutput)
+
+		filePath := path.Join(core.Config.Script.LogFolder, outputFile)
+		err = os.MkdirAll(path.Dir(filePath), 0755)
+		if err == nil {
+			_ = os.WriteFile(filePath, []byte(logContent), 0644)
+		}
+	}
 
 	return response.Resp().Success("report success", nil)
 }

@@ -16,7 +16,7 @@ func config(router group) {
 		systemGroup.Registered(GET, "/cpu", controller.GetCpuInfo)
 		systemGroup.Registered(GET, "/memory", controller.GetMemoryInfo)
 		systemGroup.Registered(GET, "/disk", controller.GetDiskInfo)
-		systemGroup.Registered(GET, "/net", controller.GetDiskInfo)
+		systemGroup.Registered(GET, "/net", controller.GetNetInfo)
 	}, middleware.CheckToken)
 	router.Group("/task", func(taskGroup group) {
 		taskGroup.Registered(POST, "", controller.AddTask)
@@ -72,6 +72,8 @@ func config(router group) {
 		pushGroup.Registered(GET, "/test", controller.TestPush)
 	})
 	router.Registered(GET, "/version", controller.GetVersionInfo)
+	router.Registered(GET, "/healthz", controller.HealthCheck)
+	router.Registered(GET, "/readyz", controller.ReadyCheck)
 }
 
 func Load(r *gin.Engine) {

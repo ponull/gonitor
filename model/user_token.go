@@ -23,8 +23,9 @@ func (u *UserToken) GenerateToken(userId int64) (string, error) {
 	}
 	token := utils.CreateRandomString(32)
 	result = GetConn().Create(&UserToken{
-		UserID: userId,
-		Token:  token,
+		UserID:    userId,
+		Token:     token,
+		ExpiredAt: time.Now().Add(24 * time.Hour), // token 有效期 24 小时
 	})
 	if result.Error != nil {
 		return "", result.Error
