@@ -9,6 +9,7 @@ import {Login} from "./screen/login/Login";
 import {UserList} from "./screen/userList/UserList";
 import {OperationList} from "./screen/operationList/OperationList";
 import {NodeList} from "./screen/nodeList/NodeList";
+import {SystemSettings} from "./screen/systemSettings/SystemSettings";
 
 function App() {
     return (
@@ -22,6 +23,7 @@ function App() {
                     <Route path="userList" element={<UserList/>}/>
                     <Route path="nodeList" element={<NodeList/>}/>
                     <Route path="operationList" element={<OperationList/>}/>
+                    <Route path="systemSettings" element={<SystemSettings/>}/>
                 </Route>
             </Routes>
         </div>

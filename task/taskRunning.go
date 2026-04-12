@@ -68,6 +68,10 @@ func NewTaskRunningInstance(taskInfo *model.Task) *RunningInstance {
 	}
 }
 
+func createTaskOutputFile(taskID int64) string {
+	return fmt.Sprintf("%d/%s_%s.txt", taskID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8))
+}
+
 func (ri *RunningInstance) run() error {
 	execStat := newTaskExecStat()
 	ri.execResultList = append(ri.execResultList, execStat)
@@ -136,13 +140,16 @@ func (ri *RunningInstance) run() error {
 }
 
 func (ri *RunningInstance) beforeRun() error {
+	if err := validateTaskDependency(ri.taskInfo); err != nil {
+		return ri.recordSkippedRun(err)
+	}
 	taskLogModel := &model.TaskLog{
 		TaskId:     ri.taskInfo.ID,
 		Command:    ri.taskInfo.Command,
 		Status:     true,
 		ExecType:   ri.taskInfo.ExecType,
 		ExecTime:   time.Now(),
-		OutputFile: fmt.Sprintf("%d/%s_%s.txt", ri.taskInfo.ID, time.Now().Format("2006_01_02/15_04_05"), utils.CreateRandomString(8)),
+		OutputFile: createTaskOutputFile(ri.taskInfo.ID),
 		RetryTimes: 0,
 	}
 	dbRt := core.Db.Create(taskLogModel)
@@ -152,6 +159,27 @@ func (ri *RunningInstance) beforeRun() error {
 	}
 	ri.TaskLogInfo = taskLogModel
 	return nil
+}
+
+func (ri *RunningInstance) recordSkippedRun(runErr error) error {
+	taskLogModel := &model.TaskLog{
+		TaskId:      ri.taskInfo.ID,
+		Command:     ri.taskInfo.Command,
+		Status:      false,
+		ExecType:    ri.taskInfo.ExecType,
+		ExecTime:    time.Now(),
+		RunningTime: 0,
+		RetryTimes:  0,
+		ExecResult:  false,
+		OutputFile:  createTaskOutputFile(ri.taskInfo.ID),
+	}
+	dbRt := core.Db.Create(taskLogModel)
+	if dbRt.Error != nil {
+		return dbRt.Error
+	}
+	ri.TaskLogInfo = taskLogModel
+	ri.writeLogContent(fmt.Sprintf("任务未执行，原因：%s\n", runErr.Error()))
+	return runErr
 }
 
 func (ri *RunningInstance) afterRun() {
@@ -179,9 +207,13 @@ func (ri *RunningInstance) afterRun() {
 }
 
 func (ri *RunningInstance) writeLogOutput() {
+	ri.writeLogContent(ri.GenerateExecLog())
+}
+
+func (ri *RunningInstance) writeLogContent(content string) {
 	filePath := path.Join(core.Config.Script.LogFolder, ri.TaskLogInfo.OutputFile)
-	err := os.MkdirAll(path.Dir(filePath), 0666)
-	err = ioutil.WriteFile(filePath, []byte(ri.GenerateExecLog()), 0666)
+	err := os.MkdirAll(path.Dir(filePath), 0755)
+	err = ioutil.WriteFile(filePath, []byte(content), 0666)
 	if err != nil {
 		log.Println("写执行日志失败")
 	}
@@ -196,7 +228,7 @@ func (ri *RunningInstance) getLastExecOutput() string {
 	return ""
 }
 
-//生成执行日志
+// 生成执行日志
 func (ri *RunningInstance) GenerateExecLog() string {
 	execLog := fmt.Sprintf("******************目标任务: %s******************\n", ri.taskInfo.Name)
 	for i, resultItem := range ri.execResultList {

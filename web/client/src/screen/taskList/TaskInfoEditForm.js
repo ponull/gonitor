@@ -26,6 +26,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             schedule,
             retry_times: parseInt(retryTimes),
             retry_interval: parseInt(retryInterval),
+            timeout: parseInt(timeout),
             exec_strategy: parseInt(ExecStrategy),
             is_disable: IsDisable,
             priority: parseInt(priority),
@@ -33,6 +34,7 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             assert,
             result_handler: resultHandler,
             node_id: parseInt(nodeId),
+            depends_on_task_id: parseInt(dependsOnTaskId),
         }
     }
     const [taskName, setTaskName] = useState(taskInfo.name)
@@ -54,6 +56,8 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleRetryTimesChange = (event) => setRetryTimes(event.target.value)
     const [retryInterval, setRetryInterval] = useState(taskInfo.retry_interval)
     const handleRetryIntervalChange = (event) => setRetryInterval(event.target.value)
+    const [timeout, setTimeoutValue] = useState(taskInfo.timeout || 0)
+    const handleTimeoutChange = (event) => setTimeoutValue(event.target.value)
     const [ExecStrategy, setExecStrategy] = useState(taskInfo.exec_strategy)
     const handleExecStrategyChange = (event) => setExecStrategy(event.target.value)
     const [IsDisable, setIsDisable] = useState(taskInfo.is_disable)
@@ -81,7 +85,10 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
     const handleResultHandlerChange = (code) => setResultHandler(code)
     const [nodeId, setNodeId] = useState(taskInfo.node_id || 0)
     const handleNodeIdChange = (event) => setNodeId(event.target.value)
+    const [dependsOnTaskId, setDependsOnTaskId] = useState(taskInfo.depends_on_task_id || 0)
+    const handleDependsOnTaskIdChange = (event) => setDependsOnTaskId(event.target.value)
     const [nodeSelectList, setNodeSelectList] = useState([])
+    const [taskSelectList, setTaskSelectList] = useState([])
     useEffect(() => {
         httpRequest.get("/node/select").then(res => {
             if (res.code === 0 && res.data) {
@@ -94,6 +101,13 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
             }
         })
     }, [])
+    useEffect(() => {
+        httpRequest.get("/task/list").then(res => {
+            if (res.code === 0 && res.data) {
+                setTaskSelectList(res.data.filter(item => item.id !== taskInfo.id))
+            }
+        })
+    }, [taskInfo.id])
     return (
         <React.Fragment>
             <Typography variant="h6" gutterBottom>
@@ -184,6 +198,25 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                         </Select>
                     </FormControl>
                 </Grid>
+                <Grid item xs={12} md={6}>
+                    <FormControl variant="standard" sx={{minWidth: 220}}>
+                        <InputLabel id="depends-task-label">依赖任务</InputLabel>
+                        <Select
+                            labelId="depends-task-label"
+                            id="depends-task"
+                            value={dependsOnTaskId}
+                            onChange={handleDependsOnTaskIdChange}
+                            label="依赖任务"
+                        >
+                            <MenuItem value={0}>无依赖</MenuItem>
+                            {taskSelectList.map(task => (
+                                <MenuItem key={task.id} value={task.id}>
+                                    {task.name} #{task.id}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
                 <Grid item xs={12}>
                     <TextField
                         required
@@ -243,6 +276,19 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
                         inputProps={{inputMode: 'numeric', pattern: '[0-9]*'}}
                     />
                 </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        required
+                        id="timeout"
+                        name="timeout"
+                        label="Timeout (seconds, 0 = unlimited)"
+                        value={timeout}
+                        onChange={handleTimeoutChange}
+                        fullWidth
+                        variant="standard"
+                        inputProps={{inputMode: 'numeric', pattern: '[0-9]*'}}
+                    />
+                </Grid>
                 <Grid item xs={12}>
                     <FormControl>
                         <FormLabel id="demo-radio-buttons-group-label">Execute Strategy (when last task is
@@ -273,4 +319,3 @@ export const TaskInfoEditForm = forwardRef((props, ref) => {
         </React.Fragment>
     );
 });
-

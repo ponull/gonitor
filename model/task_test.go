@@ -21,6 +21,21 @@ func TestTaskTimeoutField(t *testing.T) {
 	}
 }
 
+func TestTaskDependencyField(t *testing.T) {
+	task := Task{
+		Name:    "dependent-task",
+		Command: "echo hello",
+	}
+	if task.DependsOnTaskID != 0 {
+		t.Errorf("Task.DependsOnTaskID default should be 0, got %d", task.DependsOnTaskID)
+	}
+
+	task.DependsOnTaskID = 42
+	if task.DependsOnTaskID != 42 {
+		t.Errorf("Task.DependsOnTaskID should be 42, got %d", task.DependsOnTaskID)
+	}
+}
+
 func TestTaskTableName(t *testing.T) {
 	task := Task{}
 	if task.TableName() != "task" {

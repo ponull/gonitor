@@ -28,6 +28,7 @@ export const TaskAdd = forwardRef((props, ref) => {
         schedule:"",
         retry_times: 0,
         retry_interval: 3000,
+        timeout: 0,
         execute_strategy: 0,
         is_disable: false,
         priority: 1,
@@ -35,6 +36,7 @@ export const TaskAdd = forwardRef((props, ref) => {
         assert:"",
         result_handler:"",
         node_id: 0,
+        depends_on_task_id: 0,
     }
     useImperativeHandle(ref, () => ({
         handleClickOpen,
@@ -98,4 +100,3 @@ export const TaskAdd = forwardRef((props, ref) => {
         </Dialog>
     );
 });
-

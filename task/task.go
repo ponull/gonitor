@@ -142,6 +142,32 @@ func (tm *manager) addTaskRunningIns(taskId int64, instance *RunningInstance) {
 	taskIns.RunningInstances[instance.TaskLogInfo.ID] = instance
 }
 
+func validateTaskDependency(taskInfo *model.Task) error {
+	if taskInfo.DependsOnTaskID == 0 {
+		return nil
+	}
+	if taskInfo.DependsOnTaskID == taskInfo.ID {
+		return fmt.Errorf("任务依赖不能指向自身")
+	}
+	dependencyTask := &model.Task{}
+	dbRt := core.Db.Where("id = ?", taskInfo.DependsOnTaskID).First(dependencyTask)
+	if dbRt.Error != nil {
+		return fmt.Errorf("依赖任务不存在")
+	}
+	lastTaskLog := &model.TaskLog{}
+	dbRt = core.Db.Where("task_id = ? AND status = ?", dependencyTask.ID, false).Order("id DESC").First(lastTaskLog)
+	if dbRt.Error != nil {
+		if dbRt.RecordNotFound() {
+			return fmt.Errorf("依赖任务[%s]尚无成功记录", dependencyTask.Name)
+		}
+		return dbRt.Error
+	}
+	if !lastTaskLog.ExecResult {
+		return fmt.Errorf("依赖任务[%s]最近一次执行未成功", dependencyTask.Name)
+	}
+	return nil
+}
+
 // isLocalTask 判断任务是否在本地执行
 func isLocalTask(t *model.Task) bool {
 	if t.NodeID == 0 {
