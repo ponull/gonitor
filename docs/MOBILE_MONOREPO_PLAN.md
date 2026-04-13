@@ -18,14 +18,16 @@
 ```text
 /home/runner/work/gonitor/gonitor
 ├── apps/
+│   ├── server/          # Go 服务端 monorepo 入口说明
+│   ├── web/             # React Web monorepo 工作区入口
 │   └── mobile/          # Flutter 移动端
-├── web/client/          # 现有 React Web 控制台
+├── web/client/          # 现有 React 源码与构建输出（Go embed 仍依赖）
 ├── web/                 # Go 服务的 Web 层与前端 embed
 ├── model/ task/ core/   # Go 领域与调度核心
 └── docs/                # 文档与移动端规划
 ```
 
-> 说明：考虑到 `web/html.go` 通过 `go:embed` 直接依赖 `web/client/build/*`，本次没有粗暴搬迁现有 Web 目录，而是先新增 `apps/mobile`，让仓库先进入“单仓多端共存”的安全阶段。后续如需把 Web/Server 也完全迁入 `apps/*`，应再做一次更大范围的构建链路改造。
+> 说明：考虑到 `web/html.go` 通过 `go:embed` 直接依赖 `web/client/build/*`，本次继续采用兼容式推进：补齐 `apps/web` 与 `apps/server` 作为 monorepo 统一入口，但暂不粗暴搬迁现有 React 源码和 Go module。这样仓库已经具备 React + Flutter + Go 的完整 monorepo 入口，同时不破坏既有发布链路。
 
 ## 移动端功能映射
 
@@ -50,7 +52,8 @@
 
 ## 后续建议（不在本次最小改动范围内）
 
-- 将现有 Web 前端从 `web/client` 迁移到统一的 `apps/web`
+- 将现有 Web 前端源码从 `web/client` 物理迁移到统一的 `apps/web`
+- 将 Go 服务端入口与打包链路进一步下沉到 `apps/server`
 - 为移动端抽出共享 API Schema / OpenAPI 文档，减少字段漂移
 - 引入角色权限与只读移动角色，降低移动端误操作风险
 - 为任务详情补充 WebSocket / SSE 实时更新能力
